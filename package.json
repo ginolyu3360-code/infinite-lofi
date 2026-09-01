@@ -1,0 +1,50 @@
+{
+  "name": "infinite-lofi-desktop",
+  "version": "1.0.0",
+  "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
+  "main": "main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:css\" \"npm run dev:app\"",
+    "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --watch",
+    "dev:app": "electron .",
+    "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
+    "start": "npm run build:css && electron .",
+    "dist": "npm run build:css && electron-builder --mac --x64",
+    "pack": "npm run build:css && electron-builder --dir --mac --x64"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^41.3.0",
+    "electron-builder": "^25.0.0",
+    "tailwindcss": "^3.4.13"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "music-metadata": "^11.12.3"
+  },
+  "build": {
+    "appId": "com.infinite-lofi.desktop",
+    "productName": "Infinite Lo-Fi",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/.DS_Store",
+      "!**/*.md",
+      "!dist/**",
+      "!node_modules/.cache/**"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.icns"
+    }
+  }
+}
