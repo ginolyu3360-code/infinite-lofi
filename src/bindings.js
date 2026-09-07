@@ -168,6 +168,25 @@
     });
   }
 
+  function bindSwipeToClose(element, onClose, threshold = 72) {
+    if (!element || typeof onClose !== "function") return;
+    let gesture = null;
+    element.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" || event.button !== 0) return;
+      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    });
+    element.addEventListener("pointerup", (event) => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      const horizontalDistance = event.clientX - gesture.x;
+      const verticalDistance = Math.abs(event.clientY - gesture.y);
+      gesture = null;
+      if (horizontalDistance >= threshold && horizontalDistance > verticalDistance * 1.2) onClose();
+    });
+    element.addEventListener("pointercancel", () => {
+      gesture = null;
+    });
+  }
+
   function bindUiEvents(options) {
     const { window: targetWindow, document, elements: e, actions: a, formatTime } = options;
     const on = (element, eventName, handler, listenerOptions) => {
@@ -204,12 +223,17 @@
     on(e.backgroundCloseBtn, "click", () => a.toggleBackgroundDrawer(false));
     on(e.bgVideoBtn, "click", a.importBackgroundVideo);
     on(e.bgCoverBtn, "click", () => a.setBackgroundMode("cover"));
-    on(e.drawerBackdrop, "click", () => a.toggleBackgroundDrawer(false));
+    on(e.drawerBackdrop, "click", () => {
+      a.toggleBackgroundDrawer(false);
+      a.toggleStatsDrawer(false);
+    });
     on(e.bgBlackBtn, "click", () => a.setBackgroundMode("black"));
     on(e.bgWhiteBtn, "click", () => a.setBackgroundMode("white"));
     on(e.bgWallpaperBtn, "click", a.useDesktopWallpaperBackground);
     on(e.bgImageBtn, "click", a.importBackgroundImage);
     on(e.bgResetBtn, "click", a.resetBackground);
+    bindSwipeToClose(e.statsDrawer, () => a.toggleStatsDrawer(false));
+    bindSwipeToClose(e.backgroundDrawer, () => a.toggleBackgroundDrawer(false));
     on(e.showcaseToggleBtn, "click", (event) => {
       event.stopPropagation();
       a.toggleShowcaseMode();
@@ -258,8 +282,6 @@
         Math.min(duration, (Number(e.progressSlider.value) / 1000) * duration)
       );
     });
-    on(e.timerContent, "scroll", a.queueUpdateTimerScrollIndicators, { passive: true });
-
     on(targetWindow, "focus", a.syncTimerToClock);
     on(targetWindow, "beforeunload", a.persistBeforeUnload);
     on(document, "visibilitychange", () => {
@@ -288,7 +310,7 @@
     });
   }
 
-  const api = { applyHoverHints, bindKeyboardShortcuts, bindUiEvents, isTypingElement };
+  const api = { applyHoverHints, bindKeyboardShortcuts, bindSwipeToClose, bindUiEvents, isTypingElement };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (globalScope) globalScope.InfiniteLofiBindings = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

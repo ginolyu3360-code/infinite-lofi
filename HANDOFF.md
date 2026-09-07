@@ -15,7 +15,8 @@ Updated: 2026-09-07
 - Repository/package version: 1.2.0, currently unreleased.
 - Phase 0 and Phase 1 are complete.
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
-- The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete locally but has not yet been committed or pushed.
+- The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
+- The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
 - Phase 3 has not started.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
@@ -30,7 +31,7 @@ Updated: 2026-09-07
 - Tag-driven Release automation validates tag/package versions, runs checks, builds Universal DMG/ZIP files, generates SHA-256 checksums, and creates or updates a GitHub Release.
 - `electron-builder` was upgraded to 26.15.3. Full and production-only `npm audit` both report zero known vulnerabilities.
 
-## Pre-Phase 3 hardening delivered locally
+## Pre-Phase 3 hardening delivered
 
 - Unified focus-history retention at 366 daily rows so recording a new session cannot silently truncate imported history to 60 rows.
 - Made the custom Quit App action terminate Electron on macOS; tray mode continues to hide the window, and the final quit path is covered by the UI smoke test.
@@ -40,10 +41,18 @@ Updated: 2026-09-07
 - Forced every launched UI smoke test to use a temporary profile and wait for full document load; CI now runs both development and packaged-app smoke tests.
 - Added regression coverage for 366-row history, lifecycle decisions, background precedence, bounded/cached music scanning, damaged metadata, and real backup restore.
 
+## UI foundation delivered
+
+- Replaced the interface with the Quiet Studio visual system and a responsive 1100 × 760 default layout.
+- Added a dedicated Mini Mode toggle, 420 × 230 compact window, and restoration of the previous full-window bounds.
+- Removed timer-area scrolling and made the timer fit all supported full and Mini window sizes.
+- Rebuilt the statistics drawer with larger controls and readable horizontal month-chart scrolling.
+- Increased primary control targets to 44 px in full view and added backdrop, Escape, touch/pen swipe, keyboard-focus, and reduced-motion behavior.
+
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 30 passed, 0 failed.
+- Unit tests: 31 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.
@@ -53,7 +62,8 @@ Updated: 2026-09-07
   - `dist/Infinite-Lo-Fi-1.2.0-universal.dmg`
   - `dist/Infinite-Lo-Fi-1.2.0-universal.zip`
 - `dist/` is ignored and is not committed.
-- The latest hardening changes passed `npm run check`, the isolated development UI smoke test, Universal packaging, and the isolated packaged-app UI smoke test locally. They are still uncommitted and have not triggered a new GitHub Actions run.
+- The latest hardening and UI changes passed `npm run check`, isolated development UI smoke tests across supported window sizes, Universal packaging, and the isolated packaged-app UI smoke test locally.
+- Mini Mode passed at 420 × 230 and restored the 1100 × 760 full bounds; all measured timer overflow values were zero.
 
 ## Repository cleanup
 
@@ -63,9 +73,10 @@ Updated: 2026-09-07
 
 ## Recommended next decision
 
-After confirming the staged `main` CI run, either:
+After confirming the latest `main` CI run, either:
 
-1. Observe and review the Phase 2 state without publishing, or
-2. When explicitly requested, push tag `v1.2.0` and let the Release workflow publish the unsigned Universal build.
+1. Continue observing and reviewing the unreleased v1.2.0 state, or
+2. When explicitly requested, push tag `v1.2.0` and let the Release workflow publish the unsigned Universal build, or
+3. After the release boundary is resolved and the user gives a concrete instruction, plan the first Phase 3 product slice.
 
 Do not start Phase 3 until the user gives a concrete instruction.

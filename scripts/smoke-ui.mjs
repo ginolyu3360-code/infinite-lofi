@@ -122,6 +122,29 @@ try {
   }
 
   await send("Runtime.enable");
+  async function setWindowSize(width, height) {
+    await evaluate(`window.resizeTo(${width}, ${height}); true`);
+    await delay(350);
+  }
+
+  async function readLayoutState() {
+    return evaluate(`(() => {
+      const timerContent = document.querySelector('#timerContent');
+      const timerCard = document.querySelector('#timerCard');
+      const player = document.querySelector('#playerPanel');
+      const timerButton = document.querySelector('#timerToggle');
+      const cardRect = timerCard.getBoundingClientRect();
+      const playerRect = player.getBoundingClientRect();
+      return {
+        width: innerWidth,
+        height: innerHeight,
+        timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+        cardInsideViewport: cardRect.left >= 0 && cardRect.right <= innerWidth + 1 && cardRect.top >= 0,
+        playerInsideViewport: playerRect.left >= 0 && playerRect.right <= innerWidth + 1 && playerRect.bottom <= innerHeight + 1,
+        timerButtonHeight: timerButton.getBoundingClientRect().height
+      };
+    })()`);
+  }
   for (let attempt = 0; attempt < 40; attempt += 1) {
     if (await evaluate("document.readyState") === "complete") break;
     if (attempt === 39) throw new Error("Timed out waiting for the renderer document to finish loading");
@@ -169,10 +192,36 @@ try {
         'timerDisplay', 'timerToggle', 'notesInput', 'playPauseBtn',
         'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
-        'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn'
+        'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn',
+        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
+
+  const responsiveLayouts = [];
+  for (const [width, height] of [[720, 520], [800, 600], [1440, 900], [1100, 760]]) {
+    await setWindowSize(width, height);
+    responsiveLayouts.push(await readLayoutState());
+  }
+
+  await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
+  await delay(800);
+  const miniMode = await evaluate(`(() => ({
+    enabled: document.body.classList.contains('is-mini-mode'),
+    width: innerWidth,
+    height: innerHeight,
+    timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
+    fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
+    notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none'
+  }))()`);
+  await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
+  await delay(800);
+  const restoredFullMode = await evaluate(`(() => ({
+    enabled: document.body.classList.contains('is-mini-mode'),
+    width: innerWidth,
+    height: innerHeight,
+    miniLabel: document.querySelector('#miniModeToggleBtn').textContent.trim()
+  }))()`);
 
   await evaluate("document.querySelector('#timerToggle').click(); true");
   await delay(1_300);
@@ -234,6 +283,15 @@ try {
   const failures = [];
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
+  if (responsiveLayouts.some((layout) => layout.timerOverflow > 1 || !layout.cardInsideViewport || !layout.playerInsideViewport || layout.timerButtonHeight < 42)) {
+    failures.push("responsive full-window layout overflowed or exposed undersized controls");
+  }
+  if (!miniMode.enabled || miniMode.width > 480 || miniMode.height > 280 || miniMode.timerOverflow > 1 || miniMode.fullLabel !== "Full" || !miniMode.notesHidden) {
+    failures.push("Mini Mode layout or window sizing failed");
+  }
+  if (restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 || restoredFullMode.miniLabel !== "Mini") {
+    failures.push("full-window bounds were not restored after Mini Mode");
+  }
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
@@ -241,7 +299,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, runningTimer, notesResult, drawersResult, playerResult, finalState, exceptions };
+  const report = { baseline, responsiveLayouts, miniMode, restoredFullMode, runningTimer, notesResult, drawersResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   if (appProcess) {

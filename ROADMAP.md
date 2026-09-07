@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-Version 1.1.0 is the latest published release. Version 1.2.0 is stage-complete on `main` with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, and automated releases, but its tag and Release have intentionally not been created.
+Version 1.1.0 is the latest published release. Version 1.2.0 source is stage-complete with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, automated releases, pre-Phase 3 correctness hardening, and the refreshed UI foundation. Its tag and Release have intentionally not been created.
 
 The latest `main` CI result must be confirmed before any v1.2.0 tag is created. Version 1.2.0 should then be released and observed before Phase 3 product expansion begins.
 
@@ -70,7 +70,7 @@ Only start after Phases 0–2 are stable.
 
 ### Pre-Phase 3 hardening
 
-Status: completed and verified locally on 2026-09-07; pending commit, push, and GitHub Actions confirmation.
+Status: completed and verified locally on 2026-09-07. Implemented in commit `c3bbf69`; the latest `main` GitHub Actions result must still be confirmed after the source push.
 
 - [x] Keep focus-history retention consistent at 366 daily rows across storage and session recording.
 - [x] Make Quit App exit reliably on macOS while preserving minimize-to-tray behavior.
@@ -79,6 +79,17 @@ Status: completed and verified locally on 2026-09-07; pending commit, push, and 
 - [x] Move music scanning off synchronous filesystem calls, bound metadata concurrency, cache embedded artwork as files, and avoid base64 artwork IPC payloads.
 - [x] Limit restored music-folder scans to paths approved through the native chooser.
 - [x] Cover the new paths with unit and end-to-end smoke tests.
+
+### UI foundation before Phase 3
+
+Status: completed and verified locally on 2026-09-07. See `UI-REFRESH-PLAN.md` for the approved implementation specification.
+
+- [x] Replace the current visual and responsive layout foundation.
+- [x] Add an explicit, dedicated Mini Mode with full-window bounds restoration.
+- [x] Remove timer-area scrolling and make clock/timer sizing responsive to width and height.
+- [x] Rebuild statistics for readable responsive sizing and horizontal month navigation.
+- [x] Enlarge interactive targets and add safe trackpad/touch-friendly behavior.
+- [x] Verify representative full-window sizes and Mini Mode in development and packaged builds.
 
 - Add configurable long breaks, auto-start options, and daily focus goals.
 - Add session history editing and richer trends without turning the app into a complex analytics product.

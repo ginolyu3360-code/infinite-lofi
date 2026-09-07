@@ -24,7 +24,7 @@
         <button id="storageRecoveryDismissBtn" type="button">Dismiss</button>
       </div>
     </section>
-    <div class="relative h-screen w-screen overflow-hidden">
+    <div id="appShell" class="app-shell relative h-screen w-screen overflow-hidden">
       <video
         id="bgVideo"
         class="absolute inset-0 h-full w-full object-cover opacity-45"
@@ -42,25 +42,35 @@
       <div id="ambienceOverlay" class="absolute inset-0 bg-gradient-to-br from-zinc-900/70 via-zinc-900/40 to-amber-950/55"></div>
       <div class="grain-layer absolute inset-0 opacity-25 mix-blend-overlay"></div>
 
-      <header class="window-drag-region absolute left-0 right-0 top-0 z-20 flex h-11 items-center justify-between px-4">
-        <div id="statusWidget" class="flex items-center gap-3 pl-2 pr-2">
+      <header id="appHeader" class="window-drag-region">
+        <div id="statusWidget">
           <div id="statusTime" class="text-xs font-mono text-zinc-100/90">--:--</div>
           <div id="statusDate" class="text-[0.65rem] font-mono text-zinc-200/70">----</div>
           <div id="statusWeather" class="text-[0.62rem] font-mono text-zinc-300/60">Loading…</div>
         </div>
-        <div class="window-controls flex items-center gap-2">
-          <button id="windowMinBtn" class="window-btn" title="Minimize" aria-label="Minimize">-</button>
-          <button id="windowCloseBtn" class="window-btn" title="Close" aria-label="Close">x</button>
+        <div class="header-actions">
+          <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes">Notes</button>
+          <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
+          <div class="window-controls">
+            <button id="windowMinBtn" class="window-btn" title="Minimize" aria-label="Minimize">−</button>
+            <button id="windowCloseBtn" class="window-btn" title="Close" aria-label="Close">×</button>
+          </div>
         </div>
       </header>
 
-      <main id="appLayout" class="relative z-10 h-full p-6 pt-14">
-        <section id="notesPanel" class="glass-panel flex w-72 flex-col rounded-3xl p-5">
-          <p class="font-mono text-xs uppercase tracking-[0.3em] text-zinc-200/80">Notes</p>
-          <div class="mt-3 flex items-center gap-2">
-            <button id="noteNewBtn" class="control-btn h-8 px-2 text-[0.6rem]" title="New Note" aria-label="New Note">New</button>
-            <button id="notePinBtn" class="control-btn h-8 px-2 text-[0.6rem]" title="Pin / Unpin Note" aria-label="Pin or unpin Note">Pin</button>
-            <button id="noteDeleteBtn" class="control-btn h-8 px-2 text-[0.6rem]" title="Delete Note" aria-label="Delete Note">Del</button>
+      <main id="appLayout">
+        <section id="notesPanel" class="glass-panel">
+          <div class="panel-title-row">
+            <div>
+              <p class="panel-eyebrow">Workspace</p>
+              <h2 class="panel-title">Notes</h2>
+            </div>
+            <button id="notesCloseBtn" class="window-btn panel-close-btn" type="button" title="Close notes" aria-label="Close notes">×</button>
+          </div>
+          <div class="notes-actions">
+            <button id="noteNewBtn" class="control-btn" title="New Note" aria-label="New Note">New</button>
+            <button id="notePinBtn" class="control-btn" title="Pin / Unpin Note" aria-label="Pin or unpin Note">Pin</button>
+            <button id="noteDeleteBtn" class="control-btn danger-subtle" title="Delete Note" aria-label="Delete Note">Delete</button>
           </div>
           <div id="noteTabs" aria-label="Note tabs"></div>
           <textarea
@@ -70,28 +80,28 @@
           ></textarea>
         </section>
 
-        <section id="mainRightColumn" class="min-h-0">
-          <div id="timerArea" class="min-h-0">
-            <div id="timerCard" class="glass-panel rounded-[2.5rem] px-12 py-10 text-center">
+        <section id="mainRightColumn">
+          <div id="timerArea">
+            <div id="timerCard" class="glass-panel">
               <button id="showcaseToggleBtn" class="window-btn absolute right-4 top-4" title="Enter showcase mode" aria-label="Enter showcase mode">Show</button>
               <div id="timerContent" class="timer-content">
-                <p class="font-mono text-xs uppercase tracking-[0.4em] text-zinc-200/75">Pomodoro</p>
-                <p id="timerPhaseLabel" class="mt-3 font-mono text-[0.68rem] uppercase tracking-[0.35em] text-amber-200/80">
+                <p class="timer-kicker">Infinite Focus</p>
+                <p id="timerPhaseLabel" class="timer-phase">
                   Focus Session
                 </p>
                 <h1
                   id="timerDisplay"
-                  class="mt-3 text-[min(18vw,12rem)] font-bold leading-none tracking-tight text-zinc-50"
+                  class="timer-display"
                 >
                   25:00
                 </h1>
-                <div id="timerActions" class="mt-6 flex items-center justify-center gap-3">
-                  <button id="timerToggle" class="control-btn" title="Start or pause timer">Start</button>
+                <div id="timerActions" class="timer-actions">
+                  <button id="timerToggle" class="control-btn primary-control" title="Start or pause timer">Start</button>
                   <button id="timerReset" class="control-btn" title="Reset timer">Reset</button>
                 </div>
 
-                <div id="timerConfigPanel" class="mt-4 rounded-2xl border border-white/15 bg-black/15 px-4 py-3">
-                <div class="flex flex-wrap items-end justify-center gap-3">
+                <div id="timerConfigPanel">
+                <div class="timer-config-fields">
                   <label class="timer-config-label">
                     Focus (min)
                     <input id="focusMinutesInput" type="number" min="1" max="360" value="25" class="timer-config-input" title="Set focus duration in minutes" />
@@ -101,40 +111,38 @@
                     <input id="breakMinutesInput" type="number" min="1" max="360" value="5" class="timer-config-input" title="Set break duration in minutes" />
                   </label>
                 </div>
-                <div class="mt-3 flex items-center justify-center gap-2">
-                  <span class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-zinc-300/70">Close Action</span>
-                  <button id="closeModeToggleBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Toggle close behavior">Quit App</button>
+                <div class="close-action-row">
+                  <span>Close Action</span>
+                  <button id="closeModeToggleBtn" class="control-btn" title="Toggle close behavior">Quit App</button>
                 </div>
-                <p class="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.2em] text-zinc-300/60">
+                <p class="timer-limit-hint">
                   Max duration: 6h (360min)
                 </p>
               </div>
               </div>
-              <div id="timerScrollFadeTop" class="timer-scroll-fade timer-scroll-fade-top hidden" aria-hidden="true"></div>
-              <div id="timerScrollFadeBottom" class="timer-scroll-fade timer-scroll-fade-bottom hidden" aria-hidden="true"></div>
             </div>
           </div>
 
-          <footer id="playerPanel" class="glass-panel mb-1 rounded-2xl px-5 py-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p id="trackLabel" class="font-mono text-xs uppercase tracking-[0.25em] text-zinc-200/85">Track 01</p>
-                <p class="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.22em] text-zinc-300/65">Lo-Fi Queue</p>
+          <footer id="playerPanel" class="glass-panel">
+            <div class="player-header">
+              <div class="track-copy">
+                <p class="panel-eyebrow">Now Playing</p>
+                <p id="trackLabel">Track 01</p>
               </div>
-              <div class="flex items-center gap-2">
-                <button id="playlistToggleBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Show or hide playlist">List</button>
-                <button id="statsToggleBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Show or hide stats">Stats</button>
-                <button id="bgToggleBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Open background options">Bg</button>
+              <div class="player-utility-actions">
+                <button id="playlistToggleBtn" class="control-btn" title="Show or hide playlist">Queue</button>
+                <button id="statsToggleBtn" class="control-btn" title="Show or hide stats">Stats</button>
+                <button id="bgToggleBtn" class="control-btn" title="Open background options">Scene</button>
               </div>
             </div>
 
-            <div class="mt-3 flex items-center justify-center gap-2">
-              <button id="prevTrackBtn" class="transport-btn" title="Previous track"><<</button>
-              <button id="playPauseBtn" class="transport-btn px-5" title="Play or pause music">Play</button>
-              <button id="nextTrackBtn" class="transport-btn" title="Next track">>></button>
+            <div class="player-transport">
+              <button id="prevTrackBtn" class="transport-btn" title="Previous track" aria-label="Previous track">‹</button>
+              <button id="playPauseBtn" class="transport-btn transport-primary" title="Play or pause music">Play</button>
+              <button id="nextTrackBtn" class="transport-btn" title="Next track" aria-label="Next track">›</button>
             </div>
 
-            <div class="mt-3">
+            <div class="player-progress">
               <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="progress-slider" aria-label="Playback progress" title="Seek within the current track" />
               <div class="mt-1 flex items-center justify-between">
                 <span id="currentTimeLabel" class="media-time">00:00</span>
@@ -142,12 +150,12 @@
               </div>
             </div>
 
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <label class="flex items-center gap-2">
+            <div class="player-aux-controls">
+              <label>
                 <span class="media-time">Vol</span>
                 <input id="volumeSlider" type="range" min="0" max="100" value="68" class="aux-slider" aria-label="Volume" title="Adjust music volume" />
               </label>
-              <label class="flex items-center gap-2">
+              <label>
                 <span class="media-time">Light</span>
                 <input id="brightnessSlider" type="range" min="40" max="130" value="100" class="aux-slider" aria-label="Brightness" title="Adjust background brightness" />
               </label>
@@ -165,14 +173,21 @@
       </main>
 
       <aside id="statsDrawer">
-        <section id="statsPanel" class="glass-panel relative rounded-2xl px-5 py-4">
-          <button id="statsCloseBtn" class="window-btn absolute right-3 top-3" title="Close Stats" aria-label="Close Stats">x</button>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <p id="statsHeadingLabel" class="font-mono text-xs uppercase tracking-[0.24em] text-zinc-200/85">Focus Stats (This Week)</p>
-            <div class="flex items-center gap-2">
+        <section id="statsPanel" class="glass-panel drawer-panel">
+          <div class="drawer-header">
+            <div>
+              <p class="panel-eyebrow">Review</p>
+              <h2 id="statsHeadingLabel" class="panel-title">Focus Stats (This Week)</h2>
+            </div>
+            <button id="statsCloseBtn" class="window-btn" title="Close Stats" aria-label="Close Stats">×</button>
+          </div>
+          <div class="stats-toolbar">
+            <div class="segmented-control" aria-label="Statistics range">
               <button id="statsRangeTodayBtn" class="stats-range-btn" title="Show today stats">Today</button>
               <button id="statsRangeWeekBtn" class="stats-range-btn is-active" title="Show this week stats">Week</button>
               <button id="statsRangeMonthBtn" class="stats-range-btn" title="Show this month stats">Month</button>
+            </div>
+            <div class="stats-file-actions">
               <button id="exportStatsBtn" class="stats-export-btn" title="Export stats as CSV">CSV</button>
               <button id="backupStatsBtn" class="stats-export-btn" title="Export a full backup">Backup</button>
               <button id="restoreBackupBtn" class="stats-export-btn" title="Restore and validate a backup">Restore</button>
@@ -180,10 +195,8 @@
               <button id="clearStatsBtn" class="stats-danger-btn" title="Clear all stats">Clear</button>
             </div>
           </div>
-          <div class="mt-2 flex items-center justify-between">
-            <p id="todayFocusStat" class="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-amber-200/85">Today 0m</p>
-          </div>
-          <section class="weather-settings mt-3" aria-labelledby="weatherSettingsTitle">
+          <p id="todayFocusStat" class="today-focus-stat">Today 0m</p>
+          <section class="weather-settings" aria-labelledby="weatherSettingsTitle">
             <div class="weather-settings-row">
               <label id="weatherSettingsTitle" for="weatherModeSelect">Weather</label>
               <select id="weatherModeSelect" class="weather-settings-input" title="Choose weather privacy mode">
@@ -201,13 +214,13 @@
                 aria-label="Weather city"
                 disabled
               />
-              <button id="weatherApplyBtn" class="stats-export-btn" type="button">Apply</button>
+              <button id="weatherApplyBtn" class="control-btn" type="button">Apply</button>
             </div>
             <p id="weatherPrivacyHint" class="weather-privacy-hint">
               Weather is off. No weather or location requests are made.
             </p>
           </section>
-          <div class="mt-4 grid grid-cols-3 gap-3">
+          <div class="stats-metrics">
             <div class="stats-metric-card">
               <span class="stats-metric-label">Total</span>
               <span id="statsTotalValue" class="stats-metric-value">0h 0m</span>
@@ -221,34 +234,41 @@
               <span id="statsPeakValue" class="stats-metric-value">0m</span>
             </div>
           </div>
-          <div class="stats-chart-wrap relative mt-4">
-            <div id="statsTooltip" class="stats-tooltip hidden" role="tooltip"></div>
-            <div id="statsBars" class="grid gap-2"></div>
+          <div class="stats-chart-scroll" aria-label="Scrollable focus chart">
+            <div class="stats-chart-wrap">
+              <div id="statsTooltip" class="stats-tooltip hidden" role="tooltip"></div>
+              <div id="statsBars"></div>
+            </div>
           </div>
         </section>
       </aside>
 
       <aside id="backgroundDrawer">
-        <section id="backgroundPanel" class="glass-panel relative rounded-2xl">
-          <button id="backgroundCloseBtn" class="window-btn absolute right-3 top-3" title="Close Background" aria-label="Close Background">x</button>
-          <p class="font-mono text-xs uppercase tracking-[0.24em] text-zinc-200/85">Background</p>
-          <p class="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-300/65">Choose a pure tone or import a local image</p>
+        <section id="backgroundPanel" class="glass-panel drawer-panel">
+          <div class="drawer-header">
+            <div>
+              <p class="panel-eyebrow">Atmosphere</p>
+              <h2 class="panel-title">Scene</h2>
+            </div>
+            <button id="backgroundCloseBtn" class="window-btn" title="Close Background" aria-label="Close Background">×</button>
+          </div>
+          <p class="panel-description">Choose a quiet tone, the current track cover, or your own local media.</p>
 
           <div class="mt-4 bg-option-row">
-            <button id="bgBlackBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Use a black background">Black</button>
-            <button id="bgVideoBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Import a video background">Video</button>
-            <button id="bgWhiteBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Use a white background">White</button>
-            <button id="bgCoverBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Use the current track cover as the background">Track Cover</button>
-            <button id="bgWallpaperBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Use the desktop wallpaper">Wallpaper</button>
-            <button id="bgImageBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Import a background image">Import Image</button>
-            <button id="bgResetBtn" class="control-btn h-9 px-3 text-[0.62rem]" title="Reset background settings">Reset</button>
+            <button id="bgBlackBtn" class="control-btn" title="Use a black background">Black</button>
+            <button id="bgVideoBtn" class="control-btn" title="Import a video background">Video</button>
+            <button id="bgWhiteBtn" class="control-btn" title="Use a white background">White</button>
+            <button id="bgCoverBtn" class="control-btn" title="Use the current track cover as the background">Track Cover</button>
+            <button id="bgWallpaperBtn" class="control-btn" title="Use the desktop wallpaper">Wallpaper</button>
+            <button id="bgImageBtn" class="control-btn" title="Import a background image">Import Image</button>
+            <button id="bgResetBtn" class="control-btn" title="Reset background settings">Reset</button>
           </div>
 
           <div class="mt-4 bg-preview">
             <div id="bgPreviewSurface" class="bg-preview-surface"></div>
           </div>
 
-          <div class="mt-4 rounded-2xl border border-white/15 bg-black/15 px-3 py-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-200/75">
+          <div class="scene-meta">
             <div>Mode: <span id="bgModeLabel">Black</span></div>
             <div class="mt-1 break-all">Image: <span id="bgPathLabel">None</span></div>
           </div>

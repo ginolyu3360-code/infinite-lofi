@@ -16,6 +16,7 @@
 
 ## 主要特性
 - 番茄专注 / 休息计时器，支持开始/暂停/重置与托盘显示
+- Quiet Studio 响应式界面，以及可独立切换并恢复完整窗口大小的 Mini Mode
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹并缓存嵌入封面
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
@@ -50,6 +51,7 @@ package.json            # 脚本、依赖、打包配置
 tailwind.config.js
 verification-log.md
 HANDOFF.md             # 新会话接续说明、验证结果与下一步边界
+UI-REFRESH-PLAN.md     # Phase 3 前 UI 基础改版的决策、规则与验收标准
 .github/workflows/ci.yml # GitHub Actions 检查与 macOS 打包验证
 .github/workflows/release.yml # 标签触发的 Universal Release 自动发布
 scripts/smoke-ui.mjs    # Electron 界面冒烟测试
@@ -134,6 +136,7 @@ electron-builder 的关键配置（来自 package.json）：
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
 - Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；关闭行为、音乐目录/顺序和活动计时器可以恢复。
 - Phase 2（签名除外）已完成：天气默认关闭，可选择自动 IP 定位或手动城市；设置面板会解释相应网络行为。
+- Phase 3 尚未开始；其之前的正确性加固和 UI 基础改版已完成并通过源码版与 Universal 打包版验证。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -175,6 +178,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 
 ## Key features
 - Pomodoro-style focus/break timer with start/pause/reset and tray display
+- Responsive Quiet Studio interface with an explicit Mini Mode that restores the previous full-window bounds
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks and ability to load and scan a local music folder
 - Versioned local storage with legacy migration and validated backup restore

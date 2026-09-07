@@ -15,6 +15,8 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 let closeBehavior = "quit";
+let miniModeEnabled = false;
+let fullWindowBounds = null;
 let musicLibrary = null;
 let grantedMusicFolders = new Set();
 let trayStatus = {
@@ -100,10 +102,10 @@ function refreshTrayMenu() {
 function createMainWindow() {
   const allowDevTools = !app.isPackaged || process.argv.includes("--allow-devtools-for-testing");
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
-    minWidth: 360,
-    minHeight: 280,
+    width: 1100,
+    height: 760,
+    minWidth: 720,
+    minHeight: 520,
     resizable: true,
     frame: false,
     transparent: true,
@@ -138,6 +140,9 @@ function createMainWindow() {
   if (process.platform === "win32") {
     mainWindow.setBackgroundColor("#00000000");
   }
+  if (process.platform === "darwin") {
+    mainWindow.setWindowButtonVisibility(false);
+  }
 
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
@@ -156,6 +161,8 @@ function createMainWindow() {
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
+    miniModeEnabled = false;
+    fullWindowBounds = null;
     refreshTrayMenu();
   });
 
@@ -191,6 +198,26 @@ ipcMain.on("window:minimize", (event) => {
   if (targetWindow && !targetWindow.isDestroyed()) {
     targetWindow.minimize();
   }
+});
+
+ipcMain.handle("window:setMiniMode", (event, enabled) => {
+  if (!isTrustedIpcSender(event) || !mainWindow || mainWindow.isDestroyed()) return miniModeEnabled;
+  const nextEnabled = enabled === true;
+  if (nextEnabled === miniModeEnabled) return miniModeEnabled;
+
+  if (nextEnabled) {
+    fullWindowBounds = mainWindow.getBounds();
+    miniModeEnabled = true;
+    mainWindow.setMinimumSize(360, 200);
+    mainWindow.setSize(420, 230, true);
+  } else {
+    miniModeEnabled = false;
+    mainWindow.setMinimumSize(720, 520);
+    if (fullWindowBounds) mainWindow.setBounds(fullWindowBounds, true);
+    else mainWindow.setSize(1100, 760, true);
+    fullWindowBounds = null;
+  }
+  return miniModeEnabled;
 });
 
 ipcMain.on("window:close", (event) => {

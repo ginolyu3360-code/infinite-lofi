@@ -37,6 +37,7 @@
         : !elements.statsDrawer.classList.contains("is-open");
       elements.statsDrawer.classList.toggle("is-open", nextOpen);
       elements.statsToggleBtn.textContent = nextOpen ? "Hide Stats" : "Stats";
+      elements.drawerBackdrop?.classList.toggle("visible", nextOpen);
     }
 
     function loadStatsRange() {
@@ -77,7 +78,10 @@
       elements.statsTotalValue.textContent = formatShortDuration(summary.totalMinutes);
       elements.statsAverageValue.textContent = `${summary.averageMinutes}m`;
       elements.statsPeakValue.textContent = `${summary.peakMinutes}m`;
-      elements.statsBars.style.gridTemplateColumns = `repeat(${days.length}, minmax(0, 1fr))`;
+      elements.statsBars.classList.toggle("is-month-range", rangeMode === "month");
+      elements.statsBars.style.gridTemplateColumns = rangeMode === "month"
+        ? `repeat(${days.length}, minmax(2.45rem, 1fr))`
+        : `repeat(${days.length}, minmax(0, 1fr))`;
       elements.statsBars.innerHTML = "";
 
       days.forEach((day, index) => {

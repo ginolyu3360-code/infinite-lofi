@@ -137,8 +137,9 @@ const notesPanel = document.getElementById("notesPanel");
 const mainRightColumn = document.getElementById("mainRightColumn");
 const timerCard = document.getElementById("timerCard");
 const timerContent = document.getElementById("timerContent");
-const timerScrollFadeTop = document.getElementById("timerScrollFadeTop");
-const timerScrollFadeBottom = document.getElementById("timerScrollFadeBottom");
+const notesToggleBtn = document.getElementById("notesToggleBtn");
+const notesCloseBtn = document.getElementById("notesCloseBtn");
+const miniModeToggleBtn = document.getElementById("miniModeToggleBtn");
 const statsToggleBtn = document.getElementById("statsToggleBtn");
 const statsDrawer = document.getElementById("statsDrawer");
 const statsCloseBtn = document.getElementById("statsCloseBtn");
@@ -182,7 +183,7 @@ let breakDurationSeconds = DEFAULT_BREAK_SECONDS;
 let remainingSeconds = focusDurationSeconds;
 let timerPhase = "focus";
 let closeBehavior = "quit";
-let timerScrollFadeRaf = 0;
+let miniModeEnabled = false;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
 let weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings();
@@ -263,6 +264,7 @@ const statsController = createStatsController({
     statsRangeWeekBtn,
     statsRangeMonthBtn,
     statsTooltip,
+    drawerBackdrop,
     storageRecoveryNotice,
     storageRecoveryMessage
   },
@@ -734,52 +736,29 @@ function renderTimer() {
   requestAnimationFrame(() => {
     try {
       adjustTimerFont();
-      queueUpdateTimerScrollIndicators();
     } catch (e) {
       // ignore
     }
   });
 }
 
-function queueUpdateTimerScrollIndicators() {
-  if (!timerContent || !timerScrollFadeTop || !timerScrollFadeBottom) {
-    return;
-  }
-
-  const maxScroll = timerContent.scrollHeight - timerContent.clientHeight;
-  const atTop = timerContent.scrollTop <= 4;
-  const atBottom = maxScroll <= 4 || timerContent.scrollTop >= maxScroll - 4;
-
-  timerScrollFadeTop.classList.toggle("hidden", atTop);
-  timerScrollFadeBottom.classList.toggle("hidden", atBottom);
-}
-
 // Compute and set a font-size (px) for the timer display so the full text always fits
 function adjustTimerFont() {
   if (!timerCard || !timerDisplay) return;
 
-  // Prefer measuring the visible timer content area (may be scrollable)
-  let availableWidth = 0;
-  let availableHeight = 0;
-  if (timerContent) {
-    availableWidth = Math.max(40, timerContent.clientWidth * 0.96);
-    // constrain height by visible content area and a fraction of window height
-    availableHeight = Math.max(28, Math.min(timerContent.clientHeight * 0.88, window.innerHeight * 0.5));
-  } else {
-    const cardRect = timerCard.getBoundingClientRect();
-    if (!cardRect.width || !cardRect.height) return;
-    availableWidth = Math.max(40, cardRect.width * 0.92);
-    availableHeight = Math.max(28, cardRect.height * 0.72);
-  }
+  const cardRect = timerCard.getBoundingClientRect();
+  if (!cardRect.width || !cardRect.height) return;
+  const isMiniMode = document.body.classList.contains("is-mini-mode");
+  const availableWidth = Math.max(120, cardRect.width - (isMiniMode ? 32 : 80));
+  const availableHeight = Math.max(42, cardRect.height * (isMiniMode ? 0.52 : 0.34));
 
   const text = timerDisplay.textContent || "00:00";
   const cs = getComputedStyle(timerDisplay);
   const fontFamily = cs.fontFamily || "IBM Plex Mono, monospace";
   const fontWeight = cs.fontWeight || "700";
 
-  // start from a size that's a fraction of card height
-  const maxCandidate = Math.min(240, Math.round(availableHeight * 1.0));
-  const minCandidate = 12;
+  const maxCandidate = Math.min(isMiniMode ? 88 : 190, Math.round(availableHeight));
+  const minCandidate = isMiniMode ? 38 : 48;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -798,6 +777,32 @@ function adjustTimerFont() {
   }
 
   timerCard.style.setProperty("--timer-display-size", `${chosen}px`);
+}
+
+function toggleNotesPanel(forceOpen) {
+  const nextOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : !document.body.classList.contains("notes-panel-open");
+  document.body.classList.toggle("notes-panel-open", nextOpen);
+  notesToggleBtn?.setAttribute("aria-expanded", String(nextOpen));
+}
+
+async function toggleMiniMode(forceEnabled) {
+  const nextEnabled = typeof forceEnabled === "boolean" ? forceEnabled : !miniModeEnabled;
+  if (!window.desktopWindow || typeof window.desktopWindow.setMiniMode !== "function") return;
+  if (nextEnabled) {
+    toggleStatsDrawer(false);
+    toggleBackgroundDrawer(false);
+    toggleShortcutHelp(false);
+    toggleNotesPanel(false);
+    if (showcaseModeEnabled) toggleShowcaseMode(false);
+  }
+  miniModeEnabled = await window.desktopWindow.setMiniMode(nextEnabled);
+  document.body.classList.toggle("is-mini-mode", miniModeEnabled);
+  miniModeToggleBtn.textContent = miniModeEnabled ? "Full" : "Mini";
+  miniModeToggleBtn.title = miniModeEnabled ? "Return to full view" : "Enter Mini Mode";
+  miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
+  requestAnimationFrame(adjustTimerFont);
 }
 
 function sendTrayStatus() {
@@ -973,6 +978,11 @@ function bindWindowControls() {
   }
   windowMinBtn.addEventListener("click", () => window.desktopWindow.minimize());
   windowCloseBtn.addEventListener("click", () => window.desktopWindow.close());
+  miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
+  notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
+  notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
+  drawerBackdrop?.addEventListener("click", () => toggleNotesPanel(false));
+  window.addEventListener("resize", () => requestAnimationFrame(adjustTimerFont), { passive: true });
 }
 
 function bindAppCommands() {
@@ -1037,6 +1047,7 @@ async function init() {
       breakMinutesInput,
       closeModeToggleBtn,
       statsToggleBtn,
+      statsDrawer,
       statsCloseBtn,
       statsRangeTodayBtn,
       statsRangeWeekBtn,
@@ -1054,6 +1065,7 @@ async function init() {
       notePinBtn,
       noteDeleteBtn,
       bgToggleBtn,
+      backgroundDrawer,
       backgroundCloseBtn,
       bgVideoBtn,
       bgCoverBtn,
@@ -1133,7 +1145,6 @@ async function init() {
           saveUiSettings();
         }
       },
-      queueUpdateTimerScrollIndicators,
       syncTimerToClock,
       persistBeforeUnload: () => {
         if (isRestoringBackup || window.__infiniteLofiSkipBeforeUnloadPersistence === true) return;

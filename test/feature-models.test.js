@@ -15,7 +15,7 @@ const {
   weatherCodeToText
 } = require("../src/weather");
 const { normalizeToggleSettings } = require("../src/ui");
-const { isTypingElement } = require("../src/bindings");
+const { bindSwipeToClose, isTypingElement } = require("../src/bindings");
 const { isTrustedNavigationUrl } = require("../src/security");
 const { resolveWindowCloseAction } = require("../src/app-lifecycle");
 
@@ -185,4 +185,23 @@ test("detects typing targets without depending on Electron", () => {
   assert.equal(isTypingElement(div, MockElement), false);
   div.isContentEditable = true;
   assert.equal(isTypingElement(div, MockElement), true);
+});
+
+test("closes a drawer only for a clear touch swipe to the right", () => {
+  const listeners = new Map();
+  const element = {
+    addEventListener(name, handler) {
+      listeners.set(name, handler);
+    }
+  };
+  let closeCount = 0;
+  bindSwipeToClose(element, () => { closeCount += 1; }, 60);
+
+  listeners.get("pointerdown")({ pointerType: "touch", button: 0, pointerId: 1, clientX: 10, clientY: 20 });
+  listeners.get("pointerup")({ pointerId: 1, clientX: 90, clientY: 28 });
+  assert.equal(closeCount, 1);
+
+  listeners.get("pointerdown")({ pointerType: "touch", button: 0, pointerId: 2, clientX: 10, clientY: 20 });
+  listeners.get("pointerup")({ pointerId: 2, clientX: 35, clientY: 100 });
+  assert.equal(closeCount, 1);
 });

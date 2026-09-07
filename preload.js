@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("desktopWindow", {
   minimize: () => ipcRenderer.send("window:minimize"),
-  close: () => ipcRenderer.send("window:close")
+  close: () => ipcRenderer.send("window:close"),
+  setMiniMode: (enabled) => ipcRenderer.invoke("window:setMiniMode", enabled === true)
 });
 
 contextBridge.exposeInMainWorld("desktopApp", {
