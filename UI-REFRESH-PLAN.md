@@ -39,7 +39,7 @@ Use a quiet-studio aesthetic:
 
 ### Mini Mode
 
-- Target size: approximately 420 × 230 px, with a hard minimum near 360 × 200 px.
+- Target size: approximately 420 × 250 px, with a hard minimum near 360 × 200 px.
 - Show phase, timer, start/pause, reset, current track, play/pause, and an explicit return-to-full-view control.
 - Hide notes, charts, extended settings, playlist, weather details, and decorative content.
 - Preserve active timer and player state during transitions.
@@ -55,11 +55,12 @@ Use a quiet-studio aesthetic:
 | 800–1099 px | Compact two-column workspace; notes may collapse |
 | 720–799 px | Single-column focus workspace; notes and utilities open as overlays |
 | 520–649 px height | Compact spacing; supporting copy and secondary controls collapse |
-| Mini Mode | Dedicated 420 × 230 view, independent from full-layout breakpoints |
+| Mini Mode | Dedicated 420 × 250 view, independent from full-layout breakpoints |
 
 Full mode target bounds:
 
 - Default: approximately 1100 × 760 px.
+- Initial bounds are constrained and centered within the primary display work area.
 - Minimum: approximately 720 × 520 px.
 - Content must remain usable at every supported size without overlapping, clipped controls, or nested timer scrolling.
 

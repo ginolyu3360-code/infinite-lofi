@@ -44,7 +44,7 @@ Updated: 2026-09-07
 ## UI foundation delivered
 
 - Replaced the interface with the Quiet Studio visual system and a responsive 1100 × 760 default layout.
-- Added a dedicated Mini Mode toggle, 420 × 230 compact window, and restoration of the previous full-window bounds.
+- Added a dedicated Mini Mode toggle, 420 × 250 compact window, and restoration of the previous full-window bounds.
 - Removed timer-area scrolling and made the timer fit all supported full and Mini window sizes.
 - Rebuilt the statistics drawer with larger controls and readable horizontal month-chart scrolling.
 - Increased primary control targets to 44 px in full view and added backdrop, Escape, touch/pen swipe, keyboard-focus, and reduced-motion behavior.
@@ -63,7 +63,7 @@ Updated: 2026-09-07
   - `dist/Infinite-Lo-Fi-1.2.0-universal.zip`
 - `dist/` is ignored and is not committed.
 - The latest hardening and UI changes passed `npm run check`, isolated development UI smoke tests across supported window sizes, Universal packaging, and the isolated packaged-app UI smoke test locally.
-- Mini Mode passed at 420 × 230 and restored the 1100 × 760 full bounds; all measured timer overflow values were zero.
+- Mini Mode passed at 420 × 250 and restored the previous full bounds; all measured timer overflow values were zero.
 
 ## Repository cleanup
 

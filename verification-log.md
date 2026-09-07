@@ -5,7 +5,7 @@
 ### Implemented
 
 - Replaced the previous visual foundation with a warm-charcoal Quiet Studio layout and consistent spacing, surface, typography, radius, focus, and motion tokens.
-- Added an explicit native-window Mini Mode at 420 × 230 px that preserves timer/player state and restores the previous full-window bounds.
+- Added an explicit native-window Mini Mode at 420 × 250 px that preserves timer/player state and restores the previous full-window bounds.
 - Changed the default full window to 1100 × 760 px with a supported 720 × 520 px minimum; secondary timer settings collapse at the shortest supported height.
 - Removed timer scrolling and scroll-fade controls; timer sizing now responds to available card width and height.
 - Rebuilt notes, player, statistics, background, and playlist surfaces with larger controls and 44 px primary targets in full view.
@@ -16,7 +16,7 @@
 
 - Passed syntax checks, the stylesheet build, and 31 unit tests with zero failures.
 - Passed the isolated development UI smoke test at 720 × 520, 800 × 600, 1100 × 760, and the largest available desktop size with zero timer overflow or clipped primary panels.
-- Passed Mini Mode checks at 420 × 230, including state transition and full-window bounds restoration.
+- Passed Mini Mode checks at 420 × 250, including state transition and full-window bounds restoration.
 - Rebuilt the unsigned Universal macOS application and passed the same isolated packaged-app UI smoke test with no renderer exceptions.
 - Confirmed the packaged executable contains both `x86_64` and `arm64` architectures.
 

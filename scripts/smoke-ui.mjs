@@ -123,6 +123,7 @@ try {
 
   await send("Runtime.enable");
   async function setWindowSize(width, height) {
+    await evaluate("window.moveTo(0, 0); true");
     await evaluate(`window.resizeTo(${width}, ${height}); true`);
     await delay(350);
   }

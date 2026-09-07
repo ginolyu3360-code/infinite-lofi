@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, screen } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
@@ -101,11 +101,13 @@ function refreshTrayMenu() {
 
 function createMainWindow() {
   const allowDevTools = !app.isPackaged || process.argv.includes("--allow-devtools-for-testing");
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 760,
+    width: Math.min(1100, workArea.width),
+    height: Math.min(760, workArea.height),
     minWidth: 720,
     minHeight: 520,
+    center: true,
     resizable: true,
     frame: false,
     transparent: true,
@@ -209,7 +211,7 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
     fullWindowBounds = mainWindow.getBounds();
     miniModeEnabled = true;
     mainWindow.setMinimumSize(360, 200);
-    mainWindow.setSize(420, 230, true);
+    mainWindow.setSize(420, 250, true);
   } else {
     miniModeEnabled = false;
     mainWindow.setMinimumSize(720, 520);
