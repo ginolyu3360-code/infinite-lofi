@@ -1,5 +1,28 @@
 # Verification Log
 
+## 2026-09-07 — Phase 1 data protection and modularization
+
+### Implemented
+
+- Added `src/storage.js` with schema version 1, normalization, and automatic migration from the legacy local-storage keys.
+- Added complete versioned backup export plus validated restore, including compatibility with the earlier backup format.
+- Persisted close behavior, the selected local music folder, playlist order, selected track, and active timer state.
+- Added a safe rescan path for remembered music folders and a visible recovery hint when a folder is missing or unreadable.
+- Preserved malformed or unsupported stored state before creating a safe replacement, with UI actions to download the original, restore a backup, or dismiss the notice.
+- Protected backup restore and UI smoke cleanup from page-unload writes that could otherwise overwrite restored data.
+- Moved the large inline stylesheet from `index.html` to `src/styles/components.css`.
+- Extracted independently testable timer, notes, player, background, statistics, weather, and UI-setting helpers from the renderer.
+- Extracted notes, player, statistics/backup, weather/cache, and UI-event controllers; `renderer.js` decreased from 2,474 to 1,188 lines and now focuses on orchestration and the remaining tightly coupled UI logic.
+
+### Checks completed
+
+- Added storage, migration, backup, recovery, relaunch persistence, timer, notes, player, background, statistics, weather, and UI-setting tests; all twenty-one unit tests pass.
+- Passed `npm run check`.
+- Passed the Electron UI smoke test with local-storage restoration and no renderer exceptions.
+- Rebuilt the unpacked macOS `x64` app, confirmed all new modules and component styles are present in `app.asar`, and passed the same UI smoke test against the packaged app.
+- Hardened the packaged-app smoke-test launcher with explicit Electron logging and clearer timeout diagnostics, then passed the fully automatic packaged-app run.
+- Built the unsigned v1.1.0 Intel (`x64`) DMG and ZIP release artifacts and reran the packaged-app UI smoke test successfully.
+
 ## 2026-09-07 — Phase 0 stabilization
 
 ### Correctness fixes
@@ -16,7 +39,7 @@
 - Passed `npm run check`.
 - Passed the UI smoke test against both the development app and the newly packaged app.
 - Rebuilt the unpacked macOS `x64` app successfully.
-- Added a GitHub Actions workflow for checks and macOS packaging; its first remote run is pending push.
+- Added a GitHub Actions workflow for checks and macOS packaging; the implementation was pushed to `main` and the latest remote run passed.
 - Aligned package metadata with the repository's MIT license.
 
 ## 2026-09-07 — Source recovery

@@ -10,7 +10,7 @@ const packagedExecutable = connectOnly ? "" : (process.argv[2] || "");
 const debugPort = Number.isInteger(requestedPort) ? requestedPort : 10_000 + (process.pid % 20_000);
 const executable = packagedExecutable || path.join(projectDirectory, "node_modules", ".bin", "electron");
 const launchArguments = packagedExecutable
-  ? [`--remote-debugging-port=${debugPort}`]
+  ? ["--enable-logging=stderr", `--remote-debugging-port=${debugPort}`]
   : [`--remote-debugging-port=${debugPort}`, "."];
 const appProcess = connectOnly ? null : spawn(executable, launchArguments, {
     cwd: projectDirectory,
@@ -54,7 +54,8 @@ async function waitForTarget() {
     }
     await delay(250);
   }
-  throw lastError || new Error(`Timed out waiting for Electron: ${appLog}`);
+  const details = appLog.trim() ? `\nElectron output:\n${appLog.trim()}` : "";
+  throw new Error(`Timed out waiting for Electron debug target: ${lastError?.message || "unknown error"}${details}`);
 }
 
 function parseTimer(value) {
@@ -105,6 +106,27 @@ try {
   }
 
   await send("Runtime.enable");
+  await evaluate(`(() => {
+    const key = 'infiniteLofiState';
+    const raw = localStorage.getItem(key);
+    if (!raw) return true;
+    try {
+      const state = JSON.parse(raw);
+      const files = Array.isArray(state?.notes?.files) ? state.notes.files : [];
+      const cleaned = files.filter((note) => note?.content !== '__INFINITE_LOFI_SMOKE_TEST__');
+      if (cleaned.length !== files.length) {
+        state.notes.files = cleaned;
+        state.notes.activeId = cleaned.some((note) => note.id === state.notes.activeId)
+          ? state.notes.activeId
+          : cleaned[0]?.id || '';
+        localStorage.setItem(key, JSON.stringify(state));
+        window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+        location.reload();
+      }
+    } catch {}
+    return true;
+  })()`);
+  await delay(500);
   await evaluate("window.__smokeStorageBackup = JSON.stringify(Object.entries(localStorage)); true");
 
   const baseline = await evaluate(`(() => ({
@@ -116,7 +138,8 @@ try {
     track: document.querySelector('#trackLabel')?.textContent.trim(),
     requiredElementsPresent: [
       'timerDisplay', 'timerToggle', 'notesInput', 'playPauseBtn',
-      'statsDrawer', 'backgroundDrawer', 'lofiPlayer'
+      'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
+      'storageRecoveryNotice'
     ].every((id) => Boolean(document.getElementById(id)))
   }))()`);
 
@@ -166,6 +189,7 @@ try {
     const backup = JSON.parse(window.__smokeStorageBackup || '[]');
     localStorage.clear();
     for (const [key, value] of backup) localStorage.setItem(key, value);
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
     location.reload();
     return true;
   })()`);

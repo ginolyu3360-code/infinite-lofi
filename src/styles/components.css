@@ -1,0 +1,753 @@
+:root {
+  --scene-brightness: 1;
+}
+
+#storageRecoveryNotice {
+  position: fixed;
+  z-index: 1000;
+  top: 0.75rem;
+  left: 50%;
+  width: min(44rem, calc(100vw - 1.5rem));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(251, 191, 36, 0.48);
+  border-radius: 0.9rem;
+  background: rgba(24, 24, 27, 0.96);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.4);
+  color: rgba(254, 243, 199, 0.96);
+  font: 500 0.72rem/1.45 "IBM Plex Mono", monospace;
+}
+
+#storageRecoveryNotice.hidden {
+  display: none;
+}
+
+#storageRecoveryNotice p {
+  margin-top: 0.2rem;
+  color: rgba(228, 228, 231, 0.78);
+  font-size: 0.62rem;
+}
+
+.storage-recovery-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.storage-recovery-actions button {
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  background: rgba(251, 191, 36, 0.1);
+  color: rgba(254, 243, 199, 0.95);
+  cursor: pointer;
+}
+
+.storage-recovery-actions button:hover {
+  background: rgba(251, 191, 36, 0.2);
+}
+
+@media (max-width: 640px) {
+  #storageRecoveryNotice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+#appLayout {
+  display: grid;
+  grid-template-columns: minmax(17rem, 18.5rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+#windowMinBtn,
+#windowCloseBtn,
+.window-controls {
+  -webkit-app-region: no-drag;
+}
+
+#timerCard {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 1.75rem 1.8rem;
+}
+
+#mainRightColumn {
+  display: grid;
+  grid-template-rows: minmax(22rem, 1fr) auto;
+  gap: 1rem;
+  min-height: 0;
+}
+
+#notesPanel {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  align-self: stretch;
+}
+
+#timerArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+#statsDrawer {
+  position: absolute;
+  right: 0;
+  top: 2.8rem;
+  bottom: 0;
+  z-index: 30;
+  width: min(32rem, 42vw);
+  min-width: 22rem;
+  padding: 0.7rem;
+  transform: translateX(104%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+
+#statsDrawer.is-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#statsPanel {
+  height: 100%;
+  overflow: auto;
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+}
+
+#statsBars {
+  gap: clamp(0.3rem, 0.55vw, 0.55rem);
+}
+
+.stat-bar-label {
+  font-size: 0.38rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.stats-metric-card {
+  background: linear-gradient(
+    170deg,
+    rgba(0, 0, 0, 0.24),
+    rgba(0, 0, 0, 0.12)
+  );
+}
+
+.stat-bar {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.stat-bar:hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px) rotate(0deg) !important;
+}
+
+#timerDisplay {
+  font-variant-numeric: tabular-nums;
+  width: 5.25ch;
+  margin-left: auto;
+  margin-right: auto;
+  /* JS may set --timer-display-size for responsive scaling */
+  font-size: var(--timer-display-size, min(18vw,12rem));
+}
+
+/* timer internal content: allow vertical scrolling when space is tight */
+.timer-content {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.6rem 0.8rem;
+}
+
+/* unified, subtle scrollbars with palette-matched colors */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 212, 216, 0.35) rgba(24, 24, 27, 0.22);
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 0.22);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(212, 212, 216, 0.35);
+  border-radius: 8px;
+}
+
+/* Timer-specific: only vertical scrolling, hide horizontal thumb */
+.timer-content:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.timer-content::-webkit-scrollbar {
+  width: 10px;
+  height: 0;
+}
+
+.timer-content::-webkit-scrollbar:horizontal {
+  display: none;
+  height: 0;
+}
+
+.timer-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.timer-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.timer-content:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(228, 228, 231, 0.52);
+}
+
+.timer-scroll-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.2rem;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.18s ease;
+}
+
+.timer-scroll-fade-top {
+  top: 3.8rem;
+  background: linear-gradient(to bottom, rgba(10, 10, 12, 0.42), rgba(10, 10, 12, 0));
+}
+
+.timer-scroll-fade-bottom {
+  bottom: 3.4rem;
+  background: linear-gradient(to top, rgba(10, 10, 12, 0.42), rgba(10, 10, 12, 0));
+}
+
+/* small header status widget */
+#statusWidget {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0.4rem;
+}
+
+#statusWidget > div {
+  white-space: nowrap;
+}
+
+#statusTime { font-weight: 600; }
+#statusDate { opacity: 0.85; }
+#statusWeather {
+  opacity: 0.75;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#shortcutHelpOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+#shortcutHelpOverlay.hidden {
+  display: none;
+}
+
+#shortcutHelpPanel {
+  width: min(42rem, 92vw);
+  max-height: min(78vh, 46rem);
+  overflow: auto;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(165deg, rgba(12, 14, 20, 0.92), rgba(20, 18, 14, 0.88));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  padding: 1.05rem 1.1rem;
+}
+
+.shortcut-group-title {
+  margin-top: 0.75rem;
+  margin-bottom: 0.45rem;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(252, 211, 77, 0.9);
+}
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.8rem;
+  align-items: center;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding: 0.42rem 0;
+}
+
+.shortcut-label {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: rgba(236, 236, 236, 0.92);
+}
+
+.shortcut-keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.shortcut-key {
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.14rem 0.45rem;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: rgba(250, 250, 250, 0.95);
+}
+
+.shortcut-toggle {
+  width: 14px;
+  height: 14px;
+  accent-color: rgb(251 191 36);
+  cursor: pointer;
+}
+
+#playerPanel {
+  width: min(100%, 42rem);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0.95rem 1rem 0.9rem;
+  transition: width 0.18s ease, transform 0.18s ease;
+}
+
+#backgroundDrawer {
+  position: absolute;
+  right: 0;
+  top: 2.8rem;
+  bottom: 0;
+  z-index: 30;
+  width: min(26rem, 36vw);
+  min-width: 20rem;
+  padding: 0.7rem;
+  transform: translateX(104%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+
+#backgroundDrawer.is-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#drawerBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  background: rgba(6, 8, 12, 0.5);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+#drawerBackdrop.visible {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+#backgroundPanel {
+  height: 100%;
+  overflow: auto;
+  padding: 1.1rem 1.05rem;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+}
+
+.bg-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bg-preview {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.bg-preview-surface {
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+#bgVideo,
+#bgImage {
+  filter: brightness(var(--scene-brightness));
+   transition: opacity 0.32s ease, filter 0.32s ease, transform 0.32s ease;
+   will-change: opacity, filter, transform;
+}
+
+body.is-showcase-mode header,
+body.is-showcase-mode #notesPanel,
+body.is-showcase-mode #playerPanel,
+body.is-showcase-mode #statsDrawer,
+body.is-showcase-mode #backgroundDrawer,
+body.is-showcase-mode #shortcutHelpOverlay {
+  display: none !important;
+}
+
+body.is-showcase-mode #appLayout {
+  display: block;
+  padding: 0;
+}
+
+body.is-showcase-mode #mainRightColumn {
+  position: fixed;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: min(26vw, 21rem);
+  height: min(24vh, 14rem);
+  display: block;
+  z-index: 35;
+}
+
+body.is-showcase-mode #timerArea {
+  width: 100%;
+  height: 100%;
+}
+
+body.is-showcase-mode #timerCard {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 1.2rem;
+}
+
+body.is-showcase-mode #timerContent {
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.35rem;
+}
+
+body.is-showcase-mode #timerPhaseLabel,
+body.is-showcase-mode #timerActions,
+body.is-showcase-mode #timerConfigPanel,
+body.is-showcase-mode #timerScrollFadeTop,
+body.is-showcase-mode #timerScrollFadeBottom {
+  display: none !important;
+}
+
+body.is-showcase-mode #timerDisplay {
+  font-size: clamp(3rem, 6vw, 6rem) !important;
+}
+
+body.is-showcase-mode #showcaseToggleBtn {
+  display: none !important;
+}
+
+body.is-showcase-mode #bgVideo,
+body.is-showcase-mode #bgImage {
+  opacity: 1 !important;
+  filter: brightness(1.04) contrast(1.05) saturate(1.08);
+}
+
+body.is-showcase-mode #ambienceOverlay,
+body.is-showcase-mode .grain-layer {
+  opacity: 0 !important;
+}
+
+body.bg-white-background {
+  background: #fff;
+}
+
+body.bg-white-background #ambienceOverlay {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(240, 240, 240, 0.18));
+  opacity: 1;
+}
+
+body.bg-white-background #bgImage {
+  opacity: 1 !important;
+  filter: brightness(1.08) contrast(1.01) saturate(0.95);
+}
+
+.transport-btn {
+  height: 2.4rem;
+  min-width: 2.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgb(244 244 245);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.transport-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.transport-btn:active {
+  transform: scale(0.95);
+}
+
+.progress-slider,
+.aux-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: linear-gradient(to right, rgba(251, 191, 36, 0.85), rgba(212, 212, 216, 0.82));
+  outline: none;
+}
+
+.progress-slider {
+  width: 100%;
+}
+
+.aux-slider {
+  width: 130px;
+}
+
+.progress-slider::-webkit-slider-thumb,
+.aux-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  background: rgba(18, 18, 22, 0.95);
+  cursor: pointer;
+}
+
+.media-time {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(228, 228, 231, 0.82);
+}
+
+#timerConfigPanel.is-locked {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+#timerConfigPanel .timer-config-input:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 1180px) {
+  #notesPanel {
+    width: 15rem;
+  }
+}
+
+@media (max-width: 980px), (max-height: 700px) {
+  #appLayout {
+    display: block;
+    padding: 3.25rem 0.9rem 0.9rem;
+  }
+
+  #mainRightColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+  }
+
+  #statsDrawer {
+    width: min(95vw, 32rem);
+    top: 2.5rem;
+  }
+
+  #timerCard {
+    min-height: clamp(16rem, 48vh, 24rem);
+    width: min(100%, 40rem);
+    height: auto;
+    padding: 1.5rem;
+  }
+
+  #timerDisplay {
+    font-size: min(22vw, 10rem);
+  }
+}
+
+@media (max-width: 760px), (max-height: 560px) {
+  #playerPanel {
+    width: 100%;
+  }
+
+  #timerConfigPanel,
+  #timerActions,
+  #timerPhaseLabel,
+  #statsDrawer {
+    display: none;
+  }
+
+  #appLayout {
+    display: block;
+    padding: 2.9rem 0.55rem 0.55rem;
+  }
+
+  #timerCard {
+    min-height: clamp(11.5rem, 40vh, 16rem);
+    width: min(100%, 32rem);
+    height: auto;
+    padding: 0.9rem;
+    border-radius: 1.4rem;
+  }
+
+  #timerDisplay {
+    margin-top: 0.3rem;
+    font-size: min(28vw, 6rem);
+  }
+}
+
+/* playlist item dragging styles */
+.playlist-item {
+  cursor: move;
+  transition: background 0.15s ease, transform 0.15s ease;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.playlist-item:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.playlist-item.is-dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.playlist-item.is-drag-over {
+  background: rgba(252, 211, 77, 0.22);
+  border-color: rgba(252, 211, 77, 0.4);
+  transform: scale(1.02);
+}
+
+#noteTabs {
+  margin-top: 0.6rem;
+  max-height: 10.6rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  padding-right: 0.12rem;
+}
+
+.note-tab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.34rem 0.5rem;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(241, 241, 241, 0.9);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+}
+
+.note-tab:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.note-tab.is-active {
+  border-color: rgba(251, 191, 36, 0.52);
+  background: rgba(251, 191, 36, 0.2);
+}
+
+.note-tab.is-pinned .note-tab-pin {
+  color: rgba(251, 191, 36, 0.95);
+}
+
+.note-tab.is-dragging {
+  opacity: 0.5;
+  transform: scale(0.985);
+}
+
+.note-tab.is-drag-over {
+  border-color: rgba(251, 191, 36, 0.58);
+  background: rgba(251, 191, 36, 0.23);
+}
+
+.note-tab-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-tab-pin {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: rgba(228, 228, 231, 0.65);
+}

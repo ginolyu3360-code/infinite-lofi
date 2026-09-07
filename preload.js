@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("desktopApp", {
   getCloseBehavior: () => ipcRenderer.invoke("app:getCloseBehavior"),
   setCloseBehavior: (behavior) => ipcRenderer.send("app:setCloseBehavior", behavior),
   selectMusicFolder: () => ipcRenderer.invoke("music:selectFolder"),
+  scanMusicFolder: (folderPath) => ipcRenderer.invoke("music:scanFolder", folderPath),
   selectBackgroundImage: () => ipcRenderer.invoke("background:selectImage"),
   selectBackgroundVideo: () => ipcRenderer.invoke("background:selectVideo"),
   getWallpaperBackground: () => ipcRenderer.invoke("background:getWallpaper"),

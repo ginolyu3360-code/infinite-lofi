@@ -8,10 +8,13 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
+当前版本：**v1.1.0**（Phase 1）。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载。当前发布包为未签名的 Intel macOS (`x64`) 版本；Apple Silicon Mac 可通过 Rosetta 运行。
+
 ## 主要特性
 - 番茄专注 / 休息计时器，支持开始/暂停/重置与托盘显示
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持选择本地音乐文件夹并扫描音频文件与封面
+- 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 背景模式：黑/白/壁纸/图片/视频
 - 托盘图标与“最小化到托盘”行为
 - 实时时钟、天气与简单统计面板
@@ -42,12 +45,25 @@ tailwind.config.js
 verification-log.md
 .github/workflows/ci.yml # GitHub Actions 检查与 macOS 打包验证
 scripts/smoke-ui.mjs    # Electron 界面冒烟测试
-test/core.test.js       # 核心逻辑单元测试
+test/                   # 核心、存储与功能模型单元测试
 src/
   ├─ index.html         # 应用界面
-  ├─ renderer.js        # 功能与交互逻辑
+  ├─ renderer.js        # DOM 编排与交互逻辑
   ├─ core.js            # 可独立测试的纯逻辑
-  └─ styles/            # Tailwind 输入与生成样式
+  ├─ storage.js         # 版本化存储、旧数据迁移与备份校验
+  ├─ timer.js           # 计时器恢复状态模型
+  ├─ notes.js           # 笔记排序与选择模型
+  ├─ notes-controller.js # 笔记 DOM 与持久化控制器
+  ├─ player.js          # 播放列表恢复模型
+  ├─ player-controller.js # 播放器 DOM 与目录恢复控制器
+  ├─ backgrounds.js     # 背景设置模型
+  ├─ stats.js           # 统计范围与汇总模型
+  ├─ stats-controller.js # 统计、备份与恢复控制器
+  ├─ weather.js         # 天气文本规范化
+  ├─ weather-controller.js # 时钟、天气网络与缓存控制器
+  ├─ ui.js              # UI 设置规范化
+  ├─ bindings.js        # 鼠标、表单、媒体与键盘事件绑定
+  └─ styles/            # Tailwind、组件与生成样式
 assets/                 # 内置资源：图标、示例音轨、托盘模板、背景等
   ├─ icon.icns
   ├─ icon.png
@@ -105,6 +121,9 @@ electron-builder 的关键配置（来自 package.json）：
 
 ## 已知/重要事项
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
+- Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；关闭行为、音乐目录/顺序和活动计时器可以恢复。
+- 统计面板中的 Backup 和 Restore 可导出、校验并恢复完整本地数据；恢复会替换当前本地数据。
+- 如果版本化存储损坏或来自更高版本，应用会先保留原始值并显示恢复提示，而不是静默覆盖。
 - 天气服务可能出现 403 或网络错误；应用会尝试备用提供者并使用本地缓存。
 - music-metadata 用于读取嵌入封面；扫描本地音乐文件夹时会查找文件名相匹配的图片（cover.jpg/folder.jpg/front/album等）并尝试读取嵌入图片。
 - Electron 版本在 package.json 中为 ^41.3.0，注意与本地 Node/Electron 运行环境兼容性（如果你遇到二进制或节点版本问题，请升级或使用 nvm 指定合适 Node 版本）。
@@ -135,10 +154,13 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
+Current release: **v1.1.0** (Phase 1). Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The current artifacts are unsigned Intel macOS (`x64`) builds; Apple Silicon Macs can run them through Rosetta.
+
 ## Key features
 - Pomodoro-style focus/break timer with start/pause/reset and tray display
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks and ability to load and scan a local music folder
+- Versioned local storage with legacy migration and validated backup restore
 - Background modes: black, white, wallpaper, image, video
 - Tray icon with "minimize to tray" behavior
 - Live clock, simple weather display, and focus stats panel
@@ -154,17 +176,19 @@ See the Chinese section above for a full tree. Key runtime files:
 - main.js — Electron main process (tray, IPC, music scanning, background handlers)
 - preload.js — secure contextBridge API for renderer → main IPC
 - package.json — scripts, dependencies, and build settings
-- src/ — complete renderer UI, core helpers, and styles
+- src/ — renderer orchestration, independently testable feature models, and styles
+- src/storage.js — versioned state, legacy migration, and backup validation
+- Feature modules and controllers under src/ separate timer, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
-- test/core.test.js — core unit tests
+- test/ — unit tests for core logic, storage, and feature models
 - assets/ — icons and sample tracks
 
 The renderer source is included and has been verified in both development and packaged builds.
 
 ## Quick start
-Install dependencies:
+Install dependencies from the lockfile:
 ```bash
-npm install
+npm ci
 ```
 
 Run in development (watch Tailwind + launch Electron):
@@ -177,8 +201,6 @@ Build and run (build CSS first):
 npm run build:css
 npm start
 ```
-
-For a reproducible install from the lockfile, prefer `npm ci`.
 
 ## Verify
 

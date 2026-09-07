@@ -11,11 +11,13 @@ npm run dist
 
 The output is created in `dist/`:
 
-- `Infinite Lo-Fi-1.0.0.dmg`: installer image
-- `Infinite Lo-Fi-1.0.0-mac.zip`: zipped application
+- `Infinite Lo-Fi-1.1.0.dmg`: installer image
+- `Infinite Lo-Fi-1.1.0-mac.zip`: zipped application
 - `mac/Infinite Lo-Fi.app`: unpacked `.app` bundle
 
 The build currently targets Intel macOS with `--x64`, matching the configured `dist` script. To produce an Apple Silicon build on a compatible machine, use the equivalent builder target with `--arm64`.
+
+Published builds are available from the [GitHub Releases page](https://github.com/ginolyu3360-code/infinite-lofi/releases). The v1.1.0 assets are unsigned Intel (`x64`) builds.
 
 ## First launch on macOS
 

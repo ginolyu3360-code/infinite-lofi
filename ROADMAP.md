@@ -8,7 +8,7 @@ The next milestone should prioritize correctness and recoverability before addin
 
 ## Phase 0 — Stabilize the core
 
-Status: implemented and verified locally on 2026-09-07. The GitHub Actions run remains pending until the commits are pushed.
+Status: completed on 2026-09-07. The implementation was verified locally, pushed to `main`, and the latest GitHub Actions run passed.
 
 - [x] Commit the recovered `src/` directory so a fresh clone can run and build.
 - [x] Replace interval-based countdown logic with a deadline-based timer that remains accurate after sleep, throttling, or temporary renderer pauses.
@@ -29,19 +29,21 @@ Status: implemented and verified locally on 2026-09-07. The GitHub Actions run r
 
 ## Phase 1 — Protect user data and simplify maintenance
 
-- Split the 2,300-line renderer into small modules for timer, notes, player, statistics, backgrounds, weather, storage, and UI bindings.
-- Move the large inline stylesheet out of `index.html` and into the Tailwind input stylesheet or focused component styles.
-- Introduce a versioned storage schema and migration layer.
-- Add backup import and restore, not only export.
-- Persist useful app state such as close behavior, selected local music folder, playlist order, and the active timer state where appropriate.
-- Add clear empty, error, and recovery states for unreadable media folders or corrupted stored data.
+Status: completed on 2026-09-07. Data protection, stylesheet extraction, and feature/controller modularization were verified locally and in a packaged app.
+
+- [x] Split the 2,300-line renderer into modules for timer, notes, player, statistics, backgrounds, weather, storage, and UI bindings. The renderer is now an orchestration layer, with feature models and the largest DOM controllers extracted.
+- [x] Move the large inline stylesheet out of `index.html` and into the Tailwind input stylesheet or focused component styles.
+- [x] Introduce a versioned storage schema and migration layer.
+- [x] Add backup import and restore, not only export.
+- [x] Persist useful app state such as close behavior, selected local music folder, playlist order, and the active timer state where appropriate.
+- [x] Add clear empty, error, and recovery states for unreadable media folders or corrupted stored data.
 
 ### Phase 1 completion criteria
 
-- Feature modules can be tested without launching the full Electron app.
-- Existing local data migrates without loss.
-- Exported backups can be imported and validated.
-- Relaunching the app restores documented settings consistently.
+- [x] Feature modules can be tested without launching the full Electron app.
+- [x] Existing local data migrates without loss.
+- [x] Exported backups can be imported and validated.
+- [x] Relaunching the app restores documented settings consistently.
 
 ## Phase 2 — Privacy, security, and distribution
 

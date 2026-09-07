@@ -281,6 +281,27 @@ ipcMain.handle("music:selectFolder", async () => {
   return { folderPath, tracks };
 });
 
+ipcMain.handle("music:scanFolder", async (_event, folderPath) => {
+  if (typeof folderPath !== "string" || !folderPath.trim()) {
+    return { folderPath: "", tracks: [], error: "invalid-folder" };
+  }
+
+  try {
+    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+      return { folderPath, tracks: [], error: "folder-unavailable" };
+    }
+    const tracks = await scanMusicFolder(folderPath);
+    return {
+      folderPath,
+      tracks,
+      error: tracks.length > 0 ? null : "no-audio-files"
+    };
+  } catch (error) {
+    console.error("Failed to restore music folder:", error);
+    return { folderPath, tracks: [], error: "folder-unreadable" };
+  }
+});
+
 function getCurrentDesktopWallpaperPath() {
   if (process.platform !== "darwin") {
     return null;

@@ -1,6 +1,6 @@
 {
   "name": "infinite-lofi-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "dev:app": "electron .",
     "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
     "test": "node --test",
-    "check": "node --check main.js && node --check preload.js && node --check src/core.js && node --check src/renderer.js && npm test && npm run build:css",
+    "check": "node --check main.js && node --check preload.js && node --check src/core.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/player-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/stats-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/bindings.js && node --check src/renderer.js && npm test && npm run build:css",
     "smoke": "node scripts/smoke-ui.mjs",
     "verify": "npm run check && npm run smoke",
     "start": "npm run build:css && electron .",
