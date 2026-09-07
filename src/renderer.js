@@ -69,7 +69,8 @@ const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
 const {
   buildRenderKey: buildBackgroundRenderKey,
-  normalizeBackgroundSettings
+  normalizeBackgroundSettings,
+  resolveEffectiveBackground
 } = window.InfiniteLofiBackgrounds;
 const { createStatsController } = window.InfiniteLofiStatsController;
 const { createWeatherController } = window.InfiniteLofiWeatherController;
@@ -155,6 +156,7 @@ const backgroundDrawer = document.getElementById("backgroundDrawer");
 const backgroundCloseBtn = document.getElementById("backgroundCloseBtn");
 const bgBlackBtn = document.getElementById("bgBlackBtn");
 const bgWhiteBtn = document.getElementById("bgWhiteBtn");
+const bgCoverBtn = document.getElementById("bgCoverBtn");
 const bgWallpaperBtn = document.getElementById("bgWallpaperBtn");
 const bgImageBtn = document.getElementById("bgImageBtn");
 const bgResetBtn = document.getElementById("bgResetBtn");
@@ -344,6 +346,8 @@ function renderBackgroundUi() {
         ? "White"
         : backgroundSettings.mode === "video"
         ? "Video"
+        : backgroundSettings.mode === "cover"
+        ? "Track Cover"
         : "Black";
   }
   if (bgPathLabel) {
@@ -351,6 +355,8 @@ function renderBackgroundUi() {
       bgPathLabel.textContent = backgroundSettings.customImageName || backgroundSettings.customImageUrl || "Imported Image";
     } else if (backgroundSettings.mode === "video") {
       bgPathLabel.textContent = backgroundSettings.customVideoName || backgroundSettings.customVideoUrl || "Built-in Video";
+    } else if (backgroundSettings.mode === "cover") {
+      bgPathLabel.textContent = currentTrackArtwork?.name || "No cover for current track";
     } else {
       bgPathLabel.textContent = "None";
     }
@@ -375,6 +381,10 @@ function renderBackgroundUi() {
       bgPreviewSurface.textContent = "▶";
       bgPreviewSurface.style.fontSize = "1.8rem";
       bgPreviewSurface.style.color = "rgba(255,255,255,0.8)";
+    } else if (backgroundSettings.mode === "cover" && currentTrackArtwork?.url) {
+      bgPreviewSurface.style.backgroundImage = `url('${currentTrackArtwork.url}')`;
+      bgPreviewSurface.style.backgroundColor = "rgba(0, 0, 0, 0.35)";
+      bgPreviewSurface.textContent = "";
     } else if (backgroundSettings.mode === "white") {
       bgPreviewSurface.style.backgroundImage = "none";
       bgPreviewSurface.style.backgroundColor = "#ffffff";
@@ -388,19 +398,7 @@ function renderBackgroundUi() {
 }
 
 function getEffectiveBackground() {
-  if (currentTrackArtwork && currentTrackArtwork.url) {
-    return {
-      mode: "image",
-      customImageUrl: currentTrackArtwork.url,
-      customImageName: currentTrackArtwork.name || "Track Cover",
-      fromTrackArtwork: true
-    };
-  }
-
-  return {
-    ...backgroundSettings,
-    fromTrackArtwork: false
-  };
+  return resolveEffectiveBackground(backgroundSettings, currentTrackArtwork);
 }
 
 function applyShowcaseMode() {
@@ -447,7 +445,7 @@ function toggleBackgroundDrawer(forceOpen) {
 }
 
 function setBackgroundMode(mode) {
-  if (!["black", "white", "image"].includes(mode)) {
+  if (!["black", "white", "image", "cover"].includes(mode)) {
     return;
   }
 
@@ -1058,6 +1056,7 @@ async function init() {
       bgToggleBtn,
       backgroundCloseBtn,
       bgVideoBtn,
+      bgCoverBtn,
       drawerBackdrop,
       bgBlackBtn,
       bgWhiteBtn,

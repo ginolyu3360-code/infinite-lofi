@@ -203,6 +203,7 @@
     on(e.bgToggleBtn, "click", () => a.toggleBackgroundDrawer());
     on(e.backgroundCloseBtn, "click", () => a.toggleBackgroundDrawer(false));
     on(e.bgVideoBtn, "click", a.importBackgroundVideo);
+    on(e.bgCoverBtn, "click", () => a.setBackgroundMode("cover"));
     on(e.drawerBackdrop, "click", () => a.toggleBackgroundDrawer(false));
     on(e.bgBlackBtn, "click", () => a.setBackgroundMode("black"));
     on(e.bgWhiteBtn, "click", () => a.setBackgroundMode("white"));

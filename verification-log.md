@@ -1,5 +1,31 @@
 # Verification Log
 
+## 2026-09-07 — Pre-Phase 3 hardening
+
+### Implemented
+
+- Removed the 60-row focus-history writeback truncation and centralized the 366-day retention limit.
+- Corrected macOS window lifecycle handling so Quit App terminates the process and minimize-to-tray still hides the window.
+- Added an explicit Track Cover background mode; album artwork no longer overrides black, white, wallpaper, imported image, or video choices.
+- Replaced synchronous folder reads and all-at-once metadata parsing with asynchronous reads and four-worker bounded concurrency.
+- Preferred sidecar artwork, cached embedded covers as files with a 5 MiB limit, and stopped sending embedded covers as base64 IPC payloads.
+- Persisted canonical music-folder grants selected through the native dialog and rejected restore scans for unapproved paths.
+- Changed launched UI smoke tests to use disposable temporary profiles and wait for full page load.
+- Added development and packaged UI smoke runs to CI, including a real Quit App exit assertion.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 30 unit tests with zero failures.
+- Added tests for year-long history retention, close-action decisions, background precedence, bounded metadata concurrency, artwork caching, damaged audio metadata, and controller-level backup restore.
+- Passed the isolated development UI smoke test with no renderer exceptions.
+- Rebuilt the unsigned Universal macOS application successfully.
+- Passed the isolated Universal packaged-app UI smoke test with no renderer exceptions and confirmed Quit App exits.
+
+### Stage status
+
+- These changes are local and uncommitted; no push or new GitHub Actions run has occurred yet.
+- Package version remains 1.2.0. No v1.2.0 tag or Release was created, and Phase 3 was not started.
+
 ## 2026-09-07 — Phase 2 privacy, security, and distribution
 
 ### Implemented

@@ -128,14 +128,9 @@
 
     function recordCompletedFocusSession(focusSeconds) {
       const rows = appStorage.getState().stats.focusRows;
-      const totals = new Map(core.aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds]));
       const today = core.getLocalDayKey(new Date());
-      totals.set(today, (totals.get(today) || 0) + focusSeconds);
       appStorage.update((state) => {
-        state.stats.focusRows = Array.from(totals.entries())
-          .sort((left, right) => left[0].localeCompare(right[0]))
-          .map(([day, total]) => ({ day, focusSeconds: total }))
-          .slice(-60);
+        state.stats.focusRows = statsModel.recordFocusSession(rows, today, focusSeconds);
       });
       renderStats();
     }

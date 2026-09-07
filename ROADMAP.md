@@ -68,6 +68,18 @@ Status: completed for the requested scope on 2026-09-07. Signing and notarizatio
 
 Only start after Phases 0–2 are stable.
 
+### Pre-Phase 3 hardening
+
+Status: completed and verified locally on 2026-09-07; pending commit, push, and GitHub Actions confirmation.
+
+- [x] Keep focus-history retention consistent at 366 daily rows across storage and session recording.
+- [x] Make Quit App exit reliably on macOS while preserving minimize-to-tray behavior.
+- [x] Respect explicit background choices and make current-track artwork an opt-in background mode.
+- [x] Isolate UI smoke tests from the normal application profile and run development plus packaged smoke tests in CI.
+- [x] Move music scanning off synchronous filesystem calls, bound metadata concurrency, cache embedded artwork as files, and avoid base64 artwork IPC payloads.
+- [x] Limit restored music-folder scans to paths approved through the native chooser.
+- [x] Cover the new paths with unit and end-to-end smoke tests.
+
 - Add configurable long breaks, auto-start options, and daily focus goals.
 - Add session history editing and richer trends without turning the app into a complex analytics product.
 - Improve playlist persistence, missing-file handling, and native media controls.

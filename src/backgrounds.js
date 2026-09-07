@@ -9,7 +9,7 @@
 
   function normalizeBackgroundSettings(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
-    const mode = ["black", "white", "image", "video"].includes(source.mode)
+    const mode = ["black", "white", "image", "video", "cover"].includes(source.mode)
       ? source.mode
       : DEFAULTS.mode;
     return {
@@ -31,7 +31,24 @@
     ].join("|");
   }
 
-  const api = { DEFAULTS, buildRenderKey, normalizeBackgroundSettings };
+  function resolveEffectiveBackground(background, trackArtwork) {
+    const normalized = normalizeBackgroundSettings(background);
+    if (normalized.mode !== "cover") {
+      return { ...normalized, fromTrackArtwork: false };
+    }
+    if (trackArtwork && typeof trackArtwork.url === "string" && trackArtwork.url) {
+      return {
+        ...normalized,
+        mode: "image",
+        customImageUrl: trackArtwork.url,
+        customImageName: trackArtwork.name || "Track Cover",
+        fromTrackArtwork: true
+      };
+    }
+    return { ...normalized, mode: "black", fromTrackArtwork: false };
+  }
+
+  const api = { DEFAULTS, buildRenderKey, normalizeBackgroundSettings, resolveEffectiveBackground };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

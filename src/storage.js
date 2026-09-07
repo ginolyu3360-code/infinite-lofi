@@ -143,7 +143,7 @@
       },
       notes: { files, activeId },
       stats: {
-        focusRows: core.aggregateFocusRows(statsSource.focusRows).slice(-366)
+        focusRows: core.aggregateFocusRows(statsSource.focusRows).slice(-core.MAX_FOCUS_HISTORY_DAYS)
       },
       player: {
         folderPath: normalizeString(playerSource.folderPath, 8192),

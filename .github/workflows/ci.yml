@@ -8,7 +8,7 @@ on:
 jobs:
   verify:
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -26,5 +26,11 @@ jobs:
       - name: Run syntax, unit, and stylesheet checks
         run: npm run check
 
+      - name: Run development UI smoke test
+        run: npm run smoke
+
       - name: Verify macOS packaging
         run: npm run pack
+
+      - name: Run packaged UI smoke test
+        run: npm run smoke:packaged

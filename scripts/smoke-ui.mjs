@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,9 +11,12 @@ const requestedPort = connectOnly ? Number(process.argv[connectArgumentIndex + 1
 const packagedExecutable = connectOnly ? "" : (process.argv[2] || "");
 const debugPort = Number.isInteger(requestedPort) ? requestedPort : 10_000 + (process.pid % 20_000);
 const executable = packagedExecutable || path.join(projectDirectory, "node_modules", ".bin", "electron");
+const smokeUserDataDirectory = connectOnly
+  ? ""
+  : mkdtempSync(path.join(tmpdir(), "infinite-lofi-smoke-profile-"));
 const launchArguments = packagedExecutable
-  ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`]
-  : [`--remote-debugging-port=${debugPort}`, "."];
+  ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`]
+  : [`--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`, "."];
 const appProcess = connectOnly ? null : spawn(executable, launchArguments, {
     cwd: projectDirectory,
     stdio: ["ignore", "pipe", "pipe"]
@@ -19,6 +24,7 @@ const appProcess = connectOnly ? null : spawn(executable, launchArguments, {
 
 let appLog = "";
 let socket;
+let profileRemoved = false;
 appProcess?.stdout.on("data", (chunk) => { appLog += chunk.toString(); });
 appProcess?.stderr.on("data", (chunk) => { appLog += chunk.toString(); });
 
@@ -27,7 +33,17 @@ function stopApp() {
   if (appProcess && appProcess.exitCode === null) appProcess.kill("SIGINT");
 }
 
-process.on("exit", stopApp);
+function removeSmokeProfile() {
+  if (profileRemoved || !smokeUserDataDirectory) return;
+  profileRemoved = true;
+  rmSync(smokeUserDataDirectory, { recursive: true, force: true });
+}
+
+appProcess?.once("exit", removeSmokeProfile);
+process.on("exit", () => {
+  stopApp();
+  removeSmokeProfile();
+});
 process.on("SIGINT", () => {
   stopApp();
   process.exit(130);
@@ -106,6 +122,11 @@ try {
   }
 
   await send("Runtime.enable");
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (await evaluate("document.readyState") === "complete") break;
+    if (attempt === 39) throw new Error("Timed out waiting for the renderer document to finish loading");
+    await delay(100);
+  }
   await evaluate(`(() => {
     const key = 'infiniteLofiState';
     const raw = localStorage.getItem(key);
@@ -148,7 +169,7 @@ try {
         'timerDisplay', 'timerToggle', 'notesInput', 'playPauseBtn',
         'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
-        'weatherApplyBtn', 'weatherPrivacyHint'
+        'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -223,6 +244,18 @@ try {
   const report = { baseline, runningTimer, notesResult, drawersResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
+  if (appProcess) {
+    const exitResult = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Quit App did not exit Electron")), 5_000);
+      appProcess.once("exit", (code, signal) => {
+        clearTimeout(timeout);
+        if (code === 0) resolve();
+        else reject(new Error(`Quit App exited unexpectedly (code ${code}, signal ${signal || "none"})`));
+      });
+    });
+    await evaluate("document.querySelector('#windowCloseBtn').click(); true");
+    await exitResult;
+  }
   console.log("Infinite Lo-Fi UI smoke test passed.");
 } finally {
   stopApp();

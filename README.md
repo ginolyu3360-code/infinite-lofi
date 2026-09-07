@@ -17,7 +17,7 @@
 ## 主要特性
 - 番茄专注 / 休息计时器，支持开始/暂停/重置与托盘显示
 - 本地笔记（多标签、置顶）
-- 音乐播放器：内置示例曲目 + 支持选择本地音乐文件夹并扫描音频文件与封面
+- 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹并缓存嵌入封面
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 背景模式：黑/白/壁纸/图片/视频
 - 托盘图标与“最小化到托盘”行为
@@ -236,6 +236,7 @@ npm run smoke
 ```
 
 The smoke test exercises the timer, notes, player, statistics drawer, and background drawer. It restores the previous local storage after the run.
+Each launched smoke-test app now uses a fresh temporary profile, so the test cannot modify the normal application profile even if it fails midway.
 
 Run both the checks and UI smoke test with:
 
@@ -255,7 +256,7 @@ npm run pack
 ```
 
 ## CI / Signing notes (GitHub Actions)
-The CI workflow installs locked dependencies, runs syntax and unit checks, builds the stylesheet, and verifies Universal macOS packaging. Pushing a matching `v*` tag runs the release workflow, which produces the Universal DMG/ZIP, generates SHA-256 checksums, and creates or updates the GitHub Release. Code signing and notarization are intentionally deferred.
+The CI workflow installs locked dependencies, runs syntax and unit checks, exercises both the development and packaged applications with isolated UI smoke tests, builds the stylesheet, and verifies Universal macOS packaging. Pushing a matching `v*` tag runs the release workflow, which produces the Universal DMG/ZIP, generates SHA-256 checksums, and creates or updates the GitHub Release. Code signing and notarization are intentionally deferred.
 
 Weather is off by default. Automatic mode sends the public IP address to `ipapi.co` and coordinates to Open-Meteo; city mode sends the city query and coordinates only to Open-Meteo. No weather/location requests are made while weather is off.
 

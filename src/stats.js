@@ -49,7 +49,17 @@
     };
   }
 
-  const api = { buildRangeDays, summarizeFocusRows };
+  function recordFocusSession(rows, day, focusSeconds) {
+    const seconds = Number(focusSeconds);
+    if (typeof day !== "string" || !day.trim() || !Number.isFinite(seconds) || seconds <= 0) {
+      return core.aggregateFocusRows(rows).slice(-core.MAX_FOCUS_HISTORY_DAYS);
+    }
+    return core
+      .aggregateFocusRows([...(Array.isArray(rows) ? rows : []), { day, focusSeconds: seconds }])
+      .slice(-core.MAX_FOCUS_HISTORY_DAYS);
+  }
+
+  const api = { buildRangeDays, recordFocusSession, summarizeFocusRows };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

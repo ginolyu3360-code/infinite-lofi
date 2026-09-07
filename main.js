@@ -2,7 +2,10 @@ const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme } = re
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
+const fs = require("fs");
 const musicMetadata = require("music-metadata");
+const { resolveWindowCloseAction } = require("./src/app-lifecycle");
+const { createMusicLibrary } = require("./src/music-library");
 const { isTrustedNavigationUrl } = require("./src/security");
 
 const mainDocumentPath = path.join(__dirname, "src", "index.html");
@@ -12,6 +15,8 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 let closeBehavior = "quit";
+let musicLibrary = null;
+let grantedMusicFolders = new Set();
 let trayStatus = {
   timerText: "25:00",
   phaseText: "Focus Session",
@@ -136,12 +141,34 @@ function createMainWindow() {
 
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
+  mainWindow.on("close", (event) => {
+    const action = resolveWindowCloseAction({ closeBehavior, isQuitting });
+    if (action === "hide") {
+      event.preventDefault();
+      mainWindow?.hide();
+      return;
+    }
+    if (action === "quit") {
+      event.preventDefault();
+      isQuitting = true;
+      setImmediate(() => app.quit());
+    }
+  });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+    refreshTrayMenu();
+  });
 
   mainWindow.loadFile(mainDocumentPath);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   nativeTheme.themeSource = "dark";
+  await loadMusicFolderGrants();
+  musicLibrary = createMusicLibrary({
+    parseFile: musicMetadata.parseFile,
+    artworkCacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "artwork")
+  });
   createMainWindow();
   createTray();
 
@@ -169,11 +196,13 @@ ipcMain.on("window:minimize", (event) => {
 ipcMain.on("window:close", (event) => {
   const targetWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow;
   if (targetWindow && !targetWindow.isDestroyed()) {
-    if (closeBehavior === "tray") {
+    const action = resolveWindowCloseAction({ closeBehavior, isQuitting });
+    if (action === "hide") {
       targetWindow.hide();
       return;
     }
-    targetWindow.close();
+    isQuitting = true;
+    app.quit();
   }
 });
 
@@ -194,102 +223,53 @@ ipcMain.on("app:trayStatus", (_event, status) => {
 });
 
 // Local music folder selection and scanning
-const fs = require("fs");
 const { dialog } = require("electron");
 
-async function getEmbeddedArtworkForAudio(filePath) {
-  try {
-    const metadata = await musicMetadata.parseFile(filePath, { duration: false });
-    const picture = metadata && metadata.common && Array.isArray(metadata.common.picture) ? metadata.common.picture[0] : null;
-    if (!picture || !picture.data) {
-      return null;
-    }
+const MUSIC_FOLDER_GRANTS_FILE = "music-folder-grants.json";
 
-    const mimeType = typeof picture.format === "string" && picture.format.trim() ? picture.format.trim() : "image/jpeg";
-    const artworkData = Buffer.isBuffer(picture.data) ? picture.data : Buffer.from(picture.data);
-    return {
-      artworkName: "Embedded Cover",
-      artworkMimeType: mimeType,
-      artworkUrl: `data:${mimeType};base64,${artworkData.toString("base64")}`
-    };
-  } catch (error) {
-    return null;
-  }
+function getMusicFolderGrantsPath() {
+  return path.join(app.getPath("userData"), MUSIC_FOLDER_GRANTS_FILE);
 }
 
-async function scanMusicFolder(folderPath) {
+async function loadMusicFolderGrants() {
   try {
-    const files = fs.readdirSync(folderPath, { withFileTypes: true });
-    const audioExtensions = [".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg"];
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"];
-    const fileNameLookup = new Map(files.filter((entry) => entry.isFile()).map((entry) => [entry.name.toLowerCase(), entry.name]));
-
-    function findArtworkForAudio(fileName) {
-      const baseName = path.basename(fileName, path.extname(fileName));
-      const candidates = [
-        `${baseName}.jpg`,
-        `${baseName}.jpeg`,
-        `${baseName}.png`,
-        `${baseName}.webp`,
-        `${baseName}.gif`,
-        `${baseName}.bmp`,
-        "cover.jpg",
-        "cover.jpeg",
-        "cover.png",
-        "cover.webp",
-        "folder.jpg",
-        "folder.jpeg",
-        "folder.png",
-        "folder.webp",
-        "front.jpg",
-        "front.jpeg",
-        "front.png",
-        "album.jpg",
-        "album.jpeg",
-        "album.png"
-      ];
-
-      for (const candidate of candidates) {
-        const actualName = fileNameLookup.get(candidate.toLowerCase());
-        if (!actualName || !imageExtensions.includes(path.extname(actualName).toLowerCase())) {
-          continue;
-        }
-
-        return {
-          artworkName: actualName,
-          artworkPath: path.join(folderPath, actualName),
-          artworkUrl: pathToFileURL(path.join(folderPath, actualName)).href
-        };
-      }
-
-      return null;
-    }
-
-    const musicFiles = await Promise.all(
-      files
-        .filter((f) => f.isFile() && audioExtensions.includes(path.extname(f.name).toLowerCase()))
-        .map(async (f, idx) => {
-          const audioPath = path.join(folderPath, f.name);
-          const embeddedArtwork = await getEmbeddedArtworkForAudio(audioPath);
-          return {
-            id: `local-${idx}`,
-            label: path.basename(f.name, path.extname(f.name)),
-            src: audioPath,
-            srcUrl: pathToFileURL(audioPath).href,
-            isLocal: true,
-            ...findArtworkForAudio(f.name),
-            ...embeddedArtwork
-          };
-        })
+    const raw = await fs.promises.readFile(getMusicFolderGrantsPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    grantedMusicFolders = new Set(
+      (Array.isArray(parsed) ? parsed : [])
+        .filter((entry) => typeof entry === "string" && path.isAbsolute(entry))
+        .map((entry) => path.resolve(entry))
     );
-    return musicFiles;
-  } catch (e) {
-    console.error("Error scanning music folder:", e);
-    return [];
+  } catch (error) {
+    if (error?.code !== "ENOENT") console.error("Failed to load music folder grants:", error);
+    grantedMusicFolders = new Set();
   }
 }
 
-ipcMain.handle("music:selectFolder", async () => {
+async function grantMusicFolder(folderPath) {
+  const canonicalPath = await fs.promises.realpath(folderPath);
+  grantedMusicFolders.add(canonicalPath);
+  try {
+    await fs.promises.mkdir(path.dirname(getMusicFolderGrantsPath()), { recursive: true });
+    await fs.promises.writeFile(
+      getMusicFolderGrantsPath(),
+      JSON.stringify([...grantedMusicFolders].sort(), null, 2),
+      { encoding: "utf8", mode: 0o600 }
+    );
+  } catch (error) {
+    console.error("Failed to save music folder grant:", error);
+  }
+  return canonicalPath;
+}
+
+function isTrustedIpcSender(event) {
+  if (!mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) return false;
+  const senderUrl = event.senderFrame?.url || event.sender.getURL();
+  return isTrustedNavigationUrl(senderUrl, mainDocumentUrl);
+}
+
+ipcMain.handle("music:selectFolder", async (event) => {
+  if (!isTrustedIpcSender(event)) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ["openDirectory"],
     title: "Select Music Folder"
@@ -297,23 +277,29 @@ ipcMain.handle("music:selectFolder", async () => {
   if (result.canceled || !result.filePaths[0]) {
     return null;
   }
-  const folderPath = result.filePaths[0];
-  const tracks = await scanMusicFolder(folderPath);
+  const folderPath = await grantMusicFolder(result.filePaths[0]);
+  const tracks = await musicLibrary.scanFolder(folderPath);
   return { folderPath, tracks };
 });
 
-ipcMain.handle("music:scanFolder", async (_event, folderPath) => {
+ipcMain.handle("music:scanFolder", async (event, folderPath) => {
+  if (!isTrustedIpcSender(event)) {
+    return { folderPath: "", tracks: [], error: "unauthorized-sender" };
+  }
   if (typeof folderPath !== "string" || !folderPath.trim()) {
     return { folderPath: "", tracks: [], error: "invalid-folder" };
   }
 
   try {
-    if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
-      return { folderPath, tracks: [], error: "folder-unavailable" };
+    const canonicalPath = await fs.promises.realpath(folderPath);
+    if (!grantedMusicFolders.has(canonicalPath)) {
+      return { folderPath, tracks: [], error: "folder-not-approved" };
     }
-    const tracks = await scanMusicFolder(folderPath);
+    const stat = await fs.promises.stat(canonicalPath);
+    if (!stat.isDirectory()) return { folderPath, tracks: [], error: "folder-unavailable" };
+    const tracks = await musicLibrary.scanFolder(canonicalPath);
     return {
-      folderPath,
+      folderPath: canonicalPath,
       tracks,
       error: tracks.length > 0 ? null : "no-audio-files"
     };

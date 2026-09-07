@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiCore(globalScope) {
+  const MAX_FOCUS_HISTORY_DAYS = 366;
+
   function clamp(number, min, max) {
     return Math.min(Math.max(number, min), max);
   }
@@ -96,6 +98,7 @@
   }
 
   const api = {
+    MAX_FOCUS_HISTORY_DAYS,
     aggregateFocusRows,
     clamp,
     formatTime,

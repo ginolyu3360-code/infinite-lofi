@@ -4,8 +4,8 @@ const assert = require("node:assert/strict");
 const { createRuntimeSnapshot, resolveRestoredRuntime } = require("../src/timer");
 const { reorderById, resolveActiveId, sortPinnedFirst } = require("../src/notes");
 const { applyTrackOrder, findActiveTrackIndex, getTrackKey } = require("../src/player");
-const { buildRenderKey, normalizeBackgroundSettings } = require("../src/backgrounds");
-const { buildRangeDays, summarizeFocusRows } = require("../src/stats");
+const { buildRenderKey, normalizeBackgroundSettings, resolveEffectiveBackground } = require("../src/backgrounds");
+const { buildRangeDays, recordFocusSession, summarizeFocusRows } = require("../src/stats");
 const {
   buildForecastUrl,
   buildGeocodingUrl,
@@ -17,6 +17,7 @@ const {
 const { normalizeToggleSettings } = require("../src/ui");
 const { isTypingElement } = require("../src/bindings");
 const { isTrustedNavigationUrl } = require("../src/security");
+const { resolveWindowCloseAction } = require("../src/app-lifecycle");
 
 test("restores an active timer from its deadline", () => {
   const restored = resolveRestoredRuntime(
@@ -100,6 +101,15 @@ test("normalizes background and shortcut settings", () => {
     customVideoName: ""
   });
   assert.equal(buildRenderKey({ mode: "image", customImageUrl: "cover.jpg" }, true), "image|cover.jpg||showcase");
+  assert.equal(resolveEffectiveBackground({ mode: "white" }, { url: "cover.jpg" }).mode, "white");
+  assert.deepEqual(resolveEffectiveBackground({ mode: "cover" }, { url: "cover.jpg", name: "Album" }), {
+    mode: "image",
+    customImageUrl: "cover.jpg",
+    customImageName: "Album",
+    customVideoUrl: "",
+    customVideoName: "",
+    fromTrackArtwork: true
+  });
   assert.deepEqual(normalizeToggleSettings({ play: false, unknown: true }, { play: true, next: true }), {
     play: false,
     next: true
@@ -118,6 +128,17 @@ test("builds and summarizes local focus-stat ranges", () => {
   assert.equal(summary.totalMinutes, 15);
   assert.equal(summary.averageMinutes, 15);
   assert.equal(summary.peakMinutes, 15);
+});
+
+test("records focus sessions without truncating a year of imported history", () => {
+  const rows = Array.from({ length: 365 }, (_, index) => ({
+    day: `2025-${String(Math.floor(index / 31) + 1).padStart(2, "0")}-${String((index % 31) + 1).padStart(2, "0")}`,
+    focusSeconds: 60
+  }));
+  const updated = recordFocusSession(rows, "2026-01-01", 1500);
+
+  assert.equal(updated.length, 366);
+  assert.deepEqual(updated.at(-1), { day: "2026-01-01", focusSeconds: 1500 });
 });
 
 test("normalizes weather labels, payloads, and cache age", () => {
@@ -144,6 +165,12 @@ test("allows only the trusted application document to navigate", () => {
   assert.equal(isTrustedNavigationUrl(`${trusted}?external=1`, trusted), false);
   assert.equal(isTrustedNavigationUrl("https://example.com/", trusted), false);
   assert.equal(isTrustedNavigationUrl("not a URL", trusted), false);
+});
+
+test("maps window close requests to quit, hide, or final close consistently", () => {
+  assert.equal(resolveWindowCloseAction({ closeBehavior: "quit", isQuitting: false }), "quit");
+  assert.equal(resolveWindowCloseAction({ closeBehavior: "tray", isQuitting: false }), "hide");
+  assert.equal(resolveWindowCloseAction({ closeBehavior: "tray", isQuitting: true }), "close");
 });
 
 test("detects typing targets without depending on Electron", () => {
