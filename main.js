@@ -3,6 +3,10 @@ const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFileSync } = require("child_process");
 const musicMetadata = require("music-metadata");
+const { isTrustedNavigationUrl } = require("./src/security");
+
+const mainDocumentPath = path.join(__dirname, "src", "index.html");
+const mainDocumentUrl = pathToFileURL(mainDocumentPath).href;
 
 let mainWindow = null;
 let tray = null;
@@ -89,6 +93,7 @@ function refreshTrayMenu() {
 }
 
 function createMainWindow() {
+  const allowDevTools = !app.isPackaged || process.argv.includes("--allow-devtools-for-testing");
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
@@ -104,10 +109,26 @@ function createMainWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       preload: path.join(__dirname, "preload.js"),
-      devTools: true
+      devTools: allowDevTools,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      navigateOnDragDrop: false,
+      webviewTag: false,
+      spellcheck: false
     }
   });
+
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
+  mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
+    if (!isTrustedNavigationUrl(navigationUrl, mainDocumentUrl)) event.preventDefault();
+  });
+  if (!allowDevTools) {
+    mainWindow.webContents.on("devtools-opened", () => mainWindow?.webContents.closeDevTools());
+  }
 
   if (process.platform === "win32") {
     mainWindow.setBackgroundColor("#00000000");
@@ -116,7 +137,7 @@ function createMainWindow() {
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
 
-  mainWindow.loadFile(path.join(__dirname, "src", "index.html"));
+  mainWindow.loadFile(mainDocumentPath);
 }
 
 app.whenReady().then(() => {

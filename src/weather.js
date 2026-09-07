@@ -1,4 +1,32 @@
 (function exposeInfiniteLofiWeather(globalScope) {
+  const WEATHER_MODES = ["off", "auto", "city"];
+
+  function normalizeWeatherSettings(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const mode = WEATHER_MODES.includes(source.mode) ? source.mode : "off";
+    const city = typeof source.city === "string"
+      ? source.city.replace(/\s+/g, " ").trim().slice(0, 80)
+      : "";
+    return { mode, city };
+  }
+
+  function buildForecastUrl(latitude, longitude) {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      throw new TypeError("Valid latitude and longitude are required");
+    }
+    return `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code&timezone=auto`;
+  }
+
+  function buildGeocodingUrl(city) {
+    const normalized = normalizeWeatherSettings({ mode: "city", city }).city;
+    if (!normalized) {
+      throw new TypeError("A city is required");
+    }
+    return `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(normalized)}&count=1&language=en&format=json`;
+  }
+
   function weatherCodeToText(code) {
     if (code === 0) return "Clear";
     if ([1, 2].includes(code)) return "Partly Cloudy";
@@ -56,7 +84,15 @@
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
   }
 
-  const api = { formatUpdatedAgo, sanitizeWeatherText, weatherCodeToText };
+  const api = {
+    WEATHER_MODES,
+    buildForecastUrl,
+    buildGeocodingUrl,
+    formatUpdatedAgo,
+    normalizeWeatherSettings,
+    sanitizeWeatherText,
+    weatherCodeToText
+  };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

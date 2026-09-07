@@ -6,9 +6,17 @@ const { reorderById, resolveActiveId, sortPinnedFirst } = require("../src/notes"
 const { applyTrackOrder, findActiveTrackIndex, getTrackKey } = require("../src/player");
 const { buildRenderKey, normalizeBackgroundSettings } = require("../src/backgrounds");
 const { buildRangeDays, summarizeFocusRows } = require("../src/stats");
-const { formatUpdatedAgo, sanitizeWeatherText, weatherCodeToText } = require("../src/weather");
+const {
+  buildForecastUrl,
+  buildGeocodingUrl,
+  formatUpdatedAgo,
+  normalizeWeatherSettings,
+  sanitizeWeatherText,
+  weatherCodeToText
+} = require("../src/weather");
 const { normalizeToggleSettings } = require("../src/ui");
 const { isTypingElement } = require("../src/bindings");
+const { isTrustedNavigationUrl } = require("../src/security");
 
 test("restores an active timer from its deadline", () => {
   const restored = resolveRestoredRuntime(
@@ -121,6 +129,21 @@ test("normalizes weather labels, payloads, and cache age", () => {
   );
   assert.equal(formatUpdatedAgo(1_000, 31_000), "刚刚");
   assert.equal(formatUpdatedAgo(1_000, 121_000), "2分钟前");
+  assert.deepEqual(normalizeWeatherSettings(), { mode: "off", city: "" });
+  assert.deepEqual(normalizeWeatherSettings({ mode: "city", city: "  Hong   Kong  " }), {
+    mode: "city",
+    city: "Hong Kong"
+  });
+  assert.match(buildGeocodingUrl("New York"), /name=New%20York/);
+  assert.match(buildForecastUrl(22.3, 114.2), /latitude=22.3&longitude=114.2/);
+});
+
+test("allows only the trusted application document to navigate", () => {
+  const trusted = "file:///Applications/Infinite%20Lo-Fi.app/Contents/Resources/app.asar/src/index.html";
+  assert.equal(isTrustedNavigationUrl(`${trusted}#timer`, trusted), true);
+  assert.equal(isTrustedNavigationUrl(`${trusted}?external=1`, trusted), false);
+  assert.equal(isTrustedNavigationUrl("https://example.com/", trusted), false);
+  assert.equal(isTrustedNavigationUrl("not a URL", trusted), false);
 });
 
 test("detects typing targets without depending on Electron", () => {

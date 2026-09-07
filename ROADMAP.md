@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.0.0 is a functional Electron desktop Pomodoro app. The recovered source starts successfully, supports the core timer, notes, audio player, statistics, background drawers, and can be packaged as a macOS application.
+Version 1.1.0 is the latest published release. The `main` branch is preparing version 1.2.0 with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, and automated releases.
 
-The next milestone should prioritize correctness and recoverability before adding more features.
+Version 1.2.0 should be released and observed before Phase 3 product expansion begins.
 
 ## Phase 0 — Stabilize the core
 
@@ -47,19 +47,22 @@ Status: completed on 2026-09-07. Data protection, stylesheet extraction, and fea
 
 ## Phase 2 — Privacy, security, and distribution
 
-- Make weather optional or let the user choose a city; explain that automatic weather currently uses an IP geolocation service.
-- Add a restrictive Content Security Policy and bundle fonts locally so the main UI does not depend on Google Fonts at runtime.
-- Explicitly harden Electron web preferences, disable production DevTools, and reject unexpected navigation or new-window requests.
-- Produce native Apple Silicon and Intel builds, or a universal macOS build, instead of only `x64`.
-- Add signing and notarization only when public distribution is planned.
-- Run dependency security audits with explicit approval for sending dependency metadata to the package registry.
+Status: completed for the requested scope on 2026-09-07. Signing and notarization were explicitly deferred; all other items were implemented and verified locally.
+
+- [x] Make weather optional or let the user choose a city; explain that automatic weather currently uses an IP geolocation service.
+- [x] Add a restrictive Content Security Policy and bundle fonts locally so the main UI does not depend on Google Fonts at runtime.
+- [x] Explicitly harden Electron web preferences, disable production DevTools, and reject unexpected navigation or new-window requests.
+- [x] Produce a Universal macOS build containing native Apple Silicon and Intel binaries instead of only `x64`.
+- [ ] Add signing and notarization. Deferred by project decision; releases remain unsigned.
+- [x] Run dependency security audits with explicit approval. Production and full dependency audits report zero known vulnerabilities after the build-tool upgrade.
+- [x] Add a tag-driven workflow that verifies, builds, checksums, and creates or updates GitHub Releases.
 
 ### Phase 2 completion criteria
 
-- Core use works offline.
-- Network behavior is documented and controllable.
-- Release builds target the intended Mac architectures.
-- Public releases are signed and notarized when applicable.
+- [x] Core use works offline.
+- [x] Network behavior is documented and controllable.
+- [x] Release builds target both `x86_64` and `arm64` in one Universal application.
+- [ ] Public releases are signed and notarized. Explicitly outside the current scope.
 
 ## Phase 3 — Product improvements
 
@@ -79,4 +82,4 @@ Only start after Phases 0–2 are stable.
 
 ## Repository maintenance note
 
-The local Git object store contains roughly 421 MB of unreachable historical objects. Do not prune it until the recovered source has been committed, pushed, and independently backed up. After that, local cleanup can be considered separately.
+The recovered source is committed, pushed, tagged, and backed by a GitHub Release. After separate authorization, 11,231 unreachable objects were pruned; the local Git object pack decreased from 420.79 MiB to about 500 KiB with no unreachable objects remaining.

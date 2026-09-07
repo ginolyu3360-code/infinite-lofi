@@ -1,6 +1,6 @@
 {
   "name": "infinite-lofi-desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
   "main": "main.js",
   "scripts": {
@@ -9,17 +9,23 @@
     "dev:app": "electron .",
     "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
     "test": "node --test",
-    "check": "node --check main.js && node --check preload.js && node --check src/core.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/player-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/stats-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/bindings.js && node --check src/renderer.js && npm test && npm run build:css",
+    "check": "node --check main.js && node --check preload.js && node --check src/core.js && node --check src/security.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/player-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/stats-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/bindings.js && node --check src/renderer.js && npm test && npm run build:css",
     "smoke": "node scripts/smoke-ui.mjs",
     "verify": "npm run check && npm run smoke",
     "start": "npm run build:css && electron .",
-    "dist": "npm run build:css && electron-builder --mac --x64",
-    "pack": "npm run build:css && electron-builder --dir --mac --x64"
+    "dist": "npm run dist:universal",
+    "dist:x64": "npm run build:css && electron-builder --mac --x64",
+    "dist:arm64": "npm run build:css && electron-builder --mac --arm64",
+    "dist:universal": "npm run build:css && electron-builder --mac --universal",
+    "pack": "npm run pack:universal",
+    "pack:x64": "npm run build:css && electron-builder --dir --mac --x64",
+    "pack:arm64": "npm run build:css && electron-builder --dir --mac --arm64",
+    "pack:universal": "npm run build:css && electron-builder --dir --mac --universal"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
     "electron": "^41.3.0",
-    "electron-builder": "^25.0.0",
+    "electron-builder": "^26.15.3",
     "tailwindcss": "^3.4.13"
   },
   "keywords": [],
@@ -32,6 +38,7 @@
   "build": {
     "appId": "com.infinite-lofi.desktop",
     "productName": "Infinite Lo-Fi",
+    "artifactName": "Infinite-Lo-Fi-${version}-${arch}.${ext}",
     "directories": {
       "output": "dist"
     },

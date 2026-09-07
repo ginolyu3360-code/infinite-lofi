@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — Unreleased
+
+- Made weather opt-in with Off, automatic IP location, and manual city modes plus clear privacy descriptions
+- Added a restrictive Content Security Policy and bundled the UI fonts for offline use
+- Enabled Electron renderer sandboxing, disabled production DevTools, and blocked unexpected navigation, windows, and webviews
+- Added Universal macOS builds containing both Apple Silicon and Intel binaries
+- Added tag-driven GitHub Release automation with checksums and idempotent asset uploads
+- Upgraded electron-builder to 26.15.3 and resolved all npm audit findings
+
 ## 1.1.0 — 2026-09-07
 
 - Added a versioned local-data schema with automatic migration from legacy keys

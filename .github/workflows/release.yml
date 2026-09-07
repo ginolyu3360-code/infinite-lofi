@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Require matching package and tag versions
+        run: test "$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME#v}"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run checks and tests
+        run: npm run check
+
+      - name: Build unsigned Universal macOS release
+        run: npm run dist
+
+      - name: Verify Universal binary and create checksums
+        run: |
+          lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q x86_64
+          lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q arm64
+          shasum -a 256 dist/*.dmg dist/*.zip > dist/SHA256SUMS.txt
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS.txt \
+              --verify-tag \
+              --title "Infinite Lo-Fi $GITHUB_REF_NAME" \
+              --generate-notes
+          fi

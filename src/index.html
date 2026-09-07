@@ -3,13 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Infinite Lo-Fi</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap"
-      rel="stylesheet"
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: file: blob:; media-src 'self' data: file: blob:; connect-src https://ipapi.co https://api.open-meteo.com https://geocoding-api.open-meteo.com; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'; worker-src 'none'"
     />
+    <title>Infinite Lo-Fi</title>
+    <link rel="stylesheet" href="./styles/fonts.css" />
     <link rel="stylesheet" href="./styles/output.css" />
     <link rel="stylesheet" href="./styles/components.css" />
   </head>
@@ -184,6 +183,30 @@
           <div class="mt-2 flex items-center justify-between">
             <p id="todayFocusStat" class="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-amber-200/85">Today 0m</p>
           </div>
+          <section class="weather-settings mt-3" aria-labelledby="weatherSettingsTitle">
+            <div class="weather-settings-row">
+              <label id="weatherSettingsTitle" for="weatherModeSelect">Weather</label>
+              <select id="weatherModeSelect" class="weather-settings-input" title="Choose weather privacy mode">
+                <option value="off">Off</option>
+                <option value="auto">Automatic (IP)</option>
+                <option value="city">Choose City</option>
+              </select>
+              <input
+                id="weatherCityInput"
+                class="weather-settings-input"
+                type="text"
+                maxlength="80"
+                autocomplete="off"
+                placeholder="City name"
+                aria-label="Weather city"
+                disabled
+              />
+              <button id="weatherApplyBtn" class="stats-export-btn" type="button">Apply</button>
+            </div>
+            <p id="weatherPrivacyHint" class="weather-privacy-hint">
+              Weather is off. No weather or location requests are made.
+            </p>
+          </section>
           <div class="mt-4 grid grid-cols-3 gap-3">
             <div class="stats-metric-card">
               <span class="stats-metric-label">Total</span>

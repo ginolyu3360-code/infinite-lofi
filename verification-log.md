@@ -1,5 +1,35 @@
 # Verification Log
 
+## 2026-09-07 — Phase 2 privacy, security, and distribution
+
+### Implemented
+
+- Made weather opt-in and default-off, with separate automatic IP-location and manual-city modes plus an in-app explanation of data sent to each provider.
+- Restricted renderer network access with a Content Security Policy that permits only the declared weather endpoints and local/file media resources.
+- Replaced runtime Google Fonts requests with five bundled WOFF2 files and their SIL Open Font License notices.
+- Enabled Electron renderer sandboxing and existing context isolation; disabled production DevTools; denied new windows, webviews, drag navigation, insecure content, and navigation outside the application document.
+- Added a testable trusted-navigation helper and weather URL/settings normalization.
+- Changed default macOS packaging to Universal (`x86_64` + `arm64`) while retaining explicit per-architecture scripts.
+- Added `.github/workflows/release.yml` for tag/package-version validation, checks, Universal DMG/ZIP builds, SHA-256 generation, and idempotent GitHub Release creation or asset replacement.
+- Upgraded `electron-builder` from 25.x to 26.15.3 after audit findings in the development toolchain.
+- Signing and notarization remain intentionally deferred by project decision.
+
+### Checks completed
+
+- Passed syntax, stylesheet, and twenty-four unit tests, including offline weather, city-without-IP-geolocation, and trusted-navigation cases.
+- Passed the development and Universal packaged-app UI smoke tests with no renderer exceptions.
+- Confirmed the packaged executable reports both `x86_64` and `arm64` through `lipo`.
+- Confirmed the packaged `app.asar` contains the local fonts, OFL notices, CSP-backed UI, and security module.
+- Built `Infinite-Lo-Fi-1.2.0-universal.dmg` and `Infinite-Lo-Fi-1.2.0-universal.zip` successfully.
+- Parsed both GitHub Actions workflow files and locally exercised the release workflow's architecture, artifact, and checksum commands.
+- Completed full and production-only npm security audits; both report zero known vulnerabilities after the build-tool and lockfile updates.
+
+### Repository maintenance
+
+- Verified 3 commits, 9,782 blobs, and 1,446 trees were unreachable before cleanup.
+- Expired local reflogs and pruned unreachable objects after the recovered source had been pushed, tagged, and released.
+- Reduced the Git object pack from 420.79 MiB to about 500 KiB; a follow-up `git fsck --unreachable --no-reflogs` reported no remaining unreachable objects.
+
 ## 2026-09-07 — Phase 1 data protection and modularization
 
 ### Implemented

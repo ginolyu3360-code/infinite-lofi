@@ -10,7 +10,7 @@ const packagedExecutable = connectOnly ? "" : (process.argv[2] || "");
 const debugPort = Number.isInteger(requestedPort) ? requestedPort : 10_000 + (process.pid % 20_000);
 const executable = packagedExecutable || path.join(projectDirectory, "node_modules", ".bin", "electron");
 const launchArguments = packagedExecutable
-  ? ["--enable-logging=stderr", `--remote-debugging-port=${debugPort}`]
+  ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`]
   : [`--remote-debugging-port=${debugPort}`, "."];
 const appProcess = connectOnly ? null : spawn(executable, launchArguments, {
     cwd: projectDirectory,
@@ -129,19 +129,29 @@ try {
   await delay(500);
   await evaluate("window.__smokeStorageBackup = JSON.stringify(Object.entries(localStorage)); true");
 
-  const baseline = await evaluate(`(() => ({
-    readyState: document.readyState,
-    title: document.title,
-    timer: document.querySelector('#timerDisplay')?.textContent.trim(),
-    timerButton: document.querySelector('#timerToggle')?.textContent.trim(),
-    noteTabs: document.querySelectorAll('#noteTabs > *').length,
-    track: document.querySelector('#trackLabel')?.textContent.trim(),
-    requiredElementsPresent: [
-      'timerDisplay', 'timerToggle', 'notesInput', 'playPauseBtn',
-      'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
-      'storageRecoveryNotice'
-    ].every((id) => Boolean(document.getElementById(id)))
-  }))()`);
+  const baseline = await evaluate(`(async () => {
+    await document.fonts.ready;
+    return {
+      readyState: document.readyState,
+      title: document.title,
+      timer: document.querySelector('#timerDisplay')?.textContent.trim(),
+      timerButton: document.querySelector('#timerToggle')?.textContent.trim(),
+      noteTabs: document.querySelectorAll('#noteTabs > *').length,
+      track: document.querySelector('#trackLabel')?.textContent.trim(),
+      weatherMode: document.querySelector('#weatherModeSelect')?.value,
+      localFontsReady:
+        document.fonts.check('400 12px "Space Grotesk"') &&
+        document.fonts.check('400 12px "IBM Plex Mono"'),
+      remoteStylesheetCount: [...document.querySelectorAll('link[rel="stylesheet"]')]
+        .filter((link) => /^https?:/i.test(link.href)).length,
+      requiredElementsPresent: [
+        'timerDisplay', 'timerToggle', 'notesInput', 'playPauseBtn',
+        'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
+        'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
+        'weatherApplyBtn', 'weatherPrivacyHint'
+      ].every((id) => Boolean(document.getElementById(id)))
+    };
+  })()`);
 
   await evaluate("document.querySelector('#timerToggle').click(); true");
   await delay(1_300);
@@ -202,6 +212,7 @@ try {
 
   const failures = [];
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
+  if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");

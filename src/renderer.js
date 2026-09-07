@@ -144,6 +144,10 @@ const statsCloseBtn = document.getElementById("statsCloseBtn");
 const statusTime = document.getElementById("statusTime");
 const statusDate = document.getElementById("statusDate");
 const statusWeather = document.getElementById("statusWeather");
+const weatherModeSelect = document.getElementById("weatherModeSelect");
+const weatherCityInput = document.getElementById("weatherCityInput");
+const weatherApplyBtn = document.getElementById("weatherApplyBtn");
+const weatherPrivacyHint = document.getElementById("weatherPrivacyHint");
 const loadMusicFolderBtn = document.getElementById("loadMusicFolderBtn");
 const musicFolderDisplay = document.getElementById("musicFolderDisplay");
 const bgToggleBtn = document.getElementById("bgToggleBtn");
@@ -179,6 +183,7 @@ let closeBehavior = "quit";
 let timerScrollFadeRaf = 0;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
+let weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings();
 let showcaseModeEnabled = false;
 let currentTrackArtwork = null;
 let backgroundRenderKey = "";
@@ -292,6 +297,7 @@ function loadUiSettings() {
   const stored = appStorage.getState().settings.ui || {};
   shortcutSettings = normalizeToggleSettings(stored.shortcuts, DEFAULT_SHORTCUT_SETTINGS);
   backgroundSettings = normalizeBackgroundSettings(stored.background);
+  weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings(stored.weather);
   showcaseModeEnabled = Boolean(stored.showcaseMode);
 
   // volume
@@ -321,6 +327,7 @@ function saveUiSettings() {
     brightness: Number(getComputedStyle(document.documentElement).getPropertyValue("--scene-brightness")) || 1,
     shortcuts: shortcutSettings,
     background: backgroundSettings,
+    weather: weatherSettings,
     showcaseMode: showcaseModeEnabled
   };
   appStorage.update((state) => {
@@ -1178,7 +1185,16 @@ async function init() {
     statusTime,
     statusDate,
     statusWeather,
-    weather: window.InfiniteLofiWeather
+    modeSelect: weatherModeSelect,
+    cityInput: weatherCityInput,
+    applyButton: weatherApplyBtn,
+    privacyHint: weatherPrivacyHint,
+    weather: window.InfiniteLofiWeather,
+    initialSettings: weatherSettings,
+    onSettingsChange: (settings) => {
+      weatherSettings = settings;
+      saveUiSettings();
+    }
   }).init();
   sendTrayStatus();
 }

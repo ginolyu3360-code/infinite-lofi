@@ -5,23 +5,40 @@
 From the project root:
 
 ```bash
-npm install
+npm ci
 npm run dist
 ```
 
 The output is created in `dist/`:
 
-- `Infinite Lo-Fi-1.1.0.dmg`: installer image
-- `Infinite Lo-Fi-1.1.0-mac.zip`: zipped application
-- `mac/Infinite Lo-Fi.app`: unpacked `.app` bundle
+- `Infinite-Lo-Fi-<version>-universal.dmg`: Universal installer image
+- `Infinite-Lo-Fi-<version>-universal.zip`: zipped Universal application
+- `mac-universal/Infinite Lo-Fi.app`: unpacked Universal `.app` bundle
 
-The build currently targets Intel macOS with `--x64`, matching the configured `dist` script. To produce an Apple Silicon build on a compatible machine, use the equivalent builder target with `--arm64`.
+The default build contains both Intel (`x86_64`) and Apple Silicon (`arm64`) code. Architecture-specific builds remain available:
 
-Published builds are available from the [GitHub Releases page](https://github.com/ginolyu3360-code/infinite-lofi/releases). The v1.1.0 assets are unsigned Intel (`x64`) builds.
+```bash
+npm run dist:x64
+npm run dist:arm64
+npm run dist:universal
+```
+
+Published builds are available from the [GitHub Releases page](https://github.com/ginolyu3360-code/infinite-lofi/releases). Version 1.1.0 remains the last Intel-only release; 1.2.0 and later default to Universal artifacts.
+
+## Automated releases
+
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete non-GUI checks, builds the unsigned Universal DMG and ZIP, creates `SHA256SUMS.txt`, and creates or updates the matching GitHub Release.
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+Rerunning the workflow safely replaces assets on an existing Release instead of creating duplicates.
 
 ## First launch on macOS
 
-Local builds are unsigned unless an Apple Developer ID certificate is available. If Gatekeeper blocks the app:
+Builds are intentionally unsigned in the current project scope. If Gatekeeper blocks the app:
 
 1. Open the DMG and drag **Infinite Lo-Fi** to Applications.
 2. Control-click the app in Finder and choose **Open**.
@@ -33,9 +50,9 @@ For a local app that has already been trusted incorrectly, remove the quarantine
 xattr -d com.apple.quarantine "/Applications/Infinite Lo-Fi.app"
 ```
 
-## Signed release
+## Optional future signing
 
-Before publishing to other users, configure an Apple Developer ID Application certificate and notarization credentials for electron-builder. Signing and notarization are intentionally not automated in this repository because they require private developer credentials.
+If the project later adopts signed distribution, configure an Apple Developer ID Application certificate and notarization credentials for electron-builder. Signing and notarization are intentionally not automated because they require private developer credentials.
 
 Recommended release checks:
 
