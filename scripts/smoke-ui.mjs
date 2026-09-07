@@ -146,6 +146,21 @@ try {
       };
     })()`);
   }
+
+  async function waitForLayoutState() {
+    let state;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      state = await readLayoutState();
+      if (
+        state.timerOverflow <= 1 &&
+        state.cardInsideViewport &&
+        state.playerInsideViewport &&
+        state.timerButtonHeight >= 42
+      ) return state;
+      await delay(150);
+    }
+    return state;
+  }
   for (let attempt = 0; attempt < 40; attempt += 1) {
     if (await evaluate("document.readyState") === "complete") break;
     if (attempt === 39) throw new Error("Timed out waiting for the renderer document to finish loading");
@@ -202,7 +217,7 @@ try {
   const responsiveLayouts = [];
   for (const [width, height] of [[720, 520], [800, 600], [1440, 900], [1100, 760]]) {
     await setWindowSize(width, height);
-    responsiveLayouts.push(await readLayoutState());
+    responsiveLayouts.push(await waitForLayoutState());
   }
 
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
