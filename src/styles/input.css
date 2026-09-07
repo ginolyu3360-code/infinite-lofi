@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    @apply m-0 h-full overflow-hidden bg-zinc-950 text-zinc-100 antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-soft;
+  }
+
+  .control-btn {
+    @apply h-11 px-5 rounded-full border border-white/25 bg-white/10 text-sm tracking-[0.15em] uppercase text-zinc-100 transition hover:bg-white/20 active:scale-95;
+  }
+
+  .window-btn {
+    @apply no-drag h-7 w-7 rounded-full border border-white/25 bg-white/10 font-mono text-xs text-zinc-100 transition hover:bg-white/20;
+  }
+
+  .playlist-item {
+    @apply rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-left font-mono text-[0.68rem] uppercase tracking-[0.23em] text-zinc-200/85 transition hover:bg-white/20;
+  }
+
+  .playlist-item.is-active {
+    @apply border-amber-300/40 bg-amber-200/20 text-amber-50;
+  }
+
+  .timer-config-label {
+    @apply flex flex-col items-start gap-1 font-mono text-[0.62rem] uppercase tracking-[0.2em] text-zinc-200/75;
+  }
+
+  .timer-config-input {
+    @apply h-9 w-24 rounded-xl border border-white/20 bg-black/25 px-2 text-center font-mono text-sm tracking-[0.08em] text-zinc-100 outline-none;
+  }
+
+  .stat-bar {
+    @apply relative flex h-28 flex-col items-center justify-end gap-2 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-1 pb-2 pt-2;
+  }
+
+  .stat-bar-fill {
+    @apply relative z-10 w-full rounded-t-2xl border border-white/25 bg-gradient-to-t from-amber-300/60 to-zinc-100/70 shadow-[0_8px_18px_-10px_rgba(0,0,0,0.75)];
+    min-height: 6px;
+  }
+
+  .stat-bar-fill-1 {
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1.35rem;
+  }
+
+  .stat-bar-fill-2 {
+    border-top-left-radius: 1.25rem;
+    border-top-right-radius: 1rem;
+  }
+
+  .stat-bar-fill-3 {
+    border-top-left-radius: 0.85rem;
+    border-top-right-radius: 1.2rem;
+  }
+
+  .stat-bar-fill-4 {
+    border-top-left-radius: 1.35rem;
+    border-top-right-radius: 0.9rem;
+  }
+
+  .stat-bar-paper {
+    @apply pointer-events-none absolute inset-0 opacity-40;
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.09) 0 1px, transparent 1px 7px), radial-gradient(rgba(255,255,255,0.08) 0.6px, transparent 0.6px);
+    background-size: 12px 12px, 4px 4px;
+    mix-blend-mode: screen;
+  }
+
+  .stat-bar-label {
+    @apply relative z-10 font-mono text-[0.56rem] uppercase tracking-[0.18em] text-zinc-300/60;
+  }
+
+  .stats-range-btn,
+  .stats-export-btn {
+    @apply h-8 rounded-full border border-white/20 bg-white/5 px-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-200/80 transition hover:bg-white/15;
+  }
+
+  .stats-danger-btn {
+    @apply h-8 rounded-full border border-rose-300/30 bg-rose-300/10 px-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-rose-100 transition hover:bg-rose-300/20;
+  }
+
+  .stats-range-btn.is-active {
+    @apply border-amber-300/40 bg-amber-200/20 text-amber-50;
+  }
+
+  .stats-chart-wrap {
+    min-height: 11rem;
+    background-image: linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 100% 2.1rem;
+  }
+
+  .stats-metric-card {
+    @apply rounded-2xl border border-white/15 bg-black/15 px-3 py-2 text-center shadow-soft;
+  }
+
+  .stats-metric-label {
+    @apply block font-mono text-[0.56rem] uppercase tracking-[0.18em] text-zinc-300/60;
+  }
+
+  .stats-metric-value {
+    @apply mt-1 block font-mono text-sm uppercase tracking-[0.18em] text-zinc-100;
+  }
+
+  .stats-tooltip {
+    @apply pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-full border border-white/20 bg-zinc-950/90 px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-100 shadow-soft;
+  }
+
+  .stat-bar-1 {
+    transform: rotate(-1.3deg);
+  }
+
+  .stat-bar-2 {
+    transform: rotate(1.2deg);
+  }
+
+  .stat-bar-3 {
+    transform: rotate(-0.6deg);
+  }
+
+  .stat-bar-4 {
+    transform: rotate(0.9deg);
+  }
+}
+
+@layer utilities {
+  .grain-layer {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 0.75px, transparent 0.75px);
+    background-size: 3px 3px;
+  }
+
+  .window-drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  .volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, rgba(251, 191, 36, 0.85), rgba(212, 212, 216, 0.8));
+    outline: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(24, 24, 27, 0.95);
+    cursor: pointer;
+  }
+}

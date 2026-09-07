@@ -1,5 +1,36 @@
 # Verification Log
 
+## 2026-09-07 — Source recovery
+
+### Recovery
+
+- Restored the missing `src/` directory from the previously built macOS application's `app.asar` archive.
+- Recovered `src/index.html`, `src/renderer.js`, `src/styles/input.css`, and `src/styles/output.css`.
+- Performed the recovery in a separate writable clone; the earlier local repository was not modified.
+
+### Checks completed
+
+1. Installed the locked dependencies successfully with `npm ci`.
+2. Passed JavaScript syntax checks for `main.js`, `preload.js`, and `src/renderer.js`.
+3. Rebuilt the minified Tailwind stylesheet successfully.
+4. Launched the development application and ran an automated UI smoke check:
+   - Renderer reached the complete state with all required controls present.
+   - Timer counted down by one second and changed from Start to Pause.
+   - A second note was created and accepted input.
+   - Statistics and background drawers opened.
+   - The bundled audio track entered the playing state.
+   - No renderer exceptions were captured.
+   - Temporary test data was removed and the previous local storage was restored.
+5. Built the unpacked macOS `x64` application successfully with `npm run pack`.
+6. Confirmed the packaged `app.asar` contains all four recovered source files.
+7. Ran the same UI smoke check against the packaged application with the same successful result.
+
+### Known limitations and warnings
+
+- The macOS build is unsigned and targets Intel (`x64`) only.
+- Dependency installation reports deprecation warnings in transitive packages.
+- A live dependency vulnerability audit was not completed because it requires sending dependency metadata to the npm registry.
+
 ## 2026-09-01
 
 ### Environment
