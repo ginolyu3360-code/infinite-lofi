@@ -30,6 +30,12 @@
 - Expired local reflogs and pruned unreachable objects after the recovered source had been pushed, tagged, and released.
 - Reduced the Git object pack from 420.79 MiB to about 500 KiB; a follow-up `git fsck --unreachable --no-reflogs` reported no remaining unreachable objects.
 
+### Stage handoff
+
+- Prepared package version 1.2.0 as an unreleased, stage-complete state on `main`.
+- Added `HANDOFF.md` with the required new-session reading order, verification evidence, release boundary, and recommended next decision.
+- The latest published version remains v1.1.0. No v1.2.0 tag or Release is part of this stage; only a normal `main` push and CI run are expected.
+
 ## 2026-09-07 — Phase 1 data protection and modularization
 
 ### Implemented

@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.1.0 is the latest published release. The `main` branch is preparing version 1.2.0 with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, and automated releases.
+Version 1.1.0 is the latest published release. Version 1.2.0 is stage-complete on `main` with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, and automated releases, but its tag and Release have intentionally not been created.
 
-Version 1.2.0 should be released and observed before Phase 3 product expansion begins.
+The latest `main` CI result must be confirmed before any v1.2.0 tag is created. Version 1.2.0 should then be released and observed before Phase 3 product expansion begins.
 
 ## Phase 0 — Stabilize the core
 
