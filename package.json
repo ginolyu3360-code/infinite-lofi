@@ -8,6 +8,10 @@
     "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --watch",
     "dev:app": "electron .",
     "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
+    "test": "node --test",
+    "check": "node --check main.js && node --check preload.js && node --check src/core.js && node --check src/renderer.js && npm test && npm run build:css",
+    "smoke": "node scripts/smoke-ui.mjs",
+    "verify": "npm run check && npm run smoke",
     "start": "npm run build:css && electron .",
     "dist": "npm run build:css && electron-builder --mac --x64",
     "pack": "npm run build:css && electron-builder --dir --mac --x64"
@@ -19,8 +23,8 @@
     "tailwindcss": "^3.4.13"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Gino",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "music-metadata": "^11.12.3"
@@ -35,7 +39,10 @@
       "**/*",
       "!**/.DS_Store",
       "!**/*.md",
+      "!.github/**",
       "!dist/**",
+      "!scripts/**",
+      "!test/**",
       "!node_modules/.cache/**"
     ],
     "mac": {

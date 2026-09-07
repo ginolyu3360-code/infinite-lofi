@@ -8,16 +8,16 @@ The next milestone should prioritize correctness and recoverability before addin
 
 ## Phase 0 — Stabilize the core
 
-Recommended as the next sprint.
+Status: implemented and verified locally on 2026-09-07. The GitHub Actions run remains pending until the commits are pushed.
 
-- Commit the recovered `src/` directory so a fresh clone can run and build.
-- Replace interval-based countdown logic with a deadline-based timer that remains accurate after sleep, throttling, or temporary renderer pauses.
-- Generate statistics day keys from the user's local calendar date instead of UTC, preventing sessions around midnight from being recorded under the previous day in positive-offset time zones.
-- Preserve an intentional zero-volume setting instead of restoring it to the default volume.
-- Add automated tests for timer transitions, local date keys, settings normalization, notes serialization, and statistics aggregation.
-- Add a repeatable UI smoke test for timer, notes, player, statistics, and background controls.
-- Add a CI workflow that installs dependencies, runs checks/tests, builds CSS, and performs a packaging smoke check.
-- Align the `package.json` license with the MIT `LICENSE` file and fill in basic package metadata.
+- [x] Commit the recovered `src/` directory so a fresh clone can run and build.
+- [x] Replace interval-based countdown logic with a deadline-based timer that remains accurate after sleep, throttling, or temporary renderer pauses.
+- [x] Generate statistics day keys from the user's local calendar date instead of UTC, preventing sessions around midnight from being recorded under the previous day in positive-offset time zones.
+- [x] Preserve an intentional zero-volume setting instead of restoring it to the default volume.
+- [x] Add automated tests for deadline calculations, local date keys, settings normalization, notes serialization, and statistics aggregation.
+- [x] Add a repeatable UI smoke test for timer, notes, player, statistics, and background controls.
+- [x] Add a CI workflow that installs dependencies, runs checks/tests, builds CSS, and performs a packaging smoke check.
+- [x] Align the `package.json` license with the MIT `LICENSE` file and fill in basic package metadata.
 
 ### Phase 0 completion criteria
 

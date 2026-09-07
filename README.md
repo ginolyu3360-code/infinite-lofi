@@ -18,7 +18,7 @@
 - macOS 打包配置（electron-builder，含 .icns 图标）
 
 ## 技术栈
-- 语言：JavaScript（Electron 主进程 + 预计的 renderer）
+- 语言：JavaScript（Electron 主进程、preload 与 renderer）
 - 运行时 / 框架：Electron（项目 devDependencies 中为 electron）
 - 关键库：
   - tailwindcss — UI 样式与构建
@@ -33,12 +33,21 @@ CHANGELOG.md
 DISTRIBUTION.md
 LICENSE
 README.md
+ROADMAP.md
 inifinite_lofi.code-workspace
 main.js                 # Electron 主进程入口，托盘、IPC、音乐扫描等逻辑都在这里
 preload.js              # contextBridge：主进程与 renderer 的安全桥
 package.json            # 脚本、依赖、打包配置
 tailwind.config.js
 verification-log.md
+.github/workflows/ci.yml # GitHub Actions 检查与 macOS 打包验证
+scripts/smoke-ui.mjs    # Electron 界面冒烟测试
+test/core.test.js       # 核心逻辑单元测试
+src/
+  ├─ index.html         # 应用界面
+  ├─ renderer.js        # 功能与交互逻辑
+  ├─ core.js            # 可独立测试的纯逻辑
+  └─ styles/            # Tailwind 输入与生成样式
 assets/                 # 内置资源：图标、示例音轨、托盘模板、背景等
   ├─ icon.icns
   ├─ icon.png
@@ -49,12 +58,10 @@ assets/                 # 内置资源：图标、示例音轨、托盘模板、
   └─ track-03.wav
 ```
 
-注意：main.js 会加载 `src/index.html`（通过 `mainWindow.loadFile(path.join(__dirname, "src", "index.html"))`），但当前仓库树中并未包含 `src/` 渲染层文件（renderer），因此完整 UI/前端资源在该分支/提交中缺失或另存放于其他分支/子模块。
-
 ## 快速开始（开发）
-先安装依赖：
+按锁文件安装依赖：
 ```bash
-npm install
+npm ci
 ```
 
 开发（同时监听 Tailwind 并启动 Electron）：
@@ -97,14 +104,14 @@ electron-builder 的关键配置（来自 package.json）：
 > 注意：在未使用 Apple Developer 证书的机器上打包的 macOS 应用将未签名，macOS 可能需要右键→打开来绕过 Gatekeeper。生产签名与 notarization 需要 Apple 开发者账号与相应证书/凭据。
 
 ## 已知/重要事项
-- 仓库中含有主进程 (main.js) 与 preload.js、以及 assets 资产，但当前分支缺少 renderer（src/）文件；在缺失 renderer 的情况下，Electron 启动后无法加载完整 UI。
-- 天气数据提供者在 README 中提到可能会出现 403 错误；具体的天气 API（若需要 key）由 renderer 层实现并管理——需要明确哪种提供者或是否内置缓存策略。
+- `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
+- 天气服务可能出现 403 或网络错误；应用会尝试备用提供者并使用本地缓存。
 - music-metadata 用于读取嵌入封面；扫描本地音乐文件夹时会查找文件名相匹配的图片（cover.jpg/folder.jpg/front/album等）并尝试读取嵌入图片。
 - Electron 版本在 package.json 中为 ^41.3.0，注意与本地 Node/Electron 运行环境兼容性（如果你遇到二进制或节点版本问题，请升级或使用 nvm 指定合适 Node 版本）。
 
 ## 常见问题（FAQ）
-Q: 我运行 npm run dev 后窗口一片空白 / 找不到 index.html？
-A: 请检查仓库是否包含 `src/index.html` 及 renderer 相关资源；当前分支并未包含 `src/`，需要把渲染层代码放入 `src/` 或切换到包含 renderer 的分支。
+Q: 我运行 npm run dev 后窗口一片空白怎么办？
+A: 先运行 `npm ci` 和 `npm run check`；确认通过后再运行 `npm start`，并查看终端中的 Electron 错误信息。
 
 Q: 如何加载本地音乐？
 A: 应用通过托盘或 UI 调用 `selectMusicFolder`（由 preload.js 暴露）选择本地目录，主进程会扫描音频文件并返回带封面信息的 track 列表。
@@ -139,7 +146,7 @@ A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player
 
 ## Stack
 - Language: JavaScript
-- Runtime / Framework: Electron (main process + renderer expected)
+- Runtime / Framework: Electron (main process, preload, and renderer)
 - Notable libraries: tailwindcss, electron-builder, music-metadata, concurrently
 
 ## Repository layout (important files)
@@ -147,9 +154,12 @@ See the Chinese section above for a full tree. Key runtime files:
 - main.js — Electron main process (tray, IPC, music scanning, background handlers)
 - preload.js — secure contextBridge API for renderer → main IPC
 - package.json — scripts, dependencies, and build settings
+- src/ — complete renderer UI, core helpers, and styles
+- scripts/smoke-ui.mjs — repeatable Electron UI smoke test
+- test/core.test.js — core unit tests
 - assets/ — icons and sample tracks
 
-Note: main.js loads `src/index.html` but this repository snapshot does not include the renderer `src/` directory, so the UI files are missing from this branch.
+The renderer source is included and has been verified in both development and packaged builds.
 
 ## Quick start
 Install dependencies:
@@ -168,8 +178,32 @@ npm run build:css
 npm start
 ```
 
-## macOS packaging
-Build dmg/zip using electron-builder:
+For a reproducible install from the lockfile, prefer `npm ci`.
+
+## Verify
+
+Run syntax checks, unit tests, and the stylesheet build with:
+
+```bash
+npm run check
+```
+
+Run the automated Electron UI smoke test with:
+
+```bash
+npm run smoke
+```
+
+The smoke test exercises the timer, notes, player, statistics drawer, and background drawer. It restores the previous local storage after the run.
+
+Run both the checks and UI smoke test with:
+
+```bash
+npm run verify
+```
+
+## Build macOS App
+Build the macOS DMG, ZIP, and application bundle with:
 ```bash
 npm run dist
 ```
@@ -180,27 +214,9 @@ npm run pack
 ```
 
 ## CI / Signing notes (GitHub Actions)
-A sample GitHub Actions workflow is included at `.github/workflows/macos-build.yml` to build the macOS artifacts on macOS runners and upload the `dist/` output as an artifact.
-
-For code signing and notarization, the workflow supports two approaches:
-1. Using a P12 certificate (base64-encoded) stored in a repository secret (P12_BASE64) with its password (P12_PASSWORD). The workflow decodes the P12 and sets `CSC_LINK` and `CSC_KEY_PASSWORD` env vars so electron-builder can sign the app.
-2. Using Apple API Key (recommended) — store the API key JSON as a base64 secret (APPLE_API_KEY_BASE64) and set APPLE_API_KEY_ID and APPLE_API_ISSUER_ID. The workflow decodes the API key file and sets environment variables needed for notarization.
-
-You must add the required secrets in the repository settings before enabling automatic signing:
-- P12_BASE64 — base64-encoded P12 (optional)
-- P12_PASSWORD — password for P12 (optional)
-- APPLE_API_KEY_BASE64 — base64-encoded Apple API key JSON (optional)
-- APPLE_API_KEY_ID — API Key ID (if using API key)
-- APPLE_API_ISSUER_ID — Issuer ID (if using API key)
-
-If you want, I can help set up the workflow to only run on tagged releases and/or create a separate signing-only job that requires manual approval.
+The workflow at `.github/workflows/ci.yml` installs locked dependencies, runs syntax and unit checks, builds the stylesheet, and verifies macOS packaging. Code signing and notarization are intentionally not enabled because they require private Apple Developer credentials.
 
 ## Contributing
 Same as in Chinese section — forks, PRs, tests.
 
----
-
-If you'd like I will also:
-- Add screenshots or a demo GIF into `assets/` and reference them from this README (you can upload images or give me links).
-- Adjust CI workflow to run only on tags, or to also publish releases automatically.
-
+See `ROADMAP.md` for the prioritized stabilization, security, distribution, and product plan.

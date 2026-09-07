@@ -1,5 +1,24 @@
 # Verification Log
 
+## 2026-09-07 — Phase 0 stabilization
+
+### Correctness fixes
+
+- Replaced decrement-only timer updates with an absolute deadline, so delayed callbacks and wake-from-sleep events resynchronize the countdown.
+- Changed focus-stat keys from UTC dates to local calendar dates.
+- Fixed persistence of an intentional zero-volume setting.
+- Centralized testable date, timer, settings, notes, and statistics helpers in `src/core.js`.
+
+### Automated verification
+
+- Added seven passing unit tests using the built-in Node.js test runner.
+- Added a reusable Electron UI smoke test that restores the user's previous local storage.
+- Passed `npm run check`.
+- Passed the UI smoke test against both the development app and the newly packaged app.
+- Rebuilt the unpacked macOS `x64` app successfully.
+- Added a GitHub Actions workflow for checks and macOS packaging; its first remote run is pending push.
+- Aligned package metadata with the repository's MIT license.
+
 ## 2026-09-07 — Source recovery
 
 ### Recovery

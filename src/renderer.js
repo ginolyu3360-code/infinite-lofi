@@ -42,6 +42,21 @@ const DEFAULT_BACKGROUND_SETTINGS = {
   customVideoName: ""
 };
 
+if (!window.InfiniteLofiCore) {
+  throw new Error("Infinite Lo-Fi core helpers failed to load");
+}
+
+const {
+  aggregateFocusRows,
+  clamp,
+  formatTime,
+  getLocalDayKey: getDayKey,
+  normalizeMinutes,
+  normalizeVolume,
+  remainingSecondsUntil,
+  sanitizeNoteFiles: sanitizeLoadedNoteFiles
+} = window.InfiniteLofiCore;
+
 const backgroundConfig = {
   mode: "black",
   video: "../assets/background.mp4",
@@ -131,6 +146,7 @@ const shortcutHelpPanel = document.getElementById("shortcutHelpPanel");
 const shortcutHelpCloseBtn = document.getElementById("shortcutHelpCloseBtn");
 
 let timerId = null;
+let timerDeadlineMs = null;
 let focusDurationSeconds = DEFAULT_FOCUS_SECONDS;
 let breakDurationSeconds = DEFAULT_BREAK_SECONDS;
 let remainingSeconds = focusDurationSeconds;
@@ -199,7 +215,7 @@ function loadUiSettings() {
 
 function saveUiSettings() {
   const payload = {
-    volume: Number(lofiPlayer.volume) || 0.68,
+    volume: normalizeVolume(lofiPlayer.volume),
     brightness: Number(getComputedStyle(document.documentElement).getPropertyValue("--scene-brightness")) || 1,
     shortcuts: shortcutSettings,
     background: backgroundSettings,
@@ -797,20 +813,8 @@ function toggleStatsDrawer(forceOpen) {
   statsToggleBtn.textContent = nextOpen ? "Hide Stats" : "Stats";
 }
 
-function clamp(number, min, max) {
-  return Math.min(Math.max(number, min), max);
-}
-
 function toMinutes(seconds) {
   return Math.max(1, Math.round(seconds / 60));
-}
-
-function formatTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
 }
 
 function formatShortDuration(totalMinutes) {
@@ -821,10 +825,6 @@ function formatShortDuration(totalMinutes) {
     return `${hours}h ${minutes}m`;
   }
   return `${minutes}m`;
-}
-
-function getDayKey(date) {
-  return date.toISOString().slice(0, 10);
 }
 
 function parseStoredJson(key, fallback) {
@@ -996,9 +996,11 @@ function sendTrayStatus() {
 
 function stopTimer() {
   if (timerId !== null) {
+    syncTimerToClock();
     clearInterval(timerId);
     timerId = null;
   }
+  timerDeadlineMs = null;
   timerToggle.textContent = "Start";
   setTimerInputsLocked(false);
   if (!lofiPlayer.paused) {
@@ -1026,18 +1028,7 @@ function notifyPhaseSwitch() {
 
 function recordCompletedFocusSession() {
   const rows = parseStoredJson(FOCUS_STATS_KEY, []);
-  const map = new Map();
-
-  for (const row of rows) {
-    if (!row || typeof row.day !== "string") {
-      continue;
-    }
-    const secs = Number(row.focusSeconds);
-    if (!Number.isFinite(secs) || secs < 0) {
-      continue;
-    }
-    map.set(row.day, (map.get(row.day) || 0) + secs);
-  }
+  const map = new Map(aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds]));
 
   const today = getDayKey(new Date());
   map.set(today, (map.get(today) || 0) + focusDurationSeconds);
@@ -1068,14 +1059,31 @@ function switchTimerPhase() {
   }
 }
 
-function tick() {
-  if (remainingSeconds <= 0) {
-    switchTimerPhase();
+function syncTimerToClock(nowMs = Date.now()) {
+  if (timerId === null || timerDeadlineMs === null) {
     return;
   }
-  remainingSeconds -= 1;
+
+  const nextRemainingSeconds = remainingSecondsUntil(timerDeadlineMs, nowMs);
+  if (nextRemainingSeconds <= 0) {
+    remainingSeconds = 0;
+    renderTimer();
+    sendTrayStatus();
+    switchTimerPhase();
+    timerDeadlineMs = nowMs + remainingSeconds * 1000;
+    return;
+  }
+
+  if (nextRemainingSeconds === remainingSeconds) {
+    return;
+  }
+  remainingSeconds = nextRemainingSeconds;
   renderTimer();
   sendTrayStatus();
+}
+
+function tick() {
+  syncTimerToClock();
 }
 
 function toggleTimer() {
@@ -1086,7 +1094,8 @@ function toggleTimer() {
 
   timerToggle.textContent = "Pause";
   setTimerInputsLocked(true);
-  timerId = setInterval(tick, 1000);
+  timerDeadlineMs = Date.now() + remainingSeconds * 1000;
+  timerId = setInterval(tick, 250);
   if (!lofiPlayer.src) {
     updateTrack();
   }
@@ -1102,16 +1111,6 @@ function resetTimer() {
   remainingSeconds = focusDurationSeconds;
   renderTimer();
   sendTrayStatus();
-}
-
-function normalizeMinutes(inputValue, fallbackSeconds) {
-  const fallbackMinutes = toMinutes(fallbackSeconds);
-  const maybe = Number(inputValue);
-  if (!Number.isFinite(maybe)) {
-    return fallbackMinutes;
-  }
-  const rounded = Math.round(maybe);
-  return clamp(rounded, 1, 360);
 }
 
 function applyTimerConfigLive() {
@@ -1200,34 +1199,6 @@ function beginRenameNoteFile(noteId) {
       renameInput.select();
     }
   });
-}
-
-function sanitizeLoadedNoteFiles(rawList) {
-  if (!Array.isArray(rawList)) {
-    return [];
-  }
-
-  const files = [];
-  rawList.forEach((item, index) => {
-    if (!item || typeof item !== "object") {
-      return;
-    }
-
-    const id = typeof item.id === "string" && item.id.trim() ? item.id.trim() : `note-import-${index}`;
-    const name = typeof item.name === "string" && item.name.trim() ? item.name.trim().slice(0, 40) : `Note ${index + 1}`;
-    const content = typeof item.content === "string" ? item.content : "";
-    const pinned = item.pinned === true;
-    const updatedAt = Number(item.updatedAt);
-    files.push({
-      id,
-      name,
-      content,
-      pinned,
-      updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now()
-    });
-  });
-
-  return files;
 }
 
 function persistNoteFiles() {
@@ -1734,16 +1705,7 @@ function getLastSevenDays() {
 
 function renderStats() {
   const rows = parseStoredJson(FOCUS_STATS_KEY, []);
-  const map = new Map();
-
-  for (const row of rows) {
-    if (row && typeof row.day === "string") {
-      const secs = Number(row.focusSeconds);
-      if (Number.isFinite(secs) && secs >= 0) {
-        map.set(row.day, secs);
-      }
-    }
-  }
+  const map = new Map(aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds]));
 
   const days = getLastSevenDays();
   const values = days.map((d) => map.get(d.key) || 0);
@@ -1823,20 +1785,7 @@ function setStatsRange(mode) {
 
 function exportStatsCsv() {
   const rows = parseStoredJson(FOCUS_STATS_KEY, []);
-  const map = new Map();
-
-  if (Array.isArray(rows)) {
-    rows.forEach((row) => {
-      if (!row || typeof row.day !== "string") {
-        return;
-      }
-      const secs = Number(row.focusSeconds);
-      if (!Number.isFinite(secs) || secs < 0) {
-        return;
-      }
-      map.set(row.day, (map.get(row.day) || 0) + secs);
-    });
-  }
+  const map = new Map(aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds]));
 
   const days = getLastSevenDays();
   const normalizedRows = days.map((day) => ({
@@ -2244,6 +2193,13 @@ function bindEvents() {
   if (timerContent) {
     timerContent.addEventListener("scroll", queueUpdateTimerScrollIndicators, { passive: true });
   }
+
+  window.addEventListener("focus", () => syncTimerToClock());
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      syncTimerToClock();
+    }
+  });
 
   lofiPlayer.addEventListener("loadedmetadata", () => {
     const dur = lofiPlayer.duration || 0;
