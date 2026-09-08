@@ -1,5 +1,12 @@
 # Verification Log
 
+## 2026-09-08 — v1.2.0 Release workflow recovery
+
+- Diagnosed the first v1.2.0 tag run: checks and Universal DMG/ZIP generation succeeded, but electron-builder inferred an implicit tag publication and stopped because it did not receive a GitHub token.
+- Added `--publish never` to every distribution script so electron-builder only builds artifacts and the workflow's final authenticated `gh release create` step remains the sole publisher.
+- Added regression coverage requiring all distribution scripts to keep implicit publication disabled.
+- The failed tag produced no GitHub Release or uploaded assets. The tag must not be recreated until this fix passes PR review and `main` CI.
+
 ## 2026-09-08 — v1.2.0 release preparation
 
 - Finalized the v1.2.0 changelog date and changed the README, roadmap, and handoff from an unreleased-stage description to the release baseline.
