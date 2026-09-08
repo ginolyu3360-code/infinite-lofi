@@ -16,6 +16,7 @@
 - Covered schema v3-to-v4 migration for built-in and local tracks, moved-folder reconnect, missing-entry cleanup, playback skipping, and native media action/position behavior.
 - Passed the isolated development UI smoke test across all supported window sizes and Mini Mode with no renderer exceptions.
 - Verified schema v4 queue persistence and native Media Session metadata plus playing state in real Electron.
+- Hardened Focus Plan and White Scene smoke assertions to wait for settled visual state on smaller CI displays instead of relying on fixed animation delays.
 - Rebuilt the unsigned Universal application with electron-builder 26.15.3, passed the isolated packaged-app UI smoke test, and confirmed `x86_64 arm64` with `lipo`.
 
 ### Scope status
