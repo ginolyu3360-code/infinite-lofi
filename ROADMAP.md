@@ -103,6 +103,17 @@ Status: completed and locally verified on 2026-09-08.
 - [x] Preserve paused startup behavior so relaunching the app never starts audio automatically.
 - [x] Cover migration, missing-folder recovery, media actions, responsive UI, development app, and Universal packaged app with automated checks.
 
+### Phase 3D — Accessibility
+
+Status: completed and locally verified on 2026-09-08.
+
+- [x] Give Focus Plan, Stats, Scene, shortcut help, responsive Notes, and Queue predictable focus entry and focus restoration.
+- [x] Keep modal focus inside open dialogs, close responsive panels with Escape, and hide closed surfaces from the accessibility tree.
+- [x] Announce timer, phase, playback, track, Focus Plan, and session-history changes without announcing every countdown tick.
+- [x] Expose dialog names, disclosure states, statistics ranges, chart entries, and current playlist selection with appropriate semantics.
+- [x] Raise core dark and White Scene text contrast to WCAG AA, including White Scene primary controls.
+- [x] Verify reduced-motion behavior, contrast ratios, focus behavior, and the Chromium accessibility tree in development and packaged Electron checks.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.
@@ -126,7 +137,6 @@ Status: completed and verified locally on 2026-09-07. See `UI-REFRESH-PLAN.md` f
 - [x] Enlarge interactive targets and add safe trackpad/touch-friendly behavior.
 - [x] Verify representative full-window sizes and Mini Mode in development and packaged builds.
 
-- Improve accessibility: focus management, reduced-motion support, contrast checks, and screen-reader announcements.
 - Add curated themes and background presets after the underlying settings model is stable.
 
 ## Deliberate non-goals for now

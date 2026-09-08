@@ -8,6 +8,8 @@
       defaultTracks,
       onArtworkChange = () => {},
       onTrackChange = () => {},
+      announce = () => {},
+      setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       alert: showAlert = globalScope.alert?.bind(globalScope) || (() => {}),
       logger = globalScope.console
     } = options;
@@ -79,6 +81,7 @@
         itemButton.draggable = true;
         itemButton.dataset.index = String(index);
         itemButton.setAttribute("aria-disabled", String(track.isMissing === true));
+        if (index === currentTrackIndex) itemButton.setAttribute("aria-current", "true");
 
         const label = elements.document.createElement("span");
         label.className = "playlist-item-label";
@@ -149,6 +152,7 @@
           : null
       );
       onTrackChange(track);
+      announce(`Now playing ${track.label}.`);
       renderPlaylist();
     }
 
@@ -298,12 +302,14 @@
       if (elements.lofiPlayer.paused) {
         elements.lofiPlayer.play().then(() => {
           elements.playPauseBtn.textContent = "Pause";
+          announce("Music playback started.");
         }).catch(() => {
           elements.playPauseBtn.textContent = "Play";
         });
       } else {
         elements.lofiPlayer.pause();
         elements.playPauseBtn.textContent = "Play";
+        announce("Music playback paused.");
       }
     }
 
@@ -327,8 +333,19 @@
       moveToAdjacentTrack(-1);
     }
 
-    function togglePlaylistPanel() {
-      elements.playlistPanel.classList.toggle("hidden");
+    function togglePlaylistPanel(forceOpen) {
+      const nextOpen = typeof forceOpen === "boolean"
+        ? forceOpen
+        : elements.playlistPanel.classList.contains("hidden");
+      elements.playlistPanel.classList.toggle("hidden", !nextOpen);
+      elements.playlistPanel.setAttribute("aria-hidden", String(!nextOpen));
+      setDisclosureState(elements.playlistToggleBtn, nextOpen);
+      if (nextOpen) {
+        const firstTrack = elements.playlistItems.querySelector?.(".playlist-item:not([aria-disabled='true'])");
+        firstTrack?.focus?.({ preventScroll: true });
+      } else if (elements.playlistPanel.contains?.(elements.document.activeElement)) {
+        elements.playlistToggleBtn?.focus?.({ preventScroll: true });
+      }
     }
 
     function updateVolume() {

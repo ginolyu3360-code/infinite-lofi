@@ -47,6 +47,7 @@ if (
   !window.InfiniteLofiWeather ||
   !window.InfiniteLofiWeatherController ||
   !window.InfiniteLofiUi ||
+  !window.InfiniteLofiAccessibility ||
   !window.InfiniteLofiBindings
 ) {
   throw new Error("Infinite Lo-Fi feature modules failed to load");
@@ -83,6 +84,11 @@ const {
 const { createStatsController } = window.InfiniteLofiStatsController;
 const { createWeatherController } = window.InfiniteLofiWeatherController;
 const { normalizeToggleSettings } = window.InfiniteLofiUi;
+const {
+  announce,
+  createFocusManager,
+  setDisclosureState
+} = window.InfiniteLofiAccessibility;
 const {
   applyHoverHints,
   bindKeyboardShortcuts: bindKeyboardShortcutEvents,
@@ -208,6 +214,10 @@ const storageRecoveryMessage = document.getElementById("storageRecoveryMessage")
 const storageRecoveryDownloadBtn = document.getElementById("storageRecoveryDownloadBtn");
 const storageRecoveryRestoreBtn = document.getElementById("storageRecoveryRestoreBtn");
 const storageRecoveryDismissBtn = document.getElementById("storageRecoveryDismissBtn");
+const a11yStatus = document.getElementById("a11yStatus");
+
+const focusManager = createFocusManager({ document });
+const announceStatus = (message) => announce(a11yStatus, message);
 
 let timerId = null;
 let timerDeadlineMs = null;
@@ -245,6 +255,7 @@ const playerController = createPlayerController({
     document,
     lofiPlayer,
     playPauseBtn,
+    playlistToggleBtn,
     playlistPanel,
     playlistItems,
     playlistStatus,
@@ -261,7 +272,9 @@ const playerController = createPlayerController({
     renderBackgroundUi();
     applyBackground();
   },
-  onTrackChange: mediaSessionController.updateMetadata
+  onTrackChange: mediaSessionController.updateMetadata,
+  announce: announceStatus,
+  setDisclosureState
 });
 const {
   loadMusicFolder,
@@ -307,6 +320,7 @@ const statsController = createStatsController({
     document,
     statsDrawer,
     statsToggleBtn,
+    statsCloseBtn,
     todayFocusStat,
     todayGoalProgress,
     todayGoalBar,
@@ -338,7 +352,10 @@ const statsController = createStatsController({
   },
   beforeRestore: () => {
     isRestoringBackup = true;
-  }
+  },
+  announce: announceStatus,
+  focusManager,
+  setDisclosureState
 });
 const {
   clearStats,
@@ -510,8 +527,18 @@ function toggleBackgroundDrawer(forceOpen) {
   if (nextOpen) {
     toggleFocusPlanDrawer(false);
     toggleStatsDrawer(false);
+    toggleNotesPanel(false);
   }
   backgroundDrawer.classList.toggle("is-open", nextOpen);
+  setDisclosureState(bgToggleBtn, nextOpen);
+  if (nextOpen) {
+    focusManager.open(backgroundDrawer, {
+      trigger: bgToggleBtn,
+      initialFocus: backgroundCloseBtn
+    });
+  } else {
+    focusManager.close(backgroundDrawer, { fallbackFocus: bgToggleBtn });
+  }
   if (drawerBackdrop) {
     drawerBackdrop.classList.toggle("visible", nextOpen);
   }
@@ -529,9 +556,15 @@ function toggleFocusPlanDrawer(forceOpen) {
     updateConfigInputs();
   }
   focusPlanDrawer.classList.toggle("is-open", nextOpen);
-  focusPlanDrawer.setAttribute("aria-hidden", String(!nextOpen));
-  focusPlanDrawer.inert = !nextOpen;
-  focusPlanToggleBtn.setAttribute("aria-expanded", String(nextOpen));
+  setDisclosureState(focusPlanToggleBtn, nextOpen);
+  if (nextOpen) {
+    focusManager.open(focusPlanDrawer, {
+      trigger: focusPlanToggleBtn,
+      initialFocus: focusPlanCloseBtn
+    });
+  } else {
+    focusManager.close(focusPlanDrawer, { fallbackFocus: focusPlanToggleBtn });
+  }
   drawerBackdrop?.classList.toggle("visible", nextOpen);
 }
 
@@ -542,6 +575,7 @@ function toggleStatsPanel(forceOpen) {
   if (nextOpen) {
     toggleFocusPlanDrawer(false);
     toggleBackgroundDrawer(false);
+    toggleNotesPanel(false);
   }
   toggleStatsDrawer(nextOpen);
 }
@@ -911,8 +945,36 @@ function toggleNotesPanel(forceOpen) {
   const nextOpen = typeof forceOpen === "boolean"
     ? forceOpen
     : !document.body.classList.contains("notes-panel-open");
+  if (nextOpen) {
+    toggleFocusPlanDrawer(false);
+    toggleStatsDrawer(false);
+    toggleBackgroundDrawer(false);
+    toggleShortcutHelp(false);
+  }
   document.body.classList.toggle("notes-panel-open", nextOpen);
-  notesToggleBtn?.setAttribute("aria-expanded", String(nextOpen));
+  setDisclosureState(notesToggleBtn, nextOpen);
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    if (nextOpen) {
+      focusManager.open(notesPanel, { trigger: notesToggleBtn, initialFocus: notesInput });
+    } else {
+      focusManager.close(notesPanel, { fallbackFocus: notesToggleBtn });
+    }
+  }
+}
+
+function syncNotesPanelAccessibility() {
+  const isOverlay = window.matchMedia("(max-width: 900px)").matches;
+  if (!isOverlay) {
+    focusManager.close(notesPanel, { restoreFocus: false });
+    notesPanel.inert = false;
+    notesPanel.setAttribute("aria-hidden", "false");
+    setDisclosureState(notesToggleBtn, true);
+    return;
+  }
+  const isOpen = document.body.classList.contains("notes-panel-open");
+  notesPanel.inert = !isOpen;
+  notesPanel.setAttribute("aria-hidden", String(!isOpen));
+  setDisclosureState(notesToggleBtn, isOpen);
 }
 
 async function toggleMiniMode(forceEnabled) {
@@ -931,6 +993,7 @@ async function toggleMiniMode(forceEnabled) {
   miniModeToggleBtn.textContent = miniModeEnabled ? "Full" : "Mini";
   miniModeToggleBtn.title = miniModeEnabled ? "Return to full view" : "Enter Mini Mode";
   miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
+  announceStatus(miniModeEnabled ? "Mini Mode enabled" : "Full view restored");
   requestAnimationFrame(adjustTimerFont);
 }
 
@@ -948,6 +1011,14 @@ function sendTrayStatus() {
     }[timerPhase],
     isRunning: timerId !== null
   });
+}
+
+function titleForTimerPhase(phase) {
+  return {
+    focus: "Focus Session",
+    shortBreak: "Short Break",
+    longBreak: "Long Break"
+  }[phase] || "Timer";
 }
 
 function stopTimer() {
@@ -1007,6 +1078,7 @@ function switchTimerPhase(completedAtMs = Date.now()) {
   renderTimer();
   sendTrayStatus();
   notifyPhaseSwitch();
+  announceStatus(`${titleForTimerPhase(timerPhase)} started. ${formatTime(remainingSeconds)} remaining.`);
   if (timerId !== null && lofiPlayer.paused) {
     lofiPlayer.play().catch(() => {
       playPauseBtn.textContent = "Play";
@@ -1057,6 +1129,7 @@ function tick() {
 function toggleTimer() {
   if (timerId !== null) {
     stopTimer();
+    announceStatus(`Timer paused at ${formatTime(remainingSeconds)}.`);
     return;
   }
 
@@ -1072,6 +1145,7 @@ function toggleTimer() {
   });
   sendTrayStatus();
   saveTimerRuntime();
+  announceStatus(`${titleForTimerPhase(timerPhase)} timer started. ${formatTime(remainingSeconds)} remaining.`);
 }
 
 function resetTimer() {
@@ -1082,6 +1156,7 @@ function resetTimer() {
   renderTimer();
   sendTrayStatus();
   saveTimerRuntime();
+  announceStatus(`Timer reset to Focus Session, ${formatTime(remainingSeconds)}.`);
 }
 
 function applyFocusPlanSettings() {
@@ -1116,6 +1191,7 @@ function applyFocusPlanSettings() {
   renderStats();
   sendTrayStatus();
   saveTimerRuntime();
+  announceStatus("Focus Plan applied. A new focus cycle is ready.");
   toggleFocusPlanDrawer(false);
 }
 
@@ -1148,7 +1224,10 @@ function bindWindowControls() {
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
   notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
   drawerBackdrop?.addEventListener("click", () => toggleNotesPanel(false));
-  window.addEventListener("resize", () => requestAnimationFrame(adjustTimerFont), { passive: true });
+  window.addEventListener("resize", () => requestAnimationFrame(() => {
+    adjustTimerFont();
+    syncNotesPanelAccessibility();
+  }), { passive: true });
 }
 
 function bindAppCommands() {
@@ -1174,8 +1253,22 @@ function toggleShortcutHelp(forceOpen) {
   }
 
   const nextOpen = typeof forceOpen === "boolean" ? forceOpen : shortcutHelpOverlay.classList.contains("hidden");
+  if (nextOpen) {
+    toggleFocusPlanDrawer(false);
+    toggleStatsDrawer(false);
+    toggleBackgroundDrawer(false);
+    toggleNotesPanel(false);
+  }
   shortcutHelpOverlay.classList.toggle("hidden", !nextOpen);
-  shortcutHelpOverlay.setAttribute("aria-hidden", String(!nextOpen));
+  setDisclosureState(shortcutHelpBtn, nextOpen);
+  if (nextOpen) {
+    focusManager.open(shortcutHelpOverlay, {
+      trigger: shortcutHelpBtn,
+      initialFocus: shortcutHelpCloseBtn
+    });
+  } else {
+    focusManager.close(shortcutHelpOverlay, { fallbackFocus: shortcutHelpBtn });
+  }
 }
 
 
@@ -1200,6 +1293,9 @@ async function init() {
   if (Number.isFinite(bs)) document.documentElement.style.setProperty("--scene-brightness", String(bs));
   toggleStatsPanel(false);
   toggleFocusPlanDrawer(false);
+  toggleBackgroundDrawer(false);
+  toggleShortcutHelp(false);
+  syncNotesPanelAccessibility();
   bindWindowControls();
   bindAppCommands();
   bindUiEvents({
@@ -1345,6 +1441,7 @@ async function init() {
       statsDrawer,
       backgroundDrawer,
       focusPlanDrawer,
+      notesPanel,
       notesInput,
       lofiPlayer,
       volumeSlider
@@ -1355,6 +1452,7 @@ async function init() {
       toggleFocusPlanDrawer,
       toggleStatsDrawer: toggleStatsPanel,
       toggleBackgroundDrawer,
+      toggleNotesPanel,
       toggleTimer,
       resetTimer,
       saveNotesNow,

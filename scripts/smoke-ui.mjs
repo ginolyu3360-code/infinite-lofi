@@ -223,26 +223,113 @@ try {
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
-        'useDefaultTracksBtn'
+        'useDefaultTracksBtn', 'a11yStatus'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
 
-  const shortcutHelpResult = await evaluate(`(() => {
-    document.querySelector('#shortcutHelpBtn').click();
+  const shortcutHelpResult = await evaluate(`(async () => {
+    const trigger = document.querySelector('#shortcutHelpBtn');
+    trigger.focus();
+    trigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     const openedFromButton = !document.querySelector('#shortcutHelpOverlay').classList.contains('hidden');
+    const focusedOnOpen = document.activeElement?.id;
+    const overlay = document.querySelector('#shortcutHelpOverlay');
+    const focusable = [...overlay.querySelectorAll('button:not([disabled]), input:not([disabled])')];
+    focusable.at(-1)?.focus();
+    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    overlay.dispatchEvent(tabEvent);
+    const tabWrappedToFirst = document.activeElement === focusable[0] && tabEvent.defaultPrevented;
     document.querySelector('#shortcutHelpCloseBtn').click();
     return {
       openedFromButton,
-      closedFromButton: document.querySelector('#shortcutHelpOverlay').classList.contains('hidden')
+      focusedOnOpen,
+      tabWrappedToFirst,
+      closedFromButton: overlay.classList.contains('hidden'),
+      hiddenFromAccessibilityTree: overlay.getAttribute('aria-hidden') === 'true' && overlay.inert,
+      focusRestored: document.activeElement === trigger
     };
   })()`);
+
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }]
+  });
+  const reducedMotionResult = await evaluate(`(() => {
+    const background = getComputedStyle(document.querySelector('#bgImage'));
+    const drawer = getComputedStyle(document.querySelector('#statsDrawer'));
+    return {
+      matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      backgroundTransitionMs: Math.max(...background.transitionDuration.split(',').map((value) => Number.parseFloat(value) * (value.includes('ms') ? 1 : 1000))),
+      drawerTransitionMs: Math.max(...drawer.transitionDuration.split(',').map((value) => Number.parseFloat(value) * (value.includes('ms') ? 1 : 1000)))
+    };
+  })()`);
+  await send("Emulation.setEmulatedMedia", { features: [] });
+
+  const contrastResult = await evaluate(`(() => {
+    const a11y = window.InfiniteLofiAccessibility;
+    const composite = (foreground, background) => a11y.compositeColor(foreground, background);
+    const pairs = {
+      darkText: ['#f4f0e8', '#11110f'],
+      darkMuted: [composite('rgba(244, 240, 232, 0.62)', '#11110f'), '#11110f'],
+      lightText: ['#272520', '#f3efe7'],
+      lightMuted: [composite('rgba(39, 37, 32, 0.68)', '#f3efe7'), '#f3efe7'],
+      lightPrimary: ['#fffaf1', '#9f6325']
+    };
+    return Object.fromEntries(Object.entries(pairs).map(([name, pair]) => [name, a11y.contrastRatio(pair[0], pair[1])]));
+  })()`);
+
+  await evaluate(`(() => {
+    const trigger = document.querySelector('#focusPlanToggleBtn');
+    trigger.focus();
+    trigger.click();
+    return true;
+  })()`);
+  await delay(50);
+  await send("Accessibility.enable");
+  const accessibilityTree = await send("Accessibility.getFullAXTree");
+  const accessibilityTreeResult = {
+    namedFocusPlanDialog: accessibilityTree.nodes.some((node) =>
+      node.role?.value === "dialog" && node.name?.value === "Focus Plan"
+    ),
+    liveStatusPresent: accessibilityTree.nodes.some((node) => node.role?.value === "status")
+  };
+  await evaluate("document.querySelector('#focusPlanCloseBtn').click(); true");
 
   const responsiveLayouts = [];
   for (const [width, height] of [[720, 520], [800, 600], [1024, 677], [1440, 900], [1100, 760]]) {
     await setWindowSize(width, height);
     responsiveLayouts.push(await waitForLayoutState());
   }
+
+  const expandableRegionResult = await evaluate(`(async () => {
+    const queueTrigger = document.querySelector('#playlistToggleBtn');
+    queueTrigger.focus();
+    queueTrigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const queueFocused = document.activeElement?.classList.contains('playlist-item');
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const queueClosed = document.querySelector('#playlistPanel').classList.contains('hidden');
+    const queueFocusRestored = document.activeElement === queueTrigger;
+    return { queueFocused, queueClosed, queueFocusRestored };
+  })()`);
+
+  await setWindowSize(800, 600);
+  const responsiveNotesResult = await evaluate(`(async () => {
+    const trigger = document.querySelector('#notesToggleBtn');
+    trigger.focus();
+    trigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const panel = document.querySelector('#notesPanel');
+    const focusedOnOpen = document.activeElement?.id === 'notesInput';
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    return {
+      focusedOnOpen,
+      hiddenAfterEscape: panel.getAttribute('aria-hidden') === 'true' && panel.inert,
+      focusRestored: document.activeElement === trigger
+    };
+  })()`);
+  await setWindowSize(1100, 760);
 
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
@@ -267,16 +354,25 @@ try {
   await delay(1_300);
   const runningTimer = await evaluate(`(() => ({
     timer: document.querySelector('#timerDisplay').textContent.trim(),
-    button: document.querySelector('#timerToggle').textContent.trim()
+    button: document.querySelector('#timerToggle').textContent.trim(),
+    announcement: document.querySelector('#a11yStatus').textContent.trim()
   }))()`);
-  const lockedPlan = await evaluate(`(() => {
-    document.querySelector('#focusPlanToggleBtn').click();
+  const lockedPlan = await evaluate(`(async () => {
+    const trigger = document.querySelector('#focusPlanToggleBtn');
+    trigger.focus();
+    trigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const drawer = document.querySelector('#focusPlanDrawer');
     const result = {
-      opened: document.querySelector('#focusPlanDrawer').classList.contains('is-open'),
+      opened: drawer.classList.contains('is-open'),
       inputDisabled: document.querySelector('#focusMinutesInput').disabled,
-      hint: document.querySelector('#focusPlanLockHint').textContent.trim()
+      hint: document.querySelector('#focusPlanLockHint').textContent.trim(),
+      focusedOnOpen: document.activeElement?.id,
+      exposedToAccessibilityTree: drawer.getAttribute('aria-hidden') === 'false' && !drawer.inert
     };
     document.querySelector('#focusPlanCloseBtn').click();
+    result.focusRestored = document.activeElement === trigger;
+    result.hiddenAfterClose = drawer.getAttribute('aria-hidden') === 'true' && drawer.inert;
     return result;
   })()`);
   await evaluate("document.querySelector('#timerToggle').click(); document.querySelector('#timerReset').click(); true");
@@ -379,15 +475,25 @@ try {
   })()`);
   await delay(500);
 
-  const drawersResult = await evaluate(`(() => {
+  const drawersResult = await evaluate(`(async () => {
     const visible = (selector) => getComputedStyle(document.querySelector(selector)).display !== 'none';
-    document.querySelector('#statsToggleBtn').click();
+    const statsTrigger = document.querySelector('#statsToggleBtn');
+    statsTrigger.focus();
+    statsTrigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     const statsVisible = visible('#statsDrawer');
+    const statsFocused = document.activeElement?.id === 'statsCloseBtn';
     document.querySelector('#statsCloseBtn').click();
-    document.querySelector('#bgToggleBtn').click();
+    const statsFocusRestored = document.activeElement === statsTrigger;
+    const sceneTrigger = document.querySelector('#bgToggleBtn');
+    sceneTrigger.focus();
+    sceneTrigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     const backgroundVisible = visible('#backgroundDrawer');
+    const backgroundFocused = document.activeElement?.id === 'backgroundCloseBtn';
     document.querySelector('#backgroundCloseBtn').click();
-    return { statsVisible, backgroundVisible };
+    const backgroundFocusRestored = document.activeElement === sceneTrigger;
+    return { statsVisible, statsFocused, statsFocusRestored, backgroundVisible, backgroundFocused, backgroundFocusRestored };
   })()`);
 
   const whiteSceneResult = await evaluate(`(async () => {
@@ -443,7 +549,29 @@ try {
   const failures = [];
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
-  if (!shortcutHelpResult.openedFromButton || !shortcutHelpResult.closedFromButton) failures.push("shortcut help entry point failed");
+  if (
+    !shortcutHelpResult.openedFromButton ||
+    shortcutHelpResult.focusedOnOpen !== "shortcutHelpCloseBtn" ||
+    !shortcutHelpResult.tabWrappedToFirst ||
+    !shortcutHelpResult.closedFromButton ||
+    !shortcutHelpResult.hiddenFromAccessibilityTree ||
+    !shortcutHelpResult.focusRestored
+  ) failures.push("shortcut help focus management failed");
+  if (!reducedMotionResult.matches || reducedMotionResult.backgroundTransitionMs > 0.1 || reducedMotionResult.drawerTransitionMs > 0.1) {
+    failures.push("reduced-motion preference did not suppress transitions");
+  }
+  if (Object.values(contrastResult).some((ratio) => !Number.isFinite(ratio) || ratio < 4.5)) {
+    failures.push("core dark or light theme text contrast fell below WCAG AA");
+  }
+  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.liveStatusPresent) {
+    failures.push("dialog or live status was missing from the accessibility tree");
+  }
+  if (!expandableRegionResult.queueFocused || !expandableRegionResult.queueClosed || !expandableRegionResult.queueFocusRestored) {
+    failures.push("playlist disclosure focus management failed");
+  }
+  if (!responsiveNotesResult.focusedOnOpen || !responsiveNotesResult.hiddenAfterEscape || !responsiveNotesResult.focusRestored) {
+    failures.push("responsive notes focus management failed");
+  }
   if (responsiveLayouts.some((layout) => layout.timerOverflow > 4 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
@@ -453,8 +581,8 @@ try {
   if (restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 || restoredFullMode.miniLabel !== "Mini") {
     failures.push("full-window bounds were not restored after Mini Mode");
   }
-  if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
-  if (!lockedPlan.opened || !lockedPlan.inputDisabled || !lockedPlan.hint.includes("Pause")) failures.push("running timer did not lock Focus Plan settings");
+  if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer) || !runningTimer.announcement.includes("timer started")) failures.push("timer did not count down or announce its state");
+  if (!lockedPlan.opened || !lockedPlan.inputDisabled || !lockedPlan.hint.includes("Pause") || lockedPlan.focusedOnOpen !== "focusPlanCloseBtn" || !lockedPlan.exposedToAccessibilityTree || !lockedPlan.focusRestored || !lockedPlan.hiddenAfterClose) failures.push("running timer did not lock Focus Plan settings or manage drawer focus");
   if (
     !focusPlanResult.drawerClosed ||
     !focusPlanResult.drawerInsideViewport ||
@@ -481,7 +609,7 @@ try {
     sessionHistoryResult.comparison !== "New"
   ) failures.push("session history editing or trend summaries failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
-  if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
+  if (!drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.statsFocusRestored || !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored) failures.push("drawer interaction or focus restoration failed");
   if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
     failures.push("White Scene theme adaptation failed");
   }
@@ -497,7 +625,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, expandableRegionResult, responsiveNotesResult, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

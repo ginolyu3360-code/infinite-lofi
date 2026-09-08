@@ -32,6 +32,7 @@
         muted
         loop
         playsinline
+        aria-hidden="true"
       ></video>
       <div
         id="bgImage"
@@ -49,19 +50,19 @@
           <div id="statusWeather" class="text-[0.62rem] font-mono text-zinc-300/60">Loading…</div>
         </div>
         <div class="header-actions">
-          <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes">Notes</button>
+          <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes" aria-expanded="false" aria-controls="notesPanel">Notes</button>
           <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal">Plan</button>
-          <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts">Keys ?</button>
+          <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts" aria-expanded="false" aria-controls="shortcutHelpOverlay">Keys ?</button>
           <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
         </div>
       </header>
 
       <main id="appLayout">
-        <section id="notesPanel" class="glass-panel">
+        <section id="notesPanel" class="glass-panel" aria-labelledby="notesPanelTitle">
           <div class="panel-title-row">
             <div>
               <p class="panel-eyebrow">Workspace</p>
-              <h2 class="panel-title">Notes</h2>
+              <h2 id="notesPanelTitle" class="panel-title">Notes</h2>
             </div>
             <button id="notesCloseBtn" class="window-btn panel-close-btn" type="button" title="Close notes" aria-label="Close notes">×</button>
           </div>
@@ -115,9 +116,9 @@
                 <p id="trackLabel">Track 01</p>
               </div>
               <div class="player-utility-actions">
-                <button id="playlistToggleBtn" class="control-btn" title="Show or hide playlist">Queue</button>
-                <button id="statsToggleBtn" class="control-btn" title="Show or hide stats">Stats</button>
-                <button id="bgToggleBtn" class="control-btn" title="Open background options">Scene</button>
+                <button id="playlistToggleBtn" class="control-btn" type="button" title="Show or hide playlist" aria-expanded="false" aria-controls="playlistPanel">Queue</button>
+                <button id="statsToggleBtn" class="control-btn" type="button" title="Show or hide stats" aria-expanded="false" aria-controls="statsDrawer">Stats</button>
+                <button id="bgToggleBtn" class="control-btn" type="button" title="Open background options" aria-expanded="false" aria-controls="backgroundDrawer">Scene</button>
               </div>
             </div>
 
@@ -146,7 +147,7 @@
               </label>
             </div>
 
-            <div id="playlistPanel" class="mt-4 hidden rounded-2xl border border-white/15 bg-black/20 p-3">
+            <div id="playlistPanel" class="mt-4 hidden rounded-2xl border border-white/15 bg-black/20 p-3" aria-hidden="true">
               <div class="playlist-toolbar">
                 <div class="playlist-folder-actions">
                   <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load or reconnect a local music folder">Load Folder</button>
@@ -163,7 +164,7 @@
         </section>
       </main>
 
-      <aside id="focusPlanDrawer" aria-hidden="true">
+      <aside id="focusPlanDrawer" role="dialog" aria-modal="true" aria-labelledby="focusPlanTitle" aria-hidden="true" inert>
         <section id="focusPlanPanel" class="glass-panel drawer-panel" aria-labelledby="focusPlanTitle">
           <div class="drawer-header">
             <div>
@@ -215,7 +216,7 @@
         </section>
       </aside>
 
-      <aside id="statsDrawer">
+      <aside id="statsDrawer" role="dialog" aria-modal="true" aria-labelledby="statsHeadingLabel" aria-hidden="true" inert>
         <section id="statsPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
             <div>
@@ -225,10 +226,10 @@
             <button id="statsCloseBtn" class="window-btn" title="Close Stats" aria-label="Close Stats">×</button>
           </div>
           <div class="stats-toolbar">
-            <div class="segmented-control" aria-label="Statistics range">
-              <button id="statsRangeTodayBtn" class="stats-range-btn" title="Show today stats">Today</button>
-              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" title="Show this week stats">Week</button>
-              <button id="statsRangeMonthBtn" class="stats-range-btn" title="Show this month stats">Month</button>
+            <div class="segmented-control" role="group" aria-label="Statistics range">
+              <button id="statsRangeTodayBtn" class="stats-range-btn" type="button" title="Show today stats" aria-pressed="false">Today</button>
+              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" type="button" title="Show this week stats" aria-pressed="true">Week</button>
+              <button id="statsRangeMonthBtn" class="stats-range-btn" type="button" title="Show this month stats" aria-pressed="false">Month</button>
             </div>
             <div class="stats-file-actions">
               <button id="exportStatsBtn" class="stats-export-btn" title="Export stats as CSV">CSV</button>
@@ -292,10 +293,10 @@
               <span id="statsComparisonValue" class="stats-metric-value">0%</span>
             </div>
           </div>
-          <div class="stats-chart-scroll" aria-label="Scrollable focus chart">
+          <div class="stats-chart-scroll" role="region" tabindex="0" aria-label="Scrollable focus chart">
             <div class="stats-chart-wrap">
               <div id="statsTooltip" class="stats-tooltip hidden" role="tooltip"></div>
-              <div id="statsBars"></div>
+              <div id="statsBars" role="list" aria-label="Focus minutes by day"></div>
             </div>
           </div>
           <section class="session-history" aria-labelledby="sessionHistoryTitle">
@@ -324,12 +325,12 @@
         </section>
       </aside>
 
-      <aside id="backgroundDrawer">
+      <aside id="backgroundDrawer" role="dialog" aria-modal="true" aria-labelledby="backgroundPanelTitle" aria-hidden="true" inert>
         <section id="backgroundPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
             <div>
               <p class="panel-eyebrow">Atmosphere</p>
-              <h2 class="panel-title">Scene</h2>
+              <h2 id="backgroundPanelTitle" class="panel-title">Scene</h2>
             </div>
             <button id="backgroundCloseBtn" class="window-btn" title="Close Background" aria-label="Close Background">×</button>
           </div>
@@ -358,7 +359,7 @@
 
       <div id="drawerBackdrop" class="hidden" aria-hidden="true"></div>
 
-      <div id="shortcutHelpOverlay" class="hidden" aria-hidden="true">
+      <div id="shortcutHelpOverlay" class="hidden" aria-hidden="true" inert>
         <section id="shortcutHelpPanel" role="dialog" aria-modal="true" aria-labelledby="shortcutHelpTitle">
           <div class="flex items-center justify-between gap-3">
             <h2 id="shortcutHelpTitle" class="font-mono text-xs uppercase tracking-[0.25em] text-zinc-100/90">Keyboard Shortcuts</h2>
@@ -396,6 +397,8 @@
         </section>
       </div>
 
+      <div id="a11yStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
       <audio id="lofiPlayer" preload="metadata"></audio>
     </div>
 
@@ -413,6 +416,7 @@
     <script src="./weather.js"></script>
     <script src="./weather-controller.js"></script>
     <script src="./ui.js"></script>
+    <script src="./accessibility.js"></script>
     <script src="./bindings.js"></script>
     <script src="./renderer.js"></script>
   </body>
