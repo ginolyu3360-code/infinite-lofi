@@ -1,5 +1,14 @@
 # Verification Log
 
+## 2026-09-08 — v1.2.0 release completed and Phase 3 handoff
+
+- Merged the release-publishing fix as commit `9aed518`; local `main`, `origin/main`, and tag `v1.2.0` all point to that commit.
+- Confirmed `main` CI run `34184984658` completed successfully.
+- Confirmed tag-driven Release run `34185493625` completed successfully after disabling electron-builder's implicit publication.
+- Confirmed the public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
+- Confirmed the canonical local repository is `/Users/lvjunhao/Documents/GitHub/infinite_lofi`; the duplicate ChatGPT-folder checkout and temporary worktree were removed.
+- Phase 3 product work has not started.
+
 ## 2026-09-08 — v1.2.0 Release workflow recovery
 
 - Diagnosed the first v1.2.0 tag run: checks and Universal DMG/ZIP generation succeeded, but electron-builder inferred an implicit tag publication and stopped because it did not receive a GitHub token.
