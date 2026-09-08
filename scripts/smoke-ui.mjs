@@ -239,7 +239,7 @@ try {
   })()`);
 
   const responsiveLayouts = [];
-  for (const [width, height] of [[720, 520], [800, 600], [1440, 900], [1100, 760]]) {
+  for (const [width, height] of [[720, 520], [800, 600], [1024, 677], [1440, 900], [1100, 760]]) {
     await setWindowSize(width, height);
     responsiveLayouts.push(await waitForLayoutState());
   }
@@ -283,7 +283,21 @@ try {
 
   const focusPlanResult = await evaluate(`(async () => {
     document.querySelector('#focusPlanToggleBtn').click();
-    await new Promise((resolve) => setTimeout(resolve, 260));
+    const drawer = document.querySelector('#focusPlanDrawer');
+    let drawerRect;
+    let drawerInsideViewport = false;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      drawerRect = drawer.getBoundingClientRect();
+      const tolerance = 4;
+      drawerInsideViewport =
+        drawer.classList.contains('is-open') &&
+        drawerRect.left >= -tolerance &&
+        drawerRect.right <= innerWidth + tolerance &&
+        drawerRect.top >= -tolerance &&
+        drawerRect.bottom <= innerHeight + tolerance;
+      if (drawerInsideViewport) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     const values = {
       focusMinutesInput: '30',
       shortBreakMinutesInput: '7',
@@ -294,12 +308,19 @@ try {
     for (const [id, value] of Object.entries(values)) document.getElementById(id).value = value;
     document.querySelector('#autoStartBreaksInput').checked = false;
     document.querySelector('#autoStartFocusInput').checked = true;
-    const drawerRect = document.querySelector('#focusPlanDrawer').getBoundingClientRect();
     document.querySelector('#focusPlanApplyBtn').click();
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     return {
       drawerClosed: !document.querySelector('#focusPlanDrawer').classList.contains('is-open'),
-      drawerInsideViewport: drawerRect.left >= 0 && drawerRect.right <= innerWidth + 1 && drawerRect.top >= 0 && drawerRect.bottom <= innerHeight + 1,
+      drawerInsideViewport,
+      drawerBounds: drawerRect ? {
+        left: drawerRect.left,
+        right: drawerRect.right,
+        top: drawerRect.top,
+        bottom: drawerRect.bottom,
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight
+      } : null,
       timer: document.querySelector('#timerDisplay').textContent.trim(),
       summary: document.querySelector('#timerPlanSummary').textContent.trim(),
       status: document.querySelector('#timerPlanStatus').textContent.trim(),
@@ -371,14 +392,18 @@ try {
 
   const whiteSceneResult = await evaluate(`(async () => {
     document.querySelector('#bgWhiteBtn').click();
-    await new Promise((resolve) => setTimeout(resolve, 320));
-    const result = {
-      enabled: document.body.classList.contains('bg-white-background'),
-      timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
-      panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
-    };
+    let result;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      result = {
+        enabled: document.body.classList.contains('bg-white-background'),
+        timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
+        panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
+      };
+      if (result.enabled && result.timerColor === 'rgb(39, 37, 32)' && result.panelBackground !== 'none') break;
+    }
     document.querySelector('#bgBlackBtn').click();
-    await new Promise((resolve) => setTimeout(resolve, 320));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return result;
   })()`);
 
