@@ -505,14 +505,19 @@ try {
     const readSavedPreset = () => JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.background.presetId;
 
     document.querySelector('#bgMidnightBtn').click();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    const midnight = {
-      enabled: document.body.classList.contains('theme-midnight'),
-      pressed: document.querySelector('#bgMidnightBtn').getAttribute('aria-pressed'),
-      label: document.querySelector('#bgPresetLabel').textContent.trim(),
-      saved: readSavedPreset(),
-      timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color
-    };
+    let midnight;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      midnight = {
+        enabled: document.body.classList.contains('theme-midnight'),
+        pressed: document.querySelector('#bgMidnightBtn').getAttribute('aria-pressed'),
+        label: document.querySelector('#bgPresetLabel').textContent.trim(),
+        saved: readSavedPreset(),
+        paletteInk: getComputedStyle(document.body).getPropertyValue('--ink').trim(),
+        timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color
+      };
+      if (midnight.enabled && midnight.paletteInk === '#edf6fb' && midnight.timerColor === 'rgb(237, 246, 251)') break;
+    }
 
     document.querySelector('#bgMossBtn').click();
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -650,6 +655,7 @@ try {
     curatedScenesResult.midnight.pressed !== "true" ||
     curatedScenesResult.midnight.label !== "Midnight" ||
     curatedScenesResult.midnight.saved !== "midnight" ||
+    curatedScenesResult.midnight.paletteInk !== "#edf6fb" ||
     curatedScenesResult.midnight.timerColor !== "rgb(237, 246, 251)" ||
     !curatedScenesResult.moss.enabled ||
     !curatedScenesResult.moss.midnightRemoved ||
