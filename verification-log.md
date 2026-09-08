@@ -22,6 +22,7 @@
 ### Scope status
 
 - Phase 3D is complete. Curated themes and background presets remain a separate optional future slice.
+- Phase 3D was squash-merged through PR #8 as commit `3dca230`; PR CI `34245931075` and post-merge `main` CI `34246166218` passed.
 - Package/release version remains 1.2.0. No tag or Release was created.
 
 ## 2026-09-08 — Phase 3C Playlist Persistence and Native Media Controls
