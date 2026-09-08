@@ -266,6 +266,9 @@
     on(e.prevTrackBtn, "click", a.prevTrack);
     on(e.playlistToggleBtn, "click", a.togglePlaylistPanel);
     on(e.loadMusicFolderBtn, "click", a.loadMusicFolder);
+    on(e.rescanMusicFolderBtn, "click", a.rescanMusicFolder);
+    on(e.removeMissingTracksBtn, "click", a.removeMissingTracks);
+    on(e.useDefaultTracksBtn, "click", a.useDefaultTracks);
 
     on(e.shortcutHelpCloseBtn, "click", () => a.toggleShortcutHelp(false));
     on(e.shortcutHelpOverlay, "click", (event) => {

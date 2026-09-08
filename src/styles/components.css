@@ -718,6 +718,36 @@ body.has-visual-background .glass-panel {
   display: none;
 }
 
+.playlist-toolbar,
+.playlist-folder-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.playlist-toolbar {
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.playlist-folder-label,
+.playlist-status {
+  color: var(--ink-muted);
+  font: 500 0.58rem/1.4 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.playlist-folder-label {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-status {
+  margin: 0 0 0.65rem;
+}
+
 .playlist-container {
   display: grid;
   grid-template-columns: repeat(3, minmax(8rem, 1fr));
@@ -728,8 +758,38 @@ body.has-visual-background .glass-panel {
 }
 
 .playlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
   padding: 0.65rem 0.75rem;
   text-align: left;
+}
+
+.playlist-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-item-status {
+  flex: 0 0 auto;
+  color: #e8b66b;
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playlist-item.is-missing {
+  border-style: dashed;
+  color: var(--ink-muted);
+  opacity: 0.78;
+}
+
+.playlist-item.is-missing:hover {
+  border-color: rgba(232, 182, 107, 0.38);
+  background: rgba(232, 182, 107, 0.08);
 }
 
 #focusPlanDrawer,

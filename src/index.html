@@ -147,10 +147,16 @@
             </div>
 
             <div id="playlistPanel" class="mt-4 hidden rounded-2xl border border-white/15 bg-black/20 p-3">
-              <div class="mb-2 flex items-center gap-2">
-                <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load a local music folder">Load Folder</button>
-                <span id="musicFolderDisplay" class="text-[0.58rem] text-zinc-300/60">Default</span>
+              <div class="playlist-toolbar">
+                <div class="playlist-folder-actions">
+                  <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load or reconnect a local music folder">Load Folder</button>
+                  <button id="rescanMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Check the current folder for restored or new tracks" hidden>Rescan</button>
+                  <button id="useDefaultTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Return to the bundled offline playlist" hidden>Use Defaults</button>
+                  <button id="removeMissingTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Remove unavailable tracks from the saved queue" hidden>Clear Missing</button>
+                </div>
+                <span id="musicFolderDisplay" class="playlist-folder-label">Default</span>
               </div>
+              <p id="playlistStatus" class="playlist-status" role="status" aria-live="polite">Using the bundled offline playlist.</p>
               <div id="playlistItems" class="playlist-container grid grid-cols-1 gap-2 md:grid-cols-3"></div>
             </div>
           </footer>
@@ -399,6 +405,7 @@
     <script src="./notes.js"></script>
     <script src="./notes-controller.js"></script>
     <script src="./player.js"></script>
+    <script src="./media-session.js"></script>
     <script src="./player-controller.js"></script>
     <script src="./backgrounds.js"></script>
     <script src="./stats.js"></script>

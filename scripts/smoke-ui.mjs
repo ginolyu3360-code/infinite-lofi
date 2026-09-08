@@ -221,7 +221,9 @@ try {
         'timerPlanStatus', 'todayGoalProgress', 'todayGoalBar',
         'statsActiveDaysValue', 'statsStreakValue', 'statsComparisonValue',
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
-        'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount'
+        'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
+        'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
+        'useDefaultTracksBtn'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -384,7 +386,16 @@ try {
     const player = document.querySelector('#lofiPlayer');
     document.querySelector('#playPauseBtn').click();
     await new Promise((resolve) => setTimeout(resolve, 250));
-    const result = { source: player.currentSrc || player.src, pausedAfterClick: player.paused };
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const result = {
+      source: player.currentSrc || player.src,
+      pausedAfterClick: player.paused,
+      queueLength: state.player.queue.length,
+      activeTrackKey: state.player.activeTrackKey,
+      mediaSessionSupported: Boolean(navigator.mediaSession),
+      mediaSessionTitle: navigator.mediaSession?.metadata?.title || '',
+      mediaPlaybackState: navigator.mediaSession?.playbackState || 'none'
+    };
     player.pause();
     return result;
   })()`);
@@ -425,7 +436,7 @@ try {
     focusPlanResult.timer !== "30:00" ||
     !focusPlanResult.summary.includes("30 / 7 / 20") ||
     !focusPlanResult.status.includes("Today 0 / 90m") ||
-    focusPlanResult.schemaVersion !== 3 ||
+    focusPlanResult.schemaVersion !== 4 ||
     focusPlanResult.timerSettings.shortBreakSeconds !== 420 ||
     focusPlanResult.timerSettings.longBreakSeconds !== 1200 ||
     focusPlanResult.timerSettings.focusSessionsPerLongBreak !== 3 ||
@@ -435,7 +446,7 @@ try {
     focusPlanResult.runtime.completedFocusesInCycle !== 0
   ) failures.push("Focus Plan settings did not apply and persist");
   if (
-    sessionHistoryResult.schemaVersion !== 3 ||
+    sessionHistoryResult.schemaVersion !== 4 ||
     sessionHistoryResult.sessionCount !== 1 ||
     sessionHistoryResult.manualMinutes !== 40 ||
     sessionHistoryResult.derivedTodayMinutes !== 40 ||
@@ -449,7 +460,15 @@ try {
   if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
     failures.push("White Scene theme adaptation failed");
   }
-  if (playerResult.pausedAfterClick || !playerResult.source) failures.push("audio playback failed");
+  if (
+    playerResult.pausedAfterClick ||
+    !playerResult.source ||
+    playerResult.queueLength !== 3 ||
+    !playerResult.activeTrackKey.startsWith('builtin:') ||
+    !playerResult.mediaSessionSupported ||
+    !playerResult.mediaSessionTitle ||
+    playerResult.mediaPlaybackState !== 'playing'
+  ) failures.push("playlist persistence or native media session failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 

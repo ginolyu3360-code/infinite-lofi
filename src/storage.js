@@ -8,7 +8,7 @@
     throw new Error("Infinite Lo-Fi core helpers are required by storage");
   }
 
-  const CURRENT_SCHEMA_VERSION = 3;
+  const CURRENT_SCHEMA_VERSION = 4;
   const STORAGE_KEY = "infiniteLofiState";
   const RECOVERY_KEY = "infiniteLofiStateRecovery";
   const BACKUP_FORMAT = "infinite-lofi-backup";
@@ -55,6 +55,70 @@
       .map((item) => item.slice(0, 8192));
   }
 
+  function fileNameFromPath(value) {
+    if (typeof value !== "string" || !value) return "";
+    let decoded = value;
+    try {
+      decoded = decodeURIComponent(value.replace(/^file:\/\//, ""));
+    } catch {}
+    return decoded.split(/[\\/]/).pop() || "";
+  }
+
+  function labelFromFileName(value) {
+    const fileName = fileNameFromPath(value);
+    const dotIndex = fileName.lastIndexOf(".");
+    return (dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName) || "Untitled track";
+  }
+
+  function builtInKeyFromLegacy(value) {
+    const match = fileNameFromPath(value).match(/^track-(\d+)\.wav$/i);
+    return match ? `builtin:track-${match[1]}` : value;
+  }
+
+  function normalizePlayerQueue(value) {
+    if (!Array.isArray(value)) return [];
+    const result = [];
+    const included = new Set();
+    for (const entry of value) {
+      if (result.length >= 1000) break;
+      if (!isObject(entry)) continue;
+      const key = normalizeString(entry.key, 8192);
+      if (!key || included.has(key)) continue;
+      included.add(key);
+      result.push({
+        key,
+        label: normalizeString(entry.label, 512).trim() || "Untitled track",
+        relativePath: normalizeString(entry.relativePath, 2048),
+        isLocal: entry.isLocal === true
+      });
+    }
+    return result;
+  }
+
+  function migrateLegacyPlayer(playerSource) {
+    const folderPath = normalizeString(playerSource.folderPath, 8192);
+    const isLocal = Boolean(folderPath);
+    const trackOrder = normalizeStringList(playerSource.trackOrder);
+    const queue = trackOrder.map((legacyKey) => {
+      const relativePath = isLocal ? fileNameFromPath(legacyKey) : "";
+      return {
+        key: isLocal ? `local:${relativePath}` : builtInKeyFromLegacy(legacyKey),
+        label: labelFromFileName(legacyKey),
+        relativePath,
+        isLocal
+      };
+    }).filter((entry) => entry.key !== "local:");
+    const activeLegacyKey = normalizeString(playerSource.activeTrackSrc, 8192);
+    const activeRelativePath = isLocal ? fileNameFromPath(activeLegacyKey) : "";
+    return {
+      folderPath,
+      queue,
+      activeTrackKey: isLocal && activeRelativePath
+        ? `local:${activeRelativePath}`
+        : builtInKeyFromLegacy(activeLegacyKey)
+    };
+  }
+
   function createDefaultState(now = Date.now()) {
     return {
       schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -77,8 +141,8 @@
       },
       player: {
         folderPath: "",
-        trackOrder: [],
-        activeTrackSrc: ""
+        queue: [],
+        activeTrackKey: ""
       },
       timerRuntime: {
         phase: "focus",
@@ -106,6 +170,13 @@
 
     const statsSource = isObject(source.stats) ? source.stats : {};
     const playerSource = isObject(source.player) ? source.player : {};
+    const normalizedPlayer = Number(source.schemaVersion) >= 4
+      ? {
+          folderPath: normalizeString(playerSource.folderPath, 8192),
+          queue: normalizePlayerQueue(playerSource.queue),
+          activeTrackKey: normalizeString(playerSource.activeTrackKey, 8192)
+        }
+      : migrateLegacyPlayer(playerSource);
     const runtimeSource = isObject(source.timerRuntime) ? source.timerRuntime : {};
     const runtimePhase = runtimeSource.phase === "longBreak"
       ? "longBreak"
@@ -151,11 +222,7 @@
         focusSessions,
         focusRows: core.aggregateFocusRows(focusSessions).slice(-core.MAX_FOCUS_HISTORY_DAYS)
       },
-      player: {
-        folderPath: normalizeString(playerSource.folderPath, 8192),
-        trackOrder: normalizeStringList(playerSource.trackOrder),
-        activeTrackSrc: normalizeString(playerSource.activeTrackSrc, 8192)
-      },
+      player: normalizedPlayer,
       timerRuntime: {
         phase: runtimePhase,
         completedFocusesInCycle: runtimePhase === "longBreak"
