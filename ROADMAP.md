@@ -116,7 +116,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-08.
 
 ### Phase 3E — Curated Scenes
 
-Status: completed and locally verified on 2026-09-09.
+Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 - [x] Add four built-in scene presets: Quiet Studio, Midnight, Moss, and Paper.
 - [x] Give presets distinct interface palettes, atmospheric backgrounds, live previews, and accessible selected states.

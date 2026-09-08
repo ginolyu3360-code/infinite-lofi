@@ -17,8 +17,9 @@ Updated: 2026-09-09
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with Phase 3A–3C source work, and Phase 3D is complete in the current source tree.
+- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with completed Phase 3A–3E source work.
 - Phase 3D was squash-merged through PR #8 as commit `3dca230`; its PR CI run `34245931075` and post-merge `main` CI run `34246166218` both passed.
+- Phase 3E was squash-merged through PR #10 as commit `2c05443`; its passing PR CI run `34250458728` and post-merge `main` CI run `34250687267` both passed.
 - The repaired v1.2.0 Release run `34185493625` passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete in the source tree; none has been included in a new tagged release.
@@ -136,6 +137,6 @@ Updated: 2026-09-09
 
 ## Recommended next decision
 
-After Phase 3E is merged and its `main` CI passes, decide separately whether to prepare a Phase 3 release candidate or define the next product phase. Keep release work explicit and independent from feature development.
+The next decision is whether to prepare a Phase 3 release candidate or define the next product phase. Keep release work explicit and independent from feature development.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

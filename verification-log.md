@@ -20,7 +20,8 @@
 
 ### Scope status
 
-- Phase 3E is complete and locally verified on branch `codex/phase3e-curated-scenes`.
+- Phase 3E was squash-merged through PR #10 as commit `2c05443`; passing PR CI `34250458728` and post-merge `main` CI `34250687267` completed successfully.
+- The first PR CI run exposed a packaged-app style-settling race in the new assertion; the smoke test now waits for both the theme class and computed palette before checking the timer color.
 - Package/release version remains 1.2.0. No tag or Release was created.
 
 ## 2026-09-08 — Phase 3D Accessibility
