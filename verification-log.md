@@ -1,5 +1,29 @@
 # Verification Log
 
+## 2026-09-08 — Phase 3A Focus Plan
+
+### Implemented
+
+- Added configurable focus, short-break, and long-break durations with a 1–12 focus-session cycle and persisted cycle position.
+- Added independent auto-start controls for breaks and focus sessions while preserving the prior enabled-by-default transition behavior.
+- Added an optional daily focus goal with timer/Mini Mode context and statistics progress.
+- Upgraded local state to schema v2, migrating v1 `breakSeconds`, active legacy breaks, versioned v1 backups, and legacy backups without discarding other state.
+- Kept expired restored timers bounded to one phase transition and record completed focus time against the deadline's local calendar day.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 34 unit tests with zero failures.
+- Passed the isolated development UI smoke test across 720 × 520, 800 × 600, 1100 × 760, the largest available desktop size, and Mini Mode at 420 × 250.
+- Verified the Focus Plan drawer, running-state lock, settings normalization, schema v2 persistence, daily goal display, and unchanged notes/player/stats/background flows with no renderer exceptions.
+- Reinstalled dependencies from `package-lock.json` and confirmed electron-builder 26.15.3 after detecting and replacing a stale local 25.1.8 installation.
+- Rebuilt the unsigned Universal application, passed the isolated packaged-app UI smoke test, and confirmed `x86_64 arm64` with `lipo`.
+- Visually inspected the main timer and Focus Plan drawer in the development application.
+
+### Scope status
+
+- Phase 3A is complete. Session-history editing, playlist/media improvements, the broader accessibility pass, and curated themes remain separate future slices.
+- Package/release version remains 1.2.0. No tag or Release was created.
+
 ## 2026-09-08 — v1.2.0 release completed and Phase 3 handoff
 
 - Merged the release-publishing fix as commit `9aed518`; local `main`, `origin/main`, and tag `v1.2.0` all point to that commit.

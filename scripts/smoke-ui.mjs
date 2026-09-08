@@ -134,14 +134,17 @@ try {
       const timerCard = document.querySelector('#timerCard');
       const player = document.querySelector('#playerPanel');
       const timerButton = document.querySelector('#timerToggle');
+      const headerActions = document.querySelector('.header-actions');
       const cardRect = timerCard.getBoundingClientRect();
       const playerRect = player.getBoundingClientRect();
+      const headerActionsRect = headerActions.getBoundingClientRect();
       return {
         width: innerWidth,
         height: innerHeight,
         timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
         cardInsideViewport: cardRect.left >= 0 && cardRect.right <= innerWidth + 1 && cardRect.top >= 0,
         playerInsideViewport: playerRect.left >= 0 && playerRect.right <= innerWidth + 1 && playerRect.bottom <= innerHeight + 1,
+        headerActionsInsideViewport: headerActionsRect.left >= 0 && headerActionsRect.right <= innerWidth + 1,
         timerButtonHeight: timerButton.getBoundingClientRect().height
       };
     })()`);
@@ -155,6 +158,7 @@ try {
         state.timerOverflow <= 1 &&
         state.cardInsideViewport &&
         state.playerInsideViewport &&
+        state.headerActionsInsideViewport &&
         state.timerButtonHeight >= 42
       ) return state;
       await delay(150);
@@ -209,7 +213,11 @@ try {
         'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
         'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn',
-        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn'
+        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn',
+        'focusPlanToggleBtn', 'focusPlanDrawer', 'focusPlanApplyBtn',
+        'shortBreakMinutesInput', 'longBreakMinutesInput', 'focusSessionsInput',
+        'autoStartBreaksInput', 'autoStartFocusInput', 'dailyGoalMinutesInput',
+        'timerPlanStatus', 'todayGoalProgress', 'todayGoalBar'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -255,7 +263,47 @@ try {
     timer: document.querySelector('#timerDisplay').textContent.trim(),
     button: document.querySelector('#timerToggle').textContent.trim()
   }))()`);
+  const lockedPlan = await evaluate(`(() => {
+    document.querySelector('#focusPlanToggleBtn').click();
+    const result = {
+      opened: document.querySelector('#focusPlanDrawer').classList.contains('is-open'),
+      inputDisabled: document.querySelector('#focusMinutesInput').disabled,
+      hint: document.querySelector('#focusPlanLockHint').textContent.trim()
+    };
+    document.querySelector('#focusPlanCloseBtn').click();
+    return result;
+  })()`);
   await evaluate("document.querySelector('#timerToggle').click(); document.querySelector('#timerReset').click(); true");
+
+  const focusPlanResult = await evaluate(`(async () => {
+    document.querySelector('#focusPlanToggleBtn').click();
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    const values = {
+      focusMinutesInput: '30',
+      shortBreakMinutesInput: '7',
+      longBreakMinutesInput: '20',
+      focusSessionsInput: '3',
+      dailyGoalMinutesInput: '90'
+    };
+    for (const [id, value] of Object.entries(values)) document.getElementById(id).value = value;
+    document.querySelector('#autoStartBreaksInput').checked = false;
+    document.querySelector('#autoStartFocusInput').checked = true;
+    const drawerRect = document.querySelector('#focusPlanDrawer').getBoundingClientRect();
+    document.querySelector('#focusPlanApplyBtn').click();
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      drawerClosed: !document.querySelector('#focusPlanDrawer').classList.contains('is-open'),
+      drawerInsideViewport: drawerRect.left >= 0 && drawerRect.right <= innerWidth + 1 && drawerRect.top >= 0 && drawerRect.bottom <= innerHeight + 1,
+      timer: document.querySelector('#timerDisplay').textContent.trim(),
+      summary: document.querySelector('#timerPlanSummary').textContent.trim(),
+      status: document.querySelector('#timerPlanStatus').textContent.trim(),
+      schemaVersion: state.schemaVersion,
+      timerSettings: state.settings.timer,
+      dailyGoalSeconds: state.settings.goals.dailyFocusSeconds,
+      goalProgressMax: document.querySelector('#todayGoalProgress').getAttribute('aria-valuemax'),
+      runtime: state.timerRuntime
+    };
+  })()`);
 
   const notesResult = await evaluate(`(() => {
     const before = document.querySelectorAll('#noteTabs > *').length;
@@ -323,7 +371,7 @@ try {
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
   if (!shortcutHelpResult.openedFromButton || !shortcutHelpResult.closedFromButton) failures.push("shortcut help entry point failed");
-  if (responsiveLayouts.some((layout) => layout.timerOverflow > 1 || !layout.cardInsideViewport || !layout.playerInsideViewport || layout.timerButtonHeight < 42)) {
+  if (responsiveLayouts.some((layout) => layout.timerOverflow > 1 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
   if (!miniMode.enabled || miniMode.width > 480 || miniMode.height > 280 || miniMode.timerOverflow > 1 || miniMode.fullLabel !== "Full" || !miniMode.notesHidden) {
@@ -333,6 +381,22 @@ try {
     failures.push("full-window bounds were not restored after Mini Mode");
   }
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
+  if (!lockedPlan.opened || !lockedPlan.inputDisabled || !lockedPlan.hint.includes("Pause")) failures.push("running timer did not lock Focus Plan settings");
+  if (
+    !focusPlanResult.drawerClosed ||
+    !focusPlanResult.drawerInsideViewport ||
+    focusPlanResult.timer !== "30:00" ||
+    !focusPlanResult.summary.includes("30 / 7 / 20") ||
+    !focusPlanResult.status.includes("Today 0 / 90m") ||
+    focusPlanResult.schemaVersion !== 2 ||
+    focusPlanResult.timerSettings.shortBreakSeconds !== 420 ||
+    focusPlanResult.timerSettings.longBreakSeconds !== 1200 ||
+    focusPlanResult.timerSettings.focusSessionsPerLongBreak !== 3 ||
+    focusPlanResult.timerSettings.autoStartBreaks !== false ||
+    focusPlanResult.dailyGoalSeconds !== 5400 ||
+    focusPlanResult.goalProgressMax !== "90" ||
+    focusPlanResult.runtime.completedFocusesInCycle !== 0
+  ) failures.push("Focus Plan settings did not apply and persist");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
   if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
@@ -342,7 +406,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

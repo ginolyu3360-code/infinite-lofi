@@ -42,7 +42,15 @@ test("migrates legacy local storage without losing notes or stats", () => {
 
   assert.equal(state.schemaVersion, CURRENT_SCHEMA_VERSION);
   assert.equal(state.notes.files[0].content, "legacy draft");
-  assert.deepEqual(state.settings.timer, { focusSeconds: 1800, breakSeconds: 600 });
+  assert.deepEqual(state.settings.timer, {
+    focusSeconds: 1800,
+    shortBreakSeconds: 600,
+    longBreakSeconds: 900,
+    focusSessionsPerLongBreak: 4,
+    autoStartBreaks: true,
+    autoStartFocus: true
+  });
+  assert.deepEqual(state.settings.goals, { dailyFocusSeconds: 0 });
   assert.equal(state.settings.statsRange, "month");
   assert.deepEqual(state.stats.focusRows, [
     { day: "2026-09-07", focusSeconds: 720 }
@@ -66,7 +74,14 @@ test("normalizes versioned state and rejects unsafe values", () => {
   });
 
   const state = migrateStoredState(storage, 2000);
-  assert.deepEqual(state.settings.timer, { focusSeconds: 60, breakSeconds: 21600 });
+  assert.deepEqual(state.settings.timer, {
+    focusSeconds: 60,
+    shortBreakSeconds: 21600,
+    longBreakSeconds: 900,
+    focusSessionsPerLongBreak: 4,
+    autoStartBreaks: true,
+    autoStartFocus: true
+  });
   assert.equal(state.settings.statsRange, "week");
   assert.equal(state.notes.activeId, "a");
   assert.deepEqual(state.stats.focusRows, []);
@@ -78,6 +93,7 @@ test("exports and restores a complete versioned backup", () => {
   const storage = createMemoryStorage();
   const repository = createRepository(storage, () => 3000);
   repository.update((state) => {
+    state.settings.goals.dailyFocusSeconds = 5400;
     state.player.folderPath = "/Music/Focus";
     state.notes.files = [
       { id: "note-1", name: "Ideas", content: "Keep me", pinned: true, updatedAt: 10 }
@@ -92,6 +108,7 @@ test("exports and restores a complete versioned backup", () => {
   const restored = importBackup(JSON.stringify(backup), 4000);
   assert.equal(restored.player.folderPath, "/Music/Focus");
   assert.equal(restored.notes.files[0].content, "Keep me");
+  assert.equal(restored.settings.goals.dailyFocusSeconds, 5400);
 });
 
 test("imports old backups and rejects unrelated or newer files", () => {
@@ -103,6 +120,26 @@ test("imports old backups and rejects unrelated or newer files", () => {
   const restored = importBackup(oldBackup, 5000);
   assert.equal(restored.notes.files[0].content, "old note");
   assert.equal(restored.settings.timer.focusSeconds, 1200);
+
+  const versionOneBackup = {
+    format: BACKUP_FORMAT,
+    schemaVersion: 1,
+    state: {
+      schemaVersion: 1,
+      settings: { timer: { focusSeconds: 2100, breakSeconds: 480 } },
+      timerRuntime: {
+        phase: "break",
+        remainingSeconds: 120,
+        deadlineMs: null,
+        isRunning: false
+      }
+    }
+  };
+  const migratedVersionOne = importBackup(versionOneBackup, 5001);
+  assert.equal(migratedVersionOne.schemaVersion, CURRENT_SCHEMA_VERSION);
+  assert.equal(migratedVersionOne.settings.timer.shortBreakSeconds, 480);
+  assert.equal(migratedVersionOne.timerRuntime.phase, "shortBreak");
+  assert.equal(migratedVersionOne.settings.goals.dailyFocusSeconds, 0);
 
   assert.throws(() => importBackup({ hello: "world" }), /not an Infinite Lo-Fi backup/);
   assert.throws(
@@ -137,6 +174,15 @@ test("restores documented settings and active state after repository recreation"
   const firstRun = createRepository(storage, () => 7000);
   firstRun.update((state) => {
     state.settings.statsRange = "month";
+    state.settings.timer = {
+      focusSeconds: 1800,
+      shortBreakSeconds: 420,
+      longBreakSeconds: 1200,
+      focusSessionsPerLongBreak: 3,
+      autoStartBreaks: false,
+      autoStartFocus: true
+    };
+    state.settings.goals = { dailyFocusSeconds: 7200 };
     state.settings.ui = { volume: 0, brightness: 1.2 };
     state.player = {
       folderPath: "/Music/Focus",
@@ -144,7 +190,8 @@ test("restores documented settings and active state after repository recreation"
       activeTrackSrc: "b.wav"
     };
     state.timerRuntime = {
-      phase: "focus",
+      phase: "shortBreak",
+      completedFocusesInCycle: 2,
       remainingSeconds: 120,
       deadlineMs: 20_000,
       isRunning: true
@@ -153,9 +200,14 @@ test("restores documented settings and active state after repository recreation"
 
   const relaunched = createRepository(storage, () => 8000).getState();
   assert.equal(relaunched.settings.statsRange, "month");
+  assert.equal(relaunched.settings.timer.longBreakSeconds, 1200);
+  assert.equal(relaunched.settings.timer.autoStartBreaks, false);
+  assert.equal(relaunched.settings.goals.dailyFocusSeconds, 7200);
   assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2 });
   assert.deepEqual(relaunched.player.trackOrder, ["b.wav", "a.wav"]);
   assert.equal(relaunched.player.activeTrackSrc, "b.wav");
   assert.equal(relaunched.timerRuntime.isRunning, true);
   assert.equal(relaunched.timerRuntime.deadlineMs, 20_000);
+  assert.equal(relaunched.timerRuntime.phase, "shortBreak");
+  assert.equal(relaunched.timerRuntime.completedFocusesInCycle, 2);
 });

@@ -68,6 +68,18 @@ Status: completed for the requested scope on 2026-09-07. Signing and notarizatio
 
 Only start after Phases 0–2 are stable.
 
+### Phase 3A — Focus Plan
+
+Status: completed and locally verified on 2026-09-08.
+
+- [x] Add configurable short and long breaks with a configurable number of focus sessions per cycle.
+- [x] Add independent auto-start options for breaks and focus sessions while preserving the existing default behavior.
+- [x] Add an optional daily focus goal with compact timer and statistics progress.
+- [x] Upgrade local state to schema v2 and migrate v1 state, legacy timer settings, active breaks, and old backups without data loss.
+- [x] Persist the current cycle position and restore active focus, short-break, and long-break timers safely.
+- [x] Attribute an expired restored focus session to its actual local completion day without replaying missed cycles.
+- [x] Cover the state machine, migration, responsive Focus Plan UI, development app, and Universal packaged app with automated tests.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.
@@ -91,7 +103,6 @@ Status: completed and verified locally on 2026-09-07. See `UI-REFRESH-PLAN.md` f
 - [x] Enlarge interactive targets and add safe trackpad/touch-friendly behavior.
 - [x] Verify representative full-window sizes and Mini Mode in development and packaged builds.
 
-- Add configurable long breaks, auto-start options, and daily focus goals.
 - Add session history editing and richer trends without turning the app into a complex analytics product.
 - Improve playlist persistence, missing-file handling, and native media controls.
 - Improve accessibility: focus management, reduced-motion support, contrast checks, and screen-reader announcements.

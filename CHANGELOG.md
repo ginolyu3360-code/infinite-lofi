@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added configurable short and long breaks with a focus-cycle counter
+- Added independent auto-start options for breaks and focus sessions
+- Added an optional daily focus goal with progress in the timer and statistics views
+- Upgraded local state to schema v2 with automatic v1 and legacy-backup migration
+- Preserved the actual local completion day when an expired focus timer is restored after midnight
+
 ## 1.2.0 — 2026-09-08
 
 - Made weather opt-in with Off, automatic IP location, and manual city modes plus clear privacy descriptions

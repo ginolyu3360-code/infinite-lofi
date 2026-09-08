@@ -46,6 +46,14 @@
           event.preventDefault();
           actions.toggleStatsDrawer(false);
         }
+        if (elements.backgroundDrawer?.classList.contains("is-open")) {
+          event.preventDefault();
+          actions.toggleBackgroundDrawer(false);
+        }
+        if (elements.focusPlanDrawer?.classList.contains("is-open")) {
+          event.preventDefault();
+          actions.toggleFocusPlanDrawer(false);
+        }
         return;
       }
       if (isTyping && !isMeta) return;
@@ -195,10 +203,16 @@
 
     on(e.timerToggle, "click", a.toggleTimer);
     on(e.timerReset, "click", a.resetTimer);
-    on(e.focusMinutesInput, "input", a.applyTimerConfigLive);
-    on(e.breakMinutesInput, "input", a.applyTimerConfigLive);
-    on(e.focusMinutesInput, "blur", a.normalizeConfigInputDisplay);
-    on(e.breakMinutesInput, "blur", a.normalizeConfigInputDisplay);
+    on(e.focusPlanToggleBtn, "click", () => a.toggleFocusPlanDrawer());
+    on(e.focusPlanCloseBtn, "click", () => a.toggleFocusPlanDrawer(false));
+    on(e.focusPlanApplyBtn, "click", a.applyFocusPlanSettings);
+    [
+      e.focusMinutesInput,
+      e.shortBreakMinutesInput,
+      e.longBreakMinutesInput,
+      e.focusSessionsInput,
+      e.dailyGoalMinutesInput
+    ].forEach((input) => on(input, "blur", a.normalizeConfigInputDisplay));
     on(e.statsToggleBtn, "click", () => a.toggleStatsDrawer());
     on(e.statsCloseBtn, "click", () => a.toggleStatsDrawer(false));
     on(e.statsRangeTodayBtn, "click", () => a.setStatsRange("today"));
@@ -225,6 +239,7 @@
     on(e.drawerBackdrop, "click", () => {
       a.toggleBackgroundDrawer(false);
       a.toggleStatsDrawer(false);
+      a.toggleFocusPlanDrawer(false);
     });
     on(e.bgBlackBtn, "click", () => a.setBackgroundMode("black"));
     on(e.bgWhiteBtn, "click", () => a.setBackgroundMode("white"));
@@ -233,6 +248,7 @@
     on(e.bgResetBtn, "click", a.resetBackground);
     bindSwipeToClose(e.statsDrawer, () => a.toggleStatsDrawer(false));
     bindSwipeToClose(e.backgroundDrawer, () => a.toggleBackgroundDrawer(false));
+    bindSwipeToClose(e.focusPlanDrawer, () => a.toggleFocusPlanDrawer(false));
     on(e.showcaseToggleBtn, "click", (event) => {
       event.stopPropagation();
       a.toggleShowcaseMode();

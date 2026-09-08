@@ -1,6 +1,3 @@
-const MAX_TIMER_SECONDS = 6 * 60 * 60;
-const DEFAULT_FOCUS_SECONDS = 25 * 60;
-const DEFAULT_BREAK_SECONDS = 5 * 60;
 const DEFAULT_SHORTCUT_SETTINGS = {
   helpToggle: true,
   closePanels: true,
@@ -55,16 +52,25 @@ if (
 }
 
 const {
+  DEFAULT_TIMER_SETTINGS,
   clamp,
   formatTime,
+  getLocalDayKey,
+  normalizeDailyGoalSeconds,
   normalizeMinutes,
+  normalizeTimerSettings,
   normalizeVolume,
   remainingSecondsUntil,
   sanitizeNoteFiles: sanitizeLoadedNoteFiles
 } = window.InfiniteLofiCore;
 
 const appStorage = window.InfiniteLofiStorage.createRepository(window.localStorage);
-const { createRuntimeSnapshot, resolveRestoredRuntime } = window.InfiniteLofiTimer;
+const {
+  advanceTimerPhase,
+  createRuntimeSnapshot,
+  getPhaseDuration,
+  resolveRestoredRuntime
+} = window.InfiniteLofiTimer;
 const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
 const {
@@ -112,10 +118,24 @@ const playlistItems = document.getElementById("playlistItems");
 const volumeSlider = document.getElementById("volumeSlider");
 const brightnessSlider = document.getElementById("brightnessSlider");
 const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
+const focusPlanToggleBtn = document.getElementById("focusPlanToggleBtn");
+const focusPlanDrawer = document.getElementById("focusPlanDrawer");
+const focusPlanCloseBtn = document.getElementById("focusPlanCloseBtn");
+const focusPlanApplyBtn = document.getElementById("focusPlanApplyBtn");
 const focusMinutesInput = document.getElementById("focusMinutesInput");
-const breakMinutesInput = document.getElementById("breakMinutesInput");
+const shortBreakMinutesInput = document.getElementById("shortBreakMinutesInput");
+const longBreakMinutesInput = document.getElementById("longBreakMinutesInput");
+const focusSessionsInput = document.getElementById("focusSessionsInput");
+const autoStartBreaksInput = document.getElementById("autoStartBreaksInput");
+const autoStartFocusInput = document.getElementById("autoStartFocusInput");
+const dailyGoalMinutesInput = document.getElementById("dailyGoalMinutesInput");
+const focusPlanLockHint = document.getElementById("focusPlanLockHint");
 const timerConfigPanel = document.getElementById("timerConfigPanel");
+const timerPlanSummary = document.getElementById("timerPlanSummary");
+const timerPlanStatus = document.getElementById("timerPlanStatus");
 const todayFocusStat = document.getElementById("todayFocusStat");
+const todayGoalProgress = document.getElementById("todayGoalProgress");
+const todayGoalBar = document.getElementById("todayGoalBar");
 const statsBars = document.getElementById("statsBars");
 const statsRangeTodayBtn = document.getElementById("statsRangeTodayBtn");
 const statsRangeWeekBtn = document.getElementById("statsRangeWeekBtn");
@@ -176,10 +196,11 @@ const storageRecoveryDismissBtn = document.getElementById("storageRecoveryDismis
 
 let timerId = null;
 let timerDeadlineMs = null;
-let focusDurationSeconds = DEFAULT_FOCUS_SECONDS;
-let breakDurationSeconds = DEFAULT_BREAK_SECONDS;
-let remainingSeconds = focusDurationSeconds;
+let timerSettings = { ...DEFAULT_TIMER_SETTINGS };
+let dailyFocusGoalSeconds = 0;
+let remainingSeconds = timerSettings.focusSeconds;
 let timerPhase = "focus";
+let completedFocusesInCycle = 0;
 let miniModeEnabled = false;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
@@ -252,6 +273,8 @@ const statsController = createStatsController({
     statsDrawer,
     statsToggleBtn,
     todayFocusStat,
+    todayGoalProgress,
+    todayGoalBar,
     statsHeadingLabel,
     statsTotalValue,
     statsAverageValue,
@@ -418,6 +441,9 @@ function applyShowcaseMode() {
   if (statsDrawer && showcaseModeEnabled) {
     toggleStatsDrawer(false);
   }
+  if (focusPlanDrawer && showcaseModeEnabled) {
+    toggleFocusPlanDrawer(false);
+  }
   if (shortcutHelpOverlay && showcaseModeEnabled) {
     toggleShortcutHelp(false);
   }
@@ -437,10 +463,43 @@ function toggleBackgroundDrawer(forceOpen) {
   }
 
   const nextOpen = typeof forceOpen === "boolean" ? forceOpen : !backgroundDrawer.classList.contains("is-open");
+  if (nextOpen) {
+    toggleFocusPlanDrawer(false);
+    toggleStatsDrawer(false);
+  }
   backgroundDrawer.classList.toggle("is-open", nextOpen);
   if (drawerBackdrop) {
     drawerBackdrop.classList.toggle("visible", nextOpen);
   }
+}
+
+function toggleFocusPlanDrawer(forceOpen) {
+  if (!focusPlanDrawer) return;
+  const nextOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : !focusPlanDrawer.classList.contains("is-open");
+  if (nextOpen) {
+    toggleBackgroundDrawer(false);
+    toggleStatsDrawer(false);
+    toggleNotesPanel(false);
+    updateConfigInputs();
+  }
+  focusPlanDrawer.classList.toggle("is-open", nextOpen);
+  focusPlanDrawer.setAttribute("aria-hidden", String(!nextOpen));
+  focusPlanDrawer.inert = !nextOpen;
+  focusPlanToggleBtn.setAttribute("aria-expanded", String(nextOpen));
+  drawerBackdrop?.classList.toggle("visible", nextOpen);
+}
+
+function toggleStatsPanel(forceOpen) {
+  const nextOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : !statsDrawer.classList.contains("is-open");
+  if (nextOpen) {
+    toggleFocusPlanDrawer(false);
+    toggleBackgroundDrawer(false);
+  }
+  toggleStatsDrawer(nextOpen);
 }
 
 function setBackgroundMode(mode) {
@@ -648,49 +707,46 @@ function toMinutes(seconds) {
 
 function saveTimerSettings() {
   appStorage.update((state) => {
-    state.settings.timer = {
-      focusSeconds: focusDurationSeconds,
-      breakSeconds: breakDurationSeconds
-    };
+    state.settings.timer = { ...timerSettings };
+    state.settings.goals = { dailyFocusSeconds: dailyFocusGoalSeconds };
   });
 }
 
 function loadTimerSettings() {
-  const settings = appStorage.getState().settings.timer;
-  if (!settings) {
-    return;
-  }
-
-  const focusSeconds = clamp(Number(settings.focusSeconds) || DEFAULT_FOCUS_SECONDS, 60, MAX_TIMER_SECONDS);
-  const breakSeconds = clamp(Number(settings.breakSeconds) || DEFAULT_BREAK_SECONDS, 60, MAX_TIMER_SECONDS);
-  focusDurationSeconds = focusSeconds;
-  breakDurationSeconds = breakSeconds;
-  remainingSeconds = timerPhase === "focus" ? focusDurationSeconds : breakDurationSeconds;
+  const settings = appStorage.getState().settings;
+  timerSettings = normalizeTimerSettings(settings.timer);
+  dailyFocusGoalSeconds = normalizeDailyGoalSeconds(settings.goals?.dailyFocusSeconds);
+  remainingSeconds = getPhaseDuration(timerPhase, timerSettings);
 }
 
 function saveTimerRuntime() {
   appStorage.update((state) => {
     state.timerRuntime = createRuntimeSnapshot({
       phase: timerPhase,
+      completedFocusesInCycle,
       remainingSeconds,
       deadlineMs: timerId !== null ? timerDeadlineMs : null,
       isRunning: timerId !== null && timerDeadlineMs !== null
-    });
+    }, timerSettings);
   });
 }
 
 function loadTimerRuntime(nowMs = Date.now()) {
   const restored = resolveRestoredRuntime(
     appStorage.getState().timerRuntime,
-    { focusSeconds: focusDurationSeconds, breakSeconds: breakDurationSeconds },
+    timerSettings,
     nowMs
   );
   timerPhase = restored.phase;
+  completedFocusesInCycle = restored.completedFocusesInCycle;
   remainingSeconds = restored.remainingSeconds;
   timerDeadlineMs = restored.deadlineMs;
 
   if (restored.completedFocusDuringAbsence) {
-    recordCompletedFocusSession(focusDurationSeconds);
+    recordCompletedFocusSession(
+      timerSettings.focusSeconds,
+      new Date(restored.completedFocusAtMs)
+    );
     saveTimerRuntime();
   }
   if (restored.isRunning) {
@@ -701,19 +757,62 @@ function loadTimerRuntime(nowMs = Date.now()) {
 }
 
 function updateConfigInputs() {
-  focusMinutesInput.value = String(toMinutes(focusDurationSeconds));
-  breakMinutesInput.value = String(toMinutes(breakDurationSeconds));
+  focusMinutesInput.value = String(toMinutes(timerSettings.focusSeconds));
+  shortBreakMinutesInput.value = String(toMinutes(timerSettings.shortBreakSeconds));
+  longBreakMinutesInput.value = String(toMinutes(timerSettings.longBreakSeconds));
+  focusSessionsInput.value = String(timerSettings.focusSessionsPerLongBreak);
+  autoStartBreaksInput.checked = timerSettings.autoStartBreaks;
+  autoStartFocusInput.checked = timerSettings.autoStartFocus;
+  dailyGoalMinutesInput.value = dailyFocusGoalSeconds > 0
+    ? String(toMinutes(dailyFocusGoalSeconds))
+    : "0";
+  timerPlanSummary.textContent = `${toMinutes(timerSettings.focusSeconds)} / ${toMinutes(timerSettings.shortBreakSeconds)} / ${toMinutes(timerSettings.longBreakSeconds)} min · long every ${timerSettings.focusSessionsPerLongBreak}`;
 }
 
 function setTimerInputsLocked(locked) {
-  focusMinutesInput.disabled = locked;
-  breakMinutesInput.disabled = locked;
+  [
+    focusMinutesInput,
+    shortBreakMinutesInput,
+    longBreakMinutesInput,
+    focusSessionsInput,
+    autoStartBreaksInput,
+    autoStartFocusInput,
+    dailyGoalMinutesInput,
+    focusPlanApplyBtn
+  ].forEach((element) => {
+    if (element) element.disabled = locked;
+  });
   timerConfigPanel.classList.toggle("is-locked", locked);
+  focusPlanDrawer.classList.toggle("is-locked", locked);
+  focusPlanLockHint.textContent = locked
+    ? "Pause the timer before changing this plan."
+    : "Changes start a fresh focus cycle.";
 }
 
 function renderTimer() {
   timerDisplay.textContent = formatTime(remainingSeconds);
-  timerPhaseLabel.textContent = timerPhase === "focus" ? "Focus Session" : "Break Session";
+  timerPhaseLabel.textContent = {
+    focus: "Focus Session",
+    shortBreak: "Short Break",
+    longBreak: "Long Break"
+  }[timerPhase];
+  const today = getLocalDayKey(new Date());
+  const goal = window.InfiniteLofiStats.summarizeDailyGoal(
+    appStorage.getState().stats.focusRows,
+    today,
+    dailyFocusGoalSeconds
+  );
+  const focusPosition = Math.min(
+    completedFocusesInCycle + 1,
+    timerSettings.focusSessionsPerLongBreak
+  );
+  const cycleText = timerPhase === "longBreak"
+    ? "Cycle complete"
+    : `Focus ${focusPosition} of ${timerSettings.focusSessionsPerLongBreak}`;
+  const goalText = goal.isEnabled
+    ? `Today ${Math.round(goal.focusSeconds / 60)} / ${Math.round(goal.goalSeconds / 60)}m`
+    : "Goal off";
+  timerPlanStatus.textContent = `${cycleText} · ${goalText}`;
   // ensure font recalculation when timer text changes
   requestAnimationFrame(() => {
     try {
@@ -773,8 +872,9 @@ async function toggleMiniMode(forceEnabled) {
   const nextEnabled = typeof forceEnabled === "boolean" ? forceEnabled : !miniModeEnabled;
   if (!window.desktopWindow || typeof window.desktopWindow.setMiniMode !== "function") return;
   if (nextEnabled) {
-    toggleStatsDrawer(false);
+    toggleStatsPanel(false);
     toggleBackgroundDrawer(false);
+    toggleFocusPlanDrawer(false);
     toggleShortcutHelp(false);
     toggleNotesPanel(false);
     if (showcaseModeEnabled) toggleShowcaseMode(false);
@@ -794,7 +894,11 @@ function sendTrayStatus() {
 
   window.desktopApp.sendTrayStatus({
     timerText: formatTime(remainingSeconds),
-    phaseText: timerPhase === "focus" ? "Focus Session" : "Break Session",
+    phaseText: {
+      focus: "Focus Session",
+      shortBreak: "Short Break",
+      longBreak: "Long Break"
+    }[timerPhase],
     isRunning: timerId !== null
   });
 }
@@ -816,8 +920,16 @@ function stopTimer() {
 }
 
 function notifyPhaseSwitch() {
-  const title = timerPhase === "focus" ? "Focus Time" : "Break Time";
-  const body = timerPhase === "focus" ? "Back to deep focus." : "Take a short reset break.";
+  const title = timerPhase === "focus"
+    ? "Focus Time"
+    : timerPhase === "longBreak"
+    ? "Long Break"
+    : "Short Break";
+  const body = timerPhase === "focus"
+    ? "Back to deep focus."
+    : timerPhase === "longBreak"
+    ? "Cycle complete. Take a longer reset."
+    : "Take a short reset break.";
 
   if (typeof Notification !== "undefined") {
     if (Notification.permission === "granted") {
@@ -833,13 +945,18 @@ function notifyPhaseSwitch() {
 }
 
 
-function switchTimerPhase() {
-  if (timerPhase === "focus") {
-    recordCompletedFocusSession(focusDurationSeconds);
+function switchTimerPhase(completedAtMs = Date.now()) {
+  const transition = advanceTimerPhase(
+    { phase: timerPhase, completedFocusesInCycle },
+    timerSettings
+  );
+  if (transition.completedFocus) {
+    recordCompletedFocusSession(timerSettings.focusSeconds, new Date(completedAtMs));
   }
 
-  timerPhase = timerPhase === "focus" ? "break" : "focus";
-  remainingSeconds = timerPhase === "focus" ? focusDurationSeconds : breakDurationSeconds;
+  timerPhase = transition.phase;
+  completedFocusesInCycle = transition.completedFocusesInCycle;
+  remainingSeconds = getPhaseDuration(timerPhase, timerSettings);
   renderTimer();
   sendTrayStatus();
   notifyPhaseSwitch();
@@ -848,7 +965,7 @@ function switchTimerPhase() {
       playPauseBtn.textContent = "Play";
     });
   }
-  saveTimerRuntime();
+  return transition.shouldAutoStart;
 }
 
 function syncTimerToClock(nowMs = Date.now()) {
@@ -858,11 +975,23 @@ function syncTimerToClock(nowMs = Date.now()) {
 
   const nextRemainingSeconds = remainingSecondsUntil(timerDeadlineMs, nowMs);
   if (nextRemainingSeconds <= 0) {
+    const completedAtMs = timerDeadlineMs;
     remainingSeconds = 0;
     renderTimer();
     sendTrayStatus();
-    switchTimerPhase();
-    timerDeadlineMs = nowMs + remainingSeconds * 1000;
+    const shouldAutoStart = switchTimerPhase(completedAtMs);
+    if (shouldAutoStart) {
+      timerDeadlineMs = nowMs + remainingSeconds * 1000;
+    } else {
+      clearInterval(timerId);
+      timerId = null;
+      timerDeadlineMs = null;
+      timerToggle.textContent = "Start";
+      setTimerInputsLocked(false);
+      if (!lofiPlayer.paused) lofiPlayer.pause();
+    }
+    sendTrayStatus();
+    saveTimerRuntime();
     return;
   }
 
@@ -901,55 +1030,66 @@ function toggleTimer() {
 function resetTimer() {
   stopTimer();
   timerPhase = "focus";
-  remainingSeconds = focusDurationSeconds;
+  completedFocusesInCycle = 0;
+  remainingSeconds = timerSettings.focusSeconds;
   renderTimer();
   sendTrayStatus();
   saveTimerRuntime();
 }
 
-function applyTimerConfigLive() {
+function applyFocusPlanSettings() {
   if (timerId !== null) {
     return;
   }
 
-  const maybeFocus = Number(focusMinutesInput.value);
-  const maybeBreak = Number(breakMinutesInput.value);
-  let hasChanged = false;
-
-  if (Number.isFinite(maybeFocus)) {
-    const normalizedFocus = clamp(Math.round(maybeFocus), 1, 360) * 60;
-    if (normalizedFocus !== focusDurationSeconds) {
-      focusDurationSeconds = normalizedFocus;
-      hasChanged = true;
-    }
-  }
-
-  if (Number.isFinite(maybeBreak)) {
-    const normalizedBreak = clamp(Math.round(maybeBreak), 1, 360) * 60;
-    if (normalizedBreak !== breakDurationSeconds) {
-      breakDurationSeconds = normalizedBreak;
-      hasChanged = true;
-    }
-  }
-
-  if (!hasChanged) {
-    return;
-  }
-
+  timerSettings = normalizeTimerSettings({
+    focusSeconds: normalizeMinutes(focusMinutesInput.value, timerSettings.focusSeconds) * 60,
+    shortBreakSeconds: normalizeMinutes(
+      shortBreakMinutesInput.value,
+      timerSettings.shortBreakSeconds
+    ) * 60,
+    longBreakSeconds: normalizeMinutes(
+      longBreakMinutesInput.value,
+      timerSettings.longBreakSeconds
+    ) * 60,
+    focusSessionsPerLongBreak: focusSessionsInput.value,
+    autoStartBreaks: autoStartBreaksInput.checked,
+    autoStartFocus: autoStartFocusInput.checked
+  });
+  const goalMinutes = Number(dailyGoalMinutesInput.value);
+  dailyFocusGoalSeconds = normalizeDailyGoalSeconds(
+    Number.isFinite(goalMinutes) ? Math.round(goalMinutes) * 60 : dailyFocusGoalSeconds
+  );
   saveTimerSettings();
   timerPhase = "focus";
-  remainingSeconds = focusDurationSeconds;
+  completedFocusesInCycle = 0;
+  remainingSeconds = timerSettings.focusSeconds;
+  updateConfigInputs();
   renderTimer();
+  renderStats();
   sendTrayStatus();
   saveTimerRuntime();
+  toggleFocusPlanDrawer(false);
 }
 
 function normalizeConfigInputDisplay() {
   if (timerId !== null) {
     return;
   }
-  focusMinutesInput.value = String(normalizeMinutes(focusMinutesInput.value, focusDurationSeconds));
-  breakMinutesInput.value = String(normalizeMinutes(breakMinutesInput.value, breakDurationSeconds));
+  focusMinutesInput.value = String(normalizeMinutes(focusMinutesInput.value, timerSettings.focusSeconds));
+  shortBreakMinutesInput.value = String(normalizeMinutes(
+    shortBreakMinutesInput.value,
+    timerSettings.shortBreakSeconds
+  ));
+  longBreakMinutesInput.value = String(normalizeMinutes(
+    longBreakMinutesInput.value,
+    timerSettings.longBreakSeconds
+  ));
+  focusSessionsInput.value = String(clamp(Math.round(Number(focusSessionsInput.value) || 4), 1, 12));
+  const goalMinutes = Number(dailyGoalMinutesInput.value);
+  dailyGoalMinutesInput.value = String(
+    goalMinutes <= 0 ? 0 : Math.round(normalizeDailyGoalSeconds(goalMinutes * 60) / 60)
+  );
 }
 
 
@@ -1011,7 +1151,8 @@ async function init() {
   // ensure initial brightness is applied (may have been loaded)
   const bs = Number(brightnessSlider ? brightnessSlider.value : 100) / 100;
   if (Number.isFinite(bs)) document.documentElement.style.setProperty("--scene-brightness", String(bs));
-  toggleStatsDrawer(false);
+  toggleStatsPanel(false);
+  toggleFocusPlanDrawer(false);
   bindWindowControls();
   bindAppCommands();
   bindUiEvents({
@@ -1020,8 +1161,15 @@ async function init() {
     elements: {
       timerToggle,
       timerReset,
+      focusPlanToggleBtn,
+      focusPlanDrawer,
+      focusPlanCloseBtn,
+      focusPlanApplyBtn,
       focusMinutesInput,
-      breakMinutesInput,
+      shortBreakMinutesInput,
+      longBreakMinutesInput,
+      focusSessionsInput,
+      dailyGoalMinutesInput,
       statsToggleBtn,
       statsDrawer,
       statsCloseBtn,
@@ -1073,9 +1221,10 @@ async function init() {
     actions: {
       toggleTimer,
       resetTimer,
-      applyTimerConfigLive,
+      toggleFocusPlanDrawer,
+      applyFocusPlanSettings,
       normalizeConfigInputDisplay,
-      toggleStatsDrawer,
+      toggleStatsDrawer: toggleStatsPanel,
       setStatsRange,
       exportStatsCsv,
       exportStatsBackup,
@@ -1139,6 +1288,8 @@ async function init() {
       shortcutHelpOverlay,
       playlistPanel,
       statsDrawer,
+      backgroundDrawer,
+      focusPlanDrawer,
       notesInput,
       lofiPlayer,
       volumeSlider
@@ -1146,7 +1297,9 @@ async function init() {
     actions: {
       toggleShortcutHelp,
       toggleShowcaseMode,
-      toggleStatsDrawer,
+      toggleFocusPlanDrawer,
+      toggleStatsDrawer: toggleStatsPanel,
+      toggleBackgroundDrawer,
       toggleTimer,
       resetTimer,
       saveNotesNow,

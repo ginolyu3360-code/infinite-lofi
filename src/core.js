@@ -1,5 +1,14 @@
 (function exposeInfiniteLofiCore(globalScope) {
   const MAX_FOCUS_HISTORY_DAYS = 366;
+  const MAX_TIMER_SECONDS = 6 * 60 * 60;
+  const DEFAULT_TIMER_SETTINGS = Object.freeze({
+    focusSeconds: 25 * 60,
+    shortBreakSeconds: 5 * 60,
+    longBreakSeconds: 15 * 60,
+    focusSessionsPerLongBreak: 4,
+    autoStartBreaks: true,
+    autoStartFocus: true
+  });
 
   function clamp(number, min, max) {
     return Math.min(Math.max(number, min), max);
@@ -40,6 +49,48 @@
       return fallbackMinutes;
     }
     return clamp(Math.round(maybe), 1, 360);
+  }
+
+  function normalizeTimerSettings(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const shortBreakValue = source.shortBreakSeconds ?? source.breakSeconds;
+    const normalizeDuration = (value, fallback) =>
+      clamp(Number(value) || fallback, 60, MAX_TIMER_SECONDS);
+    const normalizeBoolean = (value, fallback) =>
+      typeof value === "boolean" ? value : fallback;
+
+    return {
+      focusSeconds: normalizeDuration(source.focusSeconds, DEFAULT_TIMER_SETTINGS.focusSeconds),
+      shortBreakSeconds: normalizeDuration(
+        shortBreakValue,
+        DEFAULT_TIMER_SETTINGS.shortBreakSeconds
+      ),
+      longBreakSeconds: normalizeDuration(
+        source.longBreakSeconds,
+        DEFAULT_TIMER_SETTINGS.longBreakSeconds
+      ),
+      focusSessionsPerLongBreak: clamp(
+        Math.round(Number(source.focusSessionsPerLongBreak) || DEFAULT_TIMER_SETTINGS.focusSessionsPerLongBreak),
+        1,
+        12
+      ),
+      autoStartBreaks: normalizeBoolean(
+        source.autoStartBreaks,
+        DEFAULT_TIMER_SETTINGS.autoStartBreaks
+      ),
+      autoStartFocus: normalizeBoolean(
+        source.autoStartFocus,
+        DEFAULT_TIMER_SETTINGS.autoStartFocus
+      )
+    };
+  }
+
+  function normalizeDailyGoalSeconds(value) {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return 0;
+    }
+    return clamp(Math.round(seconds), 15 * 60, 12 * 60 * 60);
   }
 
   function normalizeVolume(volume, fallback = 0.68) {
@@ -98,12 +149,16 @@
   }
 
   const api = {
+    DEFAULT_TIMER_SETTINGS,
     MAX_FOCUS_HISTORY_DAYS,
+    MAX_TIMER_SECONDS,
     aggregateFocusRows,
     clamp,
     formatTime,
     getLocalDayKey,
+    normalizeDailyGoalSeconds,
     normalizeMinutes,
+    normalizeTimerSettings,
     normalizeVolume,
     remainingSecondsUntil,
     sanitizeNoteFiles

@@ -8,13 +8,10 @@
     throw new Error("Infinite Lo-Fi core helpers are required by storage");
   }
 
-  const CURRENT_SCHEMA_VERSION = 1;
+  const CURRENT_SCHEMA_VERSION = 2;
   const STORAGE_KEY = "infiniteLofiState";
   const RECOVERY_KEY = "infiniteLofiStateRecovery";
   const BACKUP_FORMAT = "infinite-lofi-backup";
-  const DEFAULT_FOCUS_SECONDS = 25 * 60;
-  const DEFAULT_BREAK_SECONDS = 5 * 60;
-  const MAX_TIMER_SECONDS = 6 * 60 * 60;
   const LEGACY_KEYS = {
     notes: "infiniteLofiNotes",
     noteFiles: "infiniteLofiNoteFiles",
@@ -63,9 +60,9 @@
       schemaVersion: CURRENT_SCHEMA_VERSION,
       updatedAt: now,
       settings: {
-        timer: {
-          focusSeconds: DEFAULT_FOCUS_SECONDS,
-          breakSeconds: DEFAULT_BREAK_SECONDS
+        timer: { ...core.DEFAULT_TIMER_SETTINGS },
+        goals: {
+          dailyFocusSeconds: 0
         },
         ui: {},
         statsRange: "week"
@@ -84,7 +81,8 @@
       },
       timerRuntime: {
         phase: "focus",
-        remainingSeconds: DEFAULT_FOCUS_SECONDS,
+        completedFocusesInCycle: 0,
+        remainingSeconds: core.DEFAULT_TIMER_SETTINGS.focusSeconds,
         deadlineMs: null,
         isRunning: false
       }
@@ -95,17 +93,8 @@
     const defaults = createDefaultState(now);
     const source = isObject(raw) ? raw : {};
     const settings = isObject(source.settings) ? source.settings : {};
-    const timerSettings = isObject(settings.timer) ? settings.timer : {};
-    const focusSeconds = core.clamp(
-      Number(timerSettings.focusSeconds) || DEFAULT_FOCUS_SECONDS,
-      60,
-      MAX_TIMER_SECONDS
-    );
-    const breakSeconds = core.clamp(
-      Number(timerSettings.breakSeconds) || DEFAULT_BREAK_SECONDS,
-      60,
-      MAX_TIMER_SECONDS
-    );
+    const timerSettings = core.normalizeTimerSettings(settings.timer);
+    const goalSettings = isObject(settings.goals) ? settings.goals : {};
 
     const notesSource = isObject(source.notes) ? source.notes : {};
     const files = core.sanitizeNoteFiles(notesSource.files, now);
@@ -117,14 +106,22 @@
     const statsSource = isObject(source.stats) ? source.stats : {};
     const playerSource = isObject(source.player) ? source.player : {};
     const runtimeSource = isObject(source.timerRuntime) ? source.timerRuntime : {};
-    const runtimePhase = runtimeSource.phase === "break" ? "break" : "focus";
-    const runtimeDefault = runtimePhase === "focus" ? focusSeconds : breakSeconds;
+    const runtimePhase = runtimeSource.phase === "longBreak"
+      ? "longBreak"
+      : runtimeSource.phase === "shortBreak" || runtimeSource.phase === "break"
+      ? "shortBreak"
+      : "focus";
+    const runtimeDefault = runtimePhase === "focus"
+      ? timerSettings.focusSeconds
+      : runtimePhase === "longBreak"
+      ? timerSettings.longBreakSeconds
+      : timerSettings.shortBreakSeconds;
     const runtimeRemaining = core.clamp(
       Number.isFinite(Number(runtimeSource.remainingSeconds))
         ? Math.round(Number(runtimeSource.remainingSeconds))
         : runtimeDefault,
       0,
-      MAX_TIMER_SECONDS
+      core.MAX_TIMER_SECONDS
     );
     const deadline = Number(runtimeSource.deadlineMs);
     const hasDeadline = Number.isFinite(deadline) && deadline > 0;
@@ -133,7 +130,10 @@
       schemaVersion: CURRENT_SCHEMA_VERSION,
       updatedAt: Number.isFinite(Number(source.updatedAt)) ? Number(source.updatedAt) : now,
       settings: {
-        timer: { focusSeconds, breakSeconds },
+        timer: timerSettings,
+        goals: {
+          dailyFocusSeconds: core.normalizeDailyGoalSeconds(goalSettings.dailyFocusSeconds)
+        },
         ui: isObject(settings.ui) ? clone(settings.ui) : {},
         statsRange: ["today", "week", "month"].includes(settings.statsRange)
           ? settings.statsRange
@@ -150,6 +150,13 @@
       },
       timerRuntime: {
         phase: runtimePhase,
+        completedFocusesInCycle: runtimePhase === "longBreak"
+          ? 0
+          : core.clamp(
+              Math.round(Number(runtimeSource.completedFocusesInCycle) || 0),
+              0,
+              timerSettings.focusSessionsPerLongBreak - 1
+            ),
         remainingSeconds: runtimeRemaining,
         deadlineMs: hasDeadline ? deadline : null,
         isRunning: runtimeSource.isRunning === true && hasDeadline

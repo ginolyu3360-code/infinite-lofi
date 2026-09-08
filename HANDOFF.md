@@ -17,11 +17,20 @@ Updated: 2026-09-08
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- `main`, `origin/main`, and tag `v1.2.0` point to commit `9aed518` (`fix: disable implicit release publishing (#2)`).
+- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with post-release documentation and Phase 3A source work.
 - Main CI run `34184984658` and the repaired v1.2.0 Release run `34185493625` both passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3 has not started.
+- Phase 3A Focus Plan is complete in the source tree; it has not been included in a new tagged release.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
+
+## Phase 3A delivered
+
+- Added configurable focus, short-break, and long-break durations plus a 1–12 focus-session cycle length.
+- Added independent auto-start controls for breaks and focus sessions; both default to enabled to preserve v1.2.0 behavior.
+- Added an optional 15-minute-to-12-hour daily focus goal, with `0` keeping the goal off.
+- Added compact cycle/goal context to the timer and Mini Mode, a responsive Focus Plan drawer, and goal progress in statistics.
+- Upgraded local storage to schema v2. Existing `breakSeconds` values migrate to `shortBreakSeconds`, active legacy breaks become short breaks, and v1/legacy backups remain importable.
+- Persisted cycle position and all three phases. An expired restored focus session is recorded against its actual local completion day, and the app never replays multiple missed cycles.
 
 ## Phase 2 delivered
 
@@ -58,7 +67,7 @@ Updated: 2026-09-08
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 30 passed, 0 failed.
+- Unit tests: 34 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.
@@ -72,6 +81,9 @@ Updated: 2026-09-08
 - Mini Mode passed at 420 × 250 and restored the previous full bounds; all measured timer overflow values were zero.
 - The final v1.2.0 release-publishing fix passed PR checks and `main` CI.
 - The tag-triggered Release workflow completed successfully and uploaded all three expected assets.
+- Phase 3A passed `npm run check`, the isolated development UI smoke test, Universal packaging with electron-builder 26.15.3, and the isolated packaged-app UI smoke test.
+- The Focus Plan smoke path verifies running-state locking, schema v2 persistence, configurable durations/cycle length, independent auto-start values, daily goals, and drawer bounds.
+- The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
 
 ## Repository cleanup
 
@@ -81,8 +93,6 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-The repository is ready for Phase 3 planning. Start with one bounded product slice on a feature branch, run local verification, then use a PR and passing CI before merging to `main`.
+After Phase 3A is merged and its `main` CI passes, the recommended next bounded slice is Phase 3B: editable session history and richer but intentionally limited trends. Keep playlist/media controls, the broader accessibility pass, and curated themes as later independent slices.
 
-Recommended first slice: configurable long breaks, focus-cycle behavior, auto-start options, and a daily focus goal. Keep session-history editing, playlist/media controls, accessibility, and curated themes as later independent slices.
-
-Do not start Phase 3 until the user gives a concrete instruction.
+Do not create a new version tag or Release until the user gives a separate explicit release instruction.

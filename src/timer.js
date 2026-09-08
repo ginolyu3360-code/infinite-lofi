@@ -8,17 +8,75 @@
     throw new Error("Infinite Lo-Fi core helpers are required by timer");
   }
 
-  const MAX_TIMER_SECONDS = 6 * 60 * 60;
-
-  function getPhaseDuration(phase, settings) {
-    return phase === "break" ? settings.breakSeconds : settings.focusSeconds;
+  function normalizePhase(phase) {
+    if (phase === "longBreak") return "longBreak";
+    if (phase === "shortBreak" || phase === "break") return "shortBreak";
+    return "focus";
   }
 
-  function createRuntimeSnapshot({ phase, remainingSeconds, deadlineMs, isRunning }) {
-    const normalizedDeadline = Number(deadlineMs);
+  function getPhaseDuration(phase, settings) {
+    const normalized = core.normalizeTimerSettings(settings);
+    const normalizedPhase = normalizePhase(phase);
+    if (normalizedPhase === "longBreak") return normalized.longBreakSeconds;
+    if (normalizedPhase === "shortBreak") return normalized.shortBreakSeconds;
+    return normalized.focusSeconds;
+  }
+
+  function normalizeCycleCount(value, settings, phase) {
+    if (normalizePhase(phase) === "longBreak") return 0;
+    return core.clamp(
+      Math.round(Number(value) || 0),
+      0,
+      core.normalizeTimerSettings(settings).focusSessionsPerLongBreak - 1
+    );
+  }
+
+  function advanceTimerPhase(runtime, settings) {
+    const normalizedSettings = core.normalizeTimerSettings(settings);
+    const phase = normalizePhase(runtime?.phase);
+    const completedFocusesInCycle = normalizeCycleCount(
+      runtime?.completedFocusesInCycle,
+      normalizedSettings,
+      phase
+    );
+
+    if (phase === "focus") {
+      const nextCompleted = completedFocusesInCycle + 1;
+      const isLongBreak = nextCompleted >= normalizedSettings.focusSessionsPerLongBreak;
+      return {
+        phase: isLongBreak ? "longBreak" : "shortBreak",
+        completedFocusesInCycle: isLongBreak ? 0 : nextCompleted,
+        completedFocus: true,
+        shouldAutoStart: normalizedSettings.autoStartBreaks
+      };
+    }
+
     return {
-      phase: phase === "break" ? "break" : "focus",
-      remainingSeconds: core.clamp(Math.round(Number(remainingSeconds) || 0), 0, MAX_TIMER_SECONDS),
+      phase: "focus",
+      completedFocusesInCycle,
+      completedFocus: false,
+      shouldAutoStart: normalizedSettings.autoStartFocus
+    };
+  }
+
+  function createRuntimeSnapshot(
+    { phase, completedFocusesInCycle, remainingSeconds, deadlineMs, isRunning },
+    settings
+  ) {
+    const normalizedDeadline = Number(deadlineMs);
+    const normalizedPhase = normalizePhase(phase);
+    return {
+      phase: normalizedPhase,
+      completedFocusesInCycle: normalizeCycleCount(
+        completedFocusesInCycle,
+        settings,
+        normalizedPhase
+      ),
+      remainingSeconds: core.clamp(
+        Math.round(Number(remainingSeconds) || 0),
+        0,
+        core.MAX_TIMER_SECONDS
+      ),
       deadlineMs:
         isRunning && Number.isFinite(normalizedDeadline) && normalizedDeadline > 0
           ? normalizedDeadline
@@ -29,17 +87,19 @@
   }
 
   function resolveRestoredRuntime(runtime, settings, nowMs = Date.now()) {
-    const safeSettings = {
-      focusSeconds: core.clamp(Number(settings?.focusSeconds) || 25 * 60, 60, MAX_TIMER_SECONDS),
-      breakSeconds: core.clamp(Number(settings?.breakSeconds) || 5 * 60, 60, MAX_TIMER_SECONDS)
-    };
-    const phase = runtime?.phase === "break" ? "break" : "focus";
+    const safeSettings = core.normalizeTimerSettings(settings);
+    const phase = normalizePhase(runtime?.phase);
+    const completedFocusesInCycle = normalizeCycleCount(
+      runtime?.completedFocusesInCycle,
+      safeSettings,
+      phase
+    );
     const savedRemaining = core.clamp(
       Number.isFinite(Number(runtime?.remainingSeconds))
         ? Math.round(Number(runtime.remainingSeconds))
         : getPhaseDuration(phase, safeSettings),
       0,
-      MAX_TIMER_SECONDS
+      core.MAX_TIMER_SECONDS
     );
     const deadlineMs = Number(runtime?.deadlineMs);
     const canResume = runtime?.isRunning === true && Number.isFinite(deadlineMs) && deadlineMs > 0;
@@ -47,10 +107,12 @@
     if (!canResume) {
       return {
         phase,
+        completedFocusesInCycle,
         remainingSeconds: savedRemaining > 0 ? savedRemaining : getPhaseDuration(phase, safeSettings),
         deadlineMs: null,
         isRunning: false,
-        completedFocusDuringAbsence: false
+        completedFocusDuringAbsence: false,
+        completedFocusAtMs: null
       };
     }
 
@@ -58,24 +120,37 @@
     if (remainingSeconds > 0) {
       return {
         phase,
+        completedFocusesInCycle,
         remainingSeconds,
         deadlineMs,
         isRunning: true,
-        completedFocusDuringAbsence: false
+        completedFocusDuringAbsence: false,
+        completedFocusAtMs: null
       };
     }
 
-    const nextPhase = phase === "focus" ? "break" : "focus";
+    const transition = advanceTimerPhase(
+      { phase, completedFocusesInCycle },
+      safeSettings
+    );
     return {
-      phase: nextPhase,
-      remainingSeconds: getPhaseDuration(nextPhase, safeSettings),
+      phase: transition.phase,
+      completedFocusesInCycle: transition.completedFocusesInCycle,
+      remainingSeconds: getPhaseDuration(transition.phase, safeSettings),
       deadlineMs: null,
       isRunning: false,
-      completedFocusDuringAbsence: phase === "focus"
+      completedFocusDuringAbsence: transition.completedFocus,
+      completedFocusAtMs: transition.completedFocus ? deadlineMs : null
     };
   }
 
-  const api = { createRuntimeSnapshot, getPhaseDuration, resolveRestoredRuntime };
+  const api = {
+    advanceTimerPhase,
+    createRuntimeSnapshot,
+    getPhaseDuration,
+    normalizePhase,
+    resolveRestoredRuntime
+  };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
