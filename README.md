@@ -10,9 +10,9 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前已发布版本：**v1.1.0**。`main` 分支的 **v1.2.0**（Phase 2，签名除外）已经阶段性完成，但尚未创建标签或 Release。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；v1.2.0 起默认生成同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。
+当前版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。
 
-继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。未经明确指令，不要创建 `v1.2.0` 标签或 Release。
+继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
 ## 主要特性
 - 番茄专注 / 休息计时器，支持开始/暂停/重置与托盘显示
@@ -173,9 +173,9 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Latest published release: **v1.1.0**. The **v1.2.0** Phase 2 scope (except signing) is staged on `main`, but no v1.2.0 tag or Release has been created. Download releases from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). Starting with v1.2.0, the default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon.
+Current version: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon.
 
-Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Do not create the v1.2.0 tag or Release without an explicit instruction.
+Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
 ## Key features
 - Pomodoro-style focus/break timer with start/pause/reset and tray display

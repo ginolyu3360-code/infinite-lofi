@@ -6,18 +6,17 @@ Updated: 2026-09-08
 
 1. Read `README.md`, `ROADMAP.md`, this file, and `verification-log.md`.
 2. Run `git status --short --branch` and `git log -5 --oneline --decorate`.
-3. Confirm the latest GitHub Actions run for `main` passed before discussing a v1.2.0 tag.
-4. Do not create or push `v1.2.0`, and do not publish a Release, unless the user explicitly requests it.
+3. Confirm the latest GitHub Actions run for `main` passed before beginning new development or release work.
+4. Do not create or push a future version tag, and do not publish another Release, unless the user explicitly requests it.
 
 ## Current project state
 
-- Latest published release: v1.1.0.
-- Repository/package version: 1.2.0, currently unreleased.
+- Current release and repository/package version: v1.2.0.
 - Phase 0 and Phase 1 are complete.
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- `origin/main` is at `9edd480`; CI run `34141160551` passed. The 2026-09-08 native-window, glass-surface, and shortcut-entry feedback changes are verified locally but not yet committed or pushed.
+- The v1.2.0 release candidate is based on `origin/main` commit `45bad8b`; CI run `34181113375` passed before release preparation.
 - Phase 3 has not started.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
@@ -77,10 +76,9 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-After confirming the latest `main` CI run, either:
+After publishing v1.2.0 and confirming its Release assets, either:
 
-1. Continue observing and reviewing the unreleased v1.2.0 state, or
-2. When explicitly requested, push tag `v1.2.0` and let the Release workflow publish the unsigned Universal build, or
-3. After the release boundary is resolved and the user gives a concrete instruction, plan the first Phase 3 product slice.
+1. Observe the v1.2.0 release and collect feedback, or
+2. When the user gives a concrete instruction, plan the first Phase 3 product slice.
 
 Do not start Phase 3 until the user gives a concrete instruction.
