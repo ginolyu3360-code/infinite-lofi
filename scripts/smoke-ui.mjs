@@ -287,7 +287,7 @@ try {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const result = {
       enabled: document.body.classList.contains('bg-white-background'),
-      bodyColor: getComputedStyle(document.body).color,
+      timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
       panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
     };
     document.querySelector('#bgBlackBtn').click();
@@ -335,7 +335,7 @@ try {
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
-  if (!whiteSceneResult.enabled || whiteSceneResult.bodyColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
+  if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
     failures.push("White Scene theme adaptation failed");
   }
   if (playerResult.pausedAfterClick || !playerResult.source) failures.push("audio playback failed");
