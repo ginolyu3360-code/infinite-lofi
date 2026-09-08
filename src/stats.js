@@ -49,14 +49,96 @@
     };
   }
 
-  function recordFocusSession(rows, day, focusSeconds) {
-    const seconds = Number(focusSeconds);
-    if (typeof day !== "string" || !day.trim() || !Number.isFinite(seconds) || seconds <= 0) {
-      return core.aggregateFocusRows(rows).slice(-core.MAX_FOCUS_HISTORY_DAYS);
+  function recordFocusSession(rows, day, focusSeconds, options = {}) {
+    const sessions = core.normalizeFocusSessions(rows, []);
+    const seconds = Math.round(Number(focusSeconds));
+    if (!core.isValidLocalDayKey(day) || !Number.isSafeInteger(seconds) || seconds <= 0) {
+      return sessions;
     }
-    return core
-      .aggregateFocusRows([...(Array.isArray(rows) ? rows : []), { day, focusSeconds: seconds }])
-      .slice(-core.MAX_FOCUS_HISTORY_DAYS);
+    const completedAt = options.completedAt instanceof Date && !Number.isNaN(options.completedAt.getTime())
+      ? options.completedAt.toISOString()
+      : typeof options.completedAt === "string" && !Number.isNaN(Date.parse(options.completedAt))
+      ? options.completedAt
+      : "";
+    const id = typeof options.id === "string" && options.id.trim()
+      ? options.id.trim()
+      : `focus-timer-${completedAt || day}-${sessions.length}`;
+    return core.normalizeFocusSessions([
+      ...sessions,
+      { id, day, focusSeconds: seconds, completedAt, source: options.source || "timer" }
+    ], []);
+  }
+
+  function upsertFocusSession(sessions, session) {
+    if (!session || typeof session !== "object") throw new TypeError("A focus session is required");
+    const id = typeof session.id === "string" ? session.id.trim().slice(0, 128) : "";
+    const seconds = Math.round(Number(session.focusSeconds));
+    if (!id || !core.isValidLocalDayKey(session.day)) throw new Error("Choose a valid session date.");
+    if (!Number.isSafeInteger(seconds) || seconds < 60 || seconds > 12 * 60 * 60) {
+      throw new Error("Session duration must be between 1 and 720 minutes.");
+    }
+    const normalized = core.normalizeFocusSessions(sessions, []);
+    const existing = normalized.find((item) => item.id === id);
+    return core.normalizeFocusSessions([
+      ...normalized.filter((item) => item.id !== id),
+      {
+        id,
+        day: session.day,
+        focusSeconds: seconds,
+        completedAt: existing?.completedAt || session.completedAt || "",
+        source: existing?.source || session.source || "manual"
+      }
+    ], []);
+  }
+
+  function removeFocusSession(sessions, id) {
+    return core.normalizeFocusSessions(sessions, []).filter((session) => session.id !== id);
+  }
+
+  function buildPreviousRangeDays(days, locale) {
+    if (!Array.isArray(days) || days.length === 0 || !core.isValidLocalDayKey(days[0].key)) return [];
+    const [year, month, day] = days[0].key.split("-").map(Number);
+    const first = new Date(year, month - 1, day, 12);
+    return days.map((_item, index) => {
+      const date = new Date(first);
+      date.setDate(first.getDate() - days.length + index);
+      return {
+        key: core.getLocalDayKey(date),
+        label: String(date.getDate()),
+        fullLabel: date.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })
+      };
+    });
+  }
+
+  function summarizeFocusTrends(rows, days, goalSeconds, now = new Date()) {
+    const summary = summarizeFocusRows(rows, days);
+    const previous = summarizeFocusRows(rows, buildPreviousRangeDays(days));
+    const normalizedGoal = core.normalizeDailyGoalSeconds(goalSeconds);
+    const activeDays = summary.values.filter((value) => value > 0).length;
+    const goalDays = normalizedGoal > 0
+      ? summary.values.filter((value) => value >= normalizedGoal).length
+      : 0;
+    const totals = new Map(core.aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds]));
+    const cursor = new Date(now);
+    cursor.setHours(12, 0, 0, 0);
+    if ((totals.get(core.getLocalDayKey(cursor)) || 0) <= 0) cursor.setDate(cursor.getDate() - 1);
+    let streakDays = 0;
+    while ((totals.get(core.getLocalDayKey(cursor)) || 0) > 0 && streakDays < core.MAX_FOCUS_HISTORY_DAYS) {
+      streakDays += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    const comparisonPercent = previous.totalMinutes > 0
+      ? Math.round(((summary.totalMinutes - previous.totalMinutes) / previous.totalMinutes) * 100)
+      : summary.totalMinutes > 0
+      ? null
+      : 0;
+    return {
+      activeDays,
+      goalDays,
+      streakDays,
+      comparisonPercent,
+      previousTotalMinutes: previous.totalMinutes
+    };
   }
 
   function summarizeDailyGoal(rows, day, goalSeconds) {
@@ -74,7 +156,16 @@
     };
   }
 
-  const api = { buildRangeDays, recordFocusSession, summarizeDailyGoal, summarizeFocusRows };
+  const api = {
+    buildPreviousRangeDays,
+    buildRangeDays,
+    recordFocusSession,
+    removeFocusSession,
+    summarizeDailyGoal,
+    summarizeFocusRows,
+    summarizeFocusTrends,
+    upsertFocusSession
+  };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

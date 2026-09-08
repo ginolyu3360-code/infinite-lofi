@@ -17,10 +17,10 @@ Updated: 2026-09-08
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with post-release documentation and Phase 3A source work.
-- Main CI run `34184984658` and the repaired v1.2.0 Release run `34185493625` both passed.
+- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with Phase 3A source work, and Phase 3B is complete in the current source tree.
+- Main CI run `34213769888` at the Phase 3A merge commit and the repaired v1.2.0 Release run `34185493625` both passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3A Focus Plan is complete in the source tree; it has not been included in a new tagged release.
+- Phase 3A Focus Plan and Phase 3B Session History are complete in the source tree; neither has been included in a new tagged release.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -31,6 +31,14 @@ Updated: 2026-09-08
 - Added compact cycle/goal context to the timer and Mini Mode, a responsive Focus Plan drawer, and goal progress in statistics.
 - Upgraded local storage to schema v2. Existing `breakSeconds` values migrate to `shortBreakSeconds`, active legacy breaks become short breaks, and v1/legacy backups remain importable.
 - Persisted cycle position and all three phases. An expired restored focus session is recorded against its actual local completion day, and the app never replays multiple missed cycles.
+
+## Phase 3B delivered
+
+- Added a schema v3 focus-session ledger. Timer completions remain separate entries, while daily chart totals are derived from the ledger.
+- Migrated schema v1/v2 and legacy daily totals into one editable imported entry per day without changing the total focused time.
+- Added manual session creation plus date/duration editing and confirmed deletion for the 12 most recent visible entries.
+- Added active-day count, a current streak that may end today or yesterday, and comparison with the preceding matching Today/Week/Month period.
+- Bounded retention to the latest 366 distinct history days and 5,000 session entries.
 
 ## Phase 2 delivered
 
@@ -67,7 +75,7 @@ Updated: 2026-09-08
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 34 passed, 0 failed.
+- Unit tests: 37 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.
@@ -83,6 +91,8 @@ Updated: 2026-09-08
 - The tag-triggered Release workflow completed successfully and uploaded all three expected assets.
 - Phase 3A passed `npm run check`, the isolated development UI smoke test, Universal packaging with electron-builder 26.15.3, and the isolated packaged-app UI smoke test.
 - The Focus Plan smoke path verifies running-state locking, schema v2 persistence, configurable durations/cycle length, independent auto-start values, daily goals, and drawer bounds.
+- Phase 3B passed `npm run check`, the isolated development and packaged-app UI smoke tests, and Universal packaging with an `x86_64 arm64` executable.
+- The Session History smoke path verifies schema v3 persistence, manual creation, duration editing, derived daily totals, recent-history rendering, and trend updates.
 - The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
 
 ## Repository cleanup
@@ -93,6 +103,6 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-After Phase 3A is merged and its `main` CI passes, the recommended next bounded slice is Phase 3B: editable session history and richer but intentionally limited trends. Keep playlist/media controls, the broader accessibility pass, and curated themes as later independent slices.
+After Phase 3B is merged and its `main` CI passes, the recommended next bounded slice is Phase 3C: playlist persistence, missing-file recovery, and native media controls. Keep the broader accessibility pass and curated themes as later independent slices.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

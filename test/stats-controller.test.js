@@ -33,7 +33,13 @@ test("restores a validated backup through the controller and reloads", async (t)
   sourceRepository.update((state) => {
     state.notes.files = [{ id: "restored", name: "Restored", content: "backup data", pinned: false, updatedAt: 2 }];
     state.notes.activeId = "restored";
-    state.stats.focusRows = [{ day: "2026-09-07", focusSeconds: 1800 }];
+    state.stats.focusSessions = [{
+      id: "restored-session",
+      day: "2026-09-07",
+      focusSeconds: 1800,
+      completedAt: "",
+      source: "manual"
+    }];
   });
   const backup = JSON.stringify(sourceRepository.exportBackup("2026-09-07T00:00:00.000Z"));
   let beforeRestoreCount = 0;
@@ -60,6 +66,7 @@ test("restores a validated backup through the controller and reloads", async (t)
   assert.deepEqual(targetRepository.getState().stats.focusRows, [
     { day: "2026-09-07", focusSeconds: 1800 }
   ]);
+  assert.equal(targetRepository.getState().stats.focusSessions[0].id, "restored-session");
   assert.equal(reloadCount, 1);
   assert.match(alerts[0], /restored successfully/i);
 });

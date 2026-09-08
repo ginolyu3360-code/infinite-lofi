@@ -273,6 +273,18 @@
               <span class="stats-metric-label">Peak</span>
               <span id="statsPeakValue" class="stats-metric-value">0m</span>
             </div>
+            <div class="stats-metric-card">
+              <span class="stats-metric-label">Active Days</span>
+              <span id="statsActiveDaysValue" class="stats-metric-value">0 / 7</span>
+            </div>
+            <div class="stats-metric-card">
+              <span class="stats-metric-label">Current Streak</span>
+              <span id="statsStreakValue" class="stats-metric-value">0d</span>
+            </div>
+            <div class="stats-metric-card">
+              <span class="stats-metric-label">Vs Previous</span>
+              <span id="statsComparisonValue" class="stats-metric-value">0%</span>
+            </div>
           </div>
           <div class="stats-chart-scroll" aria-label="Scrollable focus chart">
             <div class="stats-chart-wrap">
@@ -280,6 +292,29 @@
               <div id="statsBars"></div>
             </div>
           </div>
+          <section class="session-history" aria-labelledby="sessionHistoryTitle">
+            <div class="session-history-heading">
+              <div>
+                <p class="panel-eyebrow">Ledger</p>
+                <h3 id="sessionHistoryTitle">Recent Focus Sessions</h3>
+              </div>
+              <span id="sessionHistoryCount">0 saved</span>
+            </div>
+            <div class="session-history-add">
+              <label>
+                <span>Date</span>
+                <input id="sessionHistoryDateInput" class="session-history-input" type="date" />
+              </label>
+              <label>
+                <span>Minutes</span>
+                <input id="sessionHistoryMinutesInput" class="session-history-input" type="number" min="1" max="720" value="25" />
+              </label>
+              <button id="sessionHistoryAddBtn" class="control-btn" type="button">Add Session</button>
+            </div>
+            <p id="sessionHistoryEmpty" class="session-history-empty">No focus sessions yet.</p>
+            <div id="sessionHistoryList" class="session-history-list"></div>
+            <p class="session-history-note">Showing the 12 most recent entries. Imported daily totals remain editable as one entry per day.</p>
+          </section>
         </section>
       </aside>
 

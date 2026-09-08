@@ -1048,6 +1048,107 @@ body.has-visual-background .glass-panel {
   min-width: 88rem;
 }
 
+.session-history {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.session-history-heading,
+.session-history-add,
+.session-history-actions {
+  display: flex;
+  align-items: center;
+}
+
+.session-history-heading {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-history-heading h3 {
+  margin: 0.3rem 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#sessionHistoryCount,
+.session-history-note,
+.session-history-empty,
+.session-history-source {
+  color: var(--ink-muted);
+  font: 500 0.58rem/1.4 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.session-history-add {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(7rem, 0.7fr) auto;
+  align-items: end;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.session-history-add label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--ink-muted);
+  font: 600 0.56rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.session-history-input {
+  width: 100%;
+  height: 2.75rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(5, 5, 4, 0.24);
+  padding: 0 0.7rem;
+  color: var(--ink);
+  font: 500 0.7rem/1 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.session-history-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.session-history-row {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 1fr) 6.25rem minmax(7rem, 0.8fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.55rem;
+}
+
+.session-history-actions {
+  gap: 0.35rem;
+}
+
+.session-history-actions .stats-export-btn,
+.session-history-actions .stats-danger-btn {
+  min-width: 3.8rem;
+  min-height: 2.75rem;
+}
+
+.session-history-empty {
+  margin: 0.8rem 0 0;
+}
+
+.session-history-empty.hidden {
+  display: none;
+}
+
+.session-history-note {
+  margin: 0.7rem 0 0;
+}
+
 .stat-bar {
   position: relative;
   min-width: 0;
@@ -1383,6 +1484,8 @@ body.bg-white-background .segmented-control,
 body.bg-white-background .weather-settings,
 body.bg-white-background .focus-plan-toggle,
 body.bg-white-background .today-goal-progress,
+body.bg-white-background .session-history-input,
+body.bg-white-background .session-history-row,
 body.bg-white-background .stats-chart-wrap,
 body.bg-white-background .scene-meta {
   background-color: rgba(255, 255, 255, 0.38);
@@ -1569,8 +1672,26 @@ body.is-showcase-mode .grain-layer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .stats-metric-card:last-child {
+  .session-history-add {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .session-history-add .control-btn {
     grid-column: 1 / -1;
+  }
+
+  .session-history-row {
+    grid-template-columns: minmax(8rem, 1fr) 6rem;
+  }
+
+  .session-history-source {
+    grid-column: 1;
+  }
+
+  .session-history-actions {
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-end;
   }
 }
 

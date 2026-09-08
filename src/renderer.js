@@ -150,6 +150,15 @@ const statsTooltip = document.getElementById("statsTooltip");
 const statsTotalValue = document.getElementById("statsTotalValue");
 const statsAverageValue = document.getElementById("statsAverageValue");
 const statsPeakValue = document.getElementById("statsPeakValue");
+const statsActiveDaysValue = document.getElementById("statsActiveDaysValue");
+const statsStreakValue = document.getElementById("statsStreakValue");
+const statsComparisonValue = document.getElementById("statsComparisonValue");
+const sessionHistoryCount = document.getElementById("sessionHistoryCount");
+const sessionHistoryDateInput = document.getElementById("sessionHistoryDateInput");
+const sessionHistoryMinutesInput = document.getElementById("sessionHistoryMinutesInput");
+const sessionHistoryAddBtn = document.getElementById("sessionHistoryAddBtn");
+const sessionHistoryEmpty = document.getElementById("sessionHistoryEmpty");
+const sessionHistoryList = document.getElementById("sessionHistoryList");
 const appLayout = document.getElementById("appLayout");
 const notesPanel = document.getElementById("notesPanel");
 const mainRightColumn = document.getElementById("mainRightColumn");
@@ -279,6 +288,14 @@ const statsController = createStatsController({
     statsTotalValue,
     statsAverageValue,
     statsPeakValue,
+    statsActiveDaysValue,
+    statsStreakValue,
+    statsComparisonValue,
+    sessionHistoryCount,
+    sessionHistoryDateInput,
+    sessionHistoryMinutesInput,
+    sessionHistoryEmpty,
+    sessionHistoryList,
     statsBars,
     statsRangeTodayBtn,
     statsRangeWeekBtn,
@@ -299,6 +316,7 @@ const statsController = createStatsController({
 });
 const {
   clearStats,
+  addFocusSessionFromForm,
   dismissStorageRecovery,
   downloadStorageRecoveryCopy,
   exportStatsBackup,
@@ -1179,6 +1197,7 @@ async function init() {
       statsRangeTodayBtn,
       statsRangeWeekBtn,
       statsRangeMonthBtn,
+      sessionHistoryAddBtn,
       exportStatsBtn,
       backupStatsBtn,
       restoreBackupBtn,
@@ -1235,6 +1254,7 @@ async function init() {
       downloadStorageRecoveryCopy,
       dismissStorageRecovery,
       clearStats,
+      addFocusSessionFromForm,
       saveNotesSoon,
       createNewNoteFile,
       toggleActiveNotePin,

@@ -218,7 +218,10 @@ try {
         'focusPlanToggleBtn', 'focusPlanDrawer', 'focusPlanApplyBtn',
         'shortBreakMinutesInput', 'longBreakMinutesInput', 'focusSessionsInput',
         'autoStartBreaksInput', 'autoStartFocusInput', 'dailyGoalMinutesInput',
-        'timerPlanStatus', 'todayGoalProgress', 'todayGoalBar'
+        'timerPlanStatus', 'todayGoalProgress', 'todayGoalBar',
+        'statsActiveDaysValue', 'statsStreakValue', 'statsComparisonValue',
+        'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
+        'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -306,6 +309,39 @@ try {
     };
   })()`);
 
+  const sessionHistoryResult = await evaluate(`(async () => {
+    document.querySelector('#statsToggleBtn').click();
+    const date = new Date();
+    const day = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')
+    ].join('-');
+    document.querySelector('#sessionHistoryDateInput').value = day;
+    document.querySelector('#sessionHistoryMinutesInput').value = '35';
+    document.querySelector('#sessionHistoryAddBtn').click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const firstRow = document.querySelector('#sessionHistoryList .session-history-row');
+    const minutesInput = firstRow?.querySelector('input[type="number"]');
+    if (minutesInput) minutesInput.value = '40';
+    firstRow?.querySelector('.stats-export-btn')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const manual = state.stats.focusSessions.find((session) => session.source === 'manual');
+    const result = {
+      schemaVersion: state.schemaVersion,
+      sessionCount: state.stats.focusSessions.length,
+      manualMinutes: manual ? Math.round(manual.focusSeconds / 60) : 0,
+      derivedTodayMinutes: Math.round((state.stats.focusRows.find((row) => row.day === day)?.focusSeconds || 0) / 60),
+      renderedRows: document.querySelectorAll('#sessionHistoryList .session-history-row').length,
+      countLabel: document.querySelector('#sessionHistoryCount').textContent.trim(),
+      activeDays: document.querySelector('#statsActiveDaysValue').textContent.trim(),
+      comparison: document.querySelector('#statsComparisonValue').textContent.trim()
+    };
+    document.querySelector('#statsCloseBtn').click();
+    return result;
+  })()`);
+
   const notesResult = await evaluate(`(() => {
     const before = document.querySelectorAll('#noteTabs > *').length;
     document.querySelector('#noteNewBtn').click();
@@ -389,7 +425,7 @@ try {
     focusPlanResult.timer !== "30:00" ||
     !focusPlanResult.summary.includes("30 / 7 / 20") ||
     !focusPlanResult.status.includes("Today 0 / 90m") ||
-    focusPlanResult.schemaVersion !== 2 ||
+    focusPlanResult.schemaVersion !== 3 ||
     focusPlanResult.timerSettings.shortBreakSeconds !== 420 ||
     focusPlanResult.timerSettings.longBreakSeconds !== 1200 ||
     focusPlanResult.timerSettings.focusSessionsPerLongBreak !== 3 ||
@@ -398,6 +434,16 @@ try {
     focusPlanResult.goalProgressMax !== "90" ||
     focusPlanResult.runtime.completedFocusesInCycle !== 0
   ) failures.push("Focus Plan settings did not apply and persist");
+  if (
+    sessionHistoryResult.schemaVersion !== 3 ||
+    sessionHistoryResult.sessionCount !== 1 ||
+    sessionHistoryResult.manualMinutes !== 40 ||
+    sessionHistoryResult.derivedTodayMinutes !== 40 ||
+    sessionHistoryResult.renderedRows !== 1 ||
+    !sessionHistoryResult.countLabel.startsWith("1 ") ||
+    !sessionHistoryResult.activeDays.startsWith("1 ") ||
+    sessionHistoryResult.comparison !== "New"
+  ) failures.push("session history editing or trend summaries failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
   if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
@@ -407,7 +453,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");
