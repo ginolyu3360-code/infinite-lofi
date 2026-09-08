@@ -1,5 +1,28 @@
 # Verification Log
 
+## 2026-09-09 — Phase 3E Curated Scenes
+
+### Implemented
+
+- Added Quiet Studio, Midnight, Moss, and Paper as built-in scene presets with distinct palettes, atmospheric gradients, previews, and accessible selected states.
+- Kept wallpaper, imported image/video, and track-cover sources available as custom media without deleting stored media paths when a preset is selected.
+- Added an additive `presetId` field inside the existing background UI settings. Legacy black, white, and custom-media values normalize to safe presets without a schema v4 change.
+- Added screen-reader announcements when a curated preset is selected.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 47 unit tests with zero failures.
+- Added model coverage for legacy setting inference, invalid preset fallback, custom-source selection, render-key changes, and preservation of stored media paths.
+- Added WCAG AA regression checks for Midnight and Moss core text; measured primary text at 17.32:1 and 16.93:1, with muted text at 7.86:1 and 7.77:1 respectively.
+- Passed the isolated development UI smoke test across all supported sizes and Mini Mode with no renderer exceptions.
+- Verified preset switching, mutually exclusive theme classes, `aria-pressed` state, labels, and persisted `presetId` values in real Electron.
+- Rebuilt the unsigned Universal application with electron-builder 26.15.3, passed the same isolated packaged-app smoke path, and confirmed `x86_64 arm64` with `lipo`.
+
+### Scope status
+
+- Phase 3E is complete and locally verified on branch `codex/phase3e-curated-scenes`.
+- Package/release version remains 1.2.0. No tag or Release was created.
+
 ## 2026-09-08 — Phase 3D Accessibility
 
 ### Implemented

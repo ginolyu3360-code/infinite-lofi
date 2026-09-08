@@ -15,7 +15,14 @@ const {
   getTrackKey,
   mergePlaylistTracks
 } = require("../src/player");
-const { buildRenderKey, normalizeBackgroundSettings, resolveEffectiveBackground } = require("../src/backgrounds");
+const {
+  applyBackgroundSource,
+  applyCuratedPreset,
+  buildRenderKey,
+  getCuratedPreset,
+  normalizeBackgroundSettings,
+  resolveEffectiveBackground
+} = require("../src/backgrounds");
 const {
   buildRangeDays,
   recordFocusSession,
@@ -240,15 +247,17 @@ test("keeps missing queue entries recoverable and skips them during playback", (
 
 test("normalizes background and shortcut settings", () => {
   assert.deepEqual(normalizeBackgroundSettings({ mode: "invalid", customImageUrl: 42 }), {
+    presetId: "quiet-studio",
     mode: "black",
     customImageUrl: "",
     customImageName: "",
     customVideoUrl: "",
     customVideoName: ""
   });
-  assert.equal(buildRenderKey({ mode: "image", customImageUrl: "cover.jpg" }, true), "image|cover.jpg||showcase");
+  assert.equal(buildRenderKey({ mode: "image", customImageUrl: "cover.jpg" }, true), "custom|image|cover.jpg||showcase");
   assert.equal(resolveEffectiveBackground({ mode: "white" }, { url: "cover.jpg" }).mode, "white");
   assert.deepEqual(resolveEffectiveBackground({ mode: "cover" }, { url: "cover.jpg", name: "Album" }), {
+    presetId: "custom",
     mode: "image",
     customImageUrl: "cover.jpg",
     customImageName: "Album",
@@ -260,6 +269,31 @@ test("normalizes background and shortcut settings", () => {
     play: false,
     next: true
   });
+});
+
+test("migrates legacy scenes and applies curated presets without deleting saved media", () => {
+  assert.equal(normalizeBackgroundSettings({ mode: "black" }).presetId, "quiet-studio");
+  assert.equal(normalizeBackgroundSettings({ mode: "white" }).presetId, "paper");
+  assert.equal(normalizeBackgroundSettings({ mode: "video" }).presetId, "custom");
+  assert.equal(normalizeBackgroundSettings({ mode: "black", presetId: "unknown" }).presetId, "quiet-studio");
+
+  const localMedia = applyBackgroundSource({
+    mode: "black",
+    customImageUrl: "file:///desk.jpg",
+    customImageName: "desk.jpg"
+  }, "image");
+  assert.equal(localMedia.presetId, "custom");
+  assert.equal(localMedia.mode, "image");
+
+  const midnight = applyCuratedPreset(localMedia, "midnight");
+  assert.equal(midnight.presetId, "midnight");
+  assert.equal(midnight.mode, "black");
+  assert.equal(midnight.customImageUrl, "file:///desk.jpg");
+  assert.equal(getCuratedPreset("midnight").themeClass, "theme-midnight");
+
+  const fallback = applyCuratedPreset(midnight, "missing");
+  assert.equal(fallback.presetId, "quiet-studio");
+  assert.equal(fallback.mode, "black");
 });
 
 test("builds and summarizes local focus-stat ranges", () => {

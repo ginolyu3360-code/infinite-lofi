@@ -1,6 +1,6 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-08
+Updated: 2026-09-09
 
 ## Start of the next session
 
@@ -21,7 +21,7 @@ Updated: 2026-09-08
 - Phase 3D was squash-merged through PR #8 as commit `3dca230`; its PR CI run `34245931075` and post-merge `main` CI run `34246166218` both passed.
 - The repaired v1.2.0 Release run `34185493625` passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, and Phase 3D Accessibility are complete in the source tree; none has been included in a new tagged release.
+- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete in the source tree; none has been included in a new tagged release.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -59,6 +59,14 @@ Updated: 2026-09-08
 - Increased muted-text contrast and corrected White Scene primary-control contrast to meet the WCAG AA 4.5:1 target for ordinary text.
 - Extended the real Electron smoke path to validate focus behavior, Escape handling, the Chromium accessibility tree, core contrast ratios, and emulated reduced-motion behavior.
 
+## Phase 3E delivered
+
+- Added four curated presets: Quiet Studio, Midnight, Moss, and Paper, each with a matching application palette, atmospheric scene, and drawer preview.
+- Retained wallpaper, imported image/video, and current-track cover as custom media sources.
+- Stored the selected preset as an additive `presetId` within `settings.ui.background`, so the repository remains on schema v4.
+- Normalized legacy black to Quiet Studio, legacy white to Paper, and legacy image/video/cover modes to Custom Media without removing saved local media paths.
+- Added accessible pressed states and polite selection announcements for the four preset controls.
+
 ## Phase 2 delivered
 
 - Weather defaults to Off and makes no location/weather requests in that mode.
@@ -94,7 +102,7 @@ Updated: 2026-09-08
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 46 passed, 0 failed.
+- Unit tests: 47 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.
@@ -116,6 +124,8 @@ Updated: 2026-09-08
 - The playlist smoke path verifies schema v4 persistence, the bundled queue, Media Session metadata/playback state, responsive layouts, and Mini Mode; controller tests cover missing-folder reconnect and cleanup.
 - Phase 3D passed 46 unit tests, isolated development and Universal packaged-app UI smoke tests, and Universal packaging with an `x86_64 arm64` executable.
 - The accessibility smoke path verifies focus entry/return, Tab containment, Escape behavior, inert hidden surfaces, named dialogs and live status in Chromium's accessibility tree, AA contrast ratios, and reduced-motion transition suppression.
+- Phase 3E passed 47 unit tests, isolated development and Universal packaged-app UI smoke tests, and Universal packaging with an `x86_64 arm64` executable.
+- The curated-scene smoke path verifies every preset class, selected state, label, persistence, responsive layout, and core AA contrast, including Midnight text at 17.32:1 and Moss text at 16.93:1.
 - The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
 
 ## Repository cleanup
@@ -126,6 +136,6 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-After Phase 3D is merged and its `main` CI passes, the next optional product slice is curated themes and background presets. Keep it independent from release work and decide its data model before implementation.
+After Phase 3E is merged and its `main` CI passes, decide separately whether to prepare a Phase 3 release candidate or define the next product phase. Keep release work explicit and independent from feature development.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

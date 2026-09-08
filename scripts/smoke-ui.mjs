@@ -214,6 +214,7 @@ try {
         'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
         'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn',
+        'bgBlackBtn', 'bgMidnightBtn', 'bgMossBtn', 'bgWhiteBtn', 'bgPresetLabel',
         'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn',
         'focusPlanToggleBtn', 'focusPlanDrawer', 'focusPlanApplyBtn',
         'shortBreakMinutesInput', 'longBreakMinutesInput', 'focusSessionsInput',
@@ -274,7 +275,11 @@ try {
       darkMuted: [composite('rgba(244, 240, 232, 0.62)', '#11110f'), '#11110f'],
       lightText: ['#272520', '#f3efe7'],
       lightMuted: [composite('rgba(39, 37, 32, 0.68)', '#f3efe7'), '#f3efe7'],
-      lightPrimary: ['#fffaf1', '#9f6325']
+      lightPrimary: ['#fffaf1', '#9f6325'],
+      midnightText: ['#edf6fb', '#07111d'],
+      midnightMuted: [composite('rgba(237, 246, 251, 0.66)', '#07111d'), '#07111d'],
+      mossText: ['#f0f6ed', '#0b1510'],
+      mossMuted: [composite('rgba(240, 246, 237, 0.66)', '#0b1510'), '#0b1510']
     };
     return Object.fromEntries(Object.entries(pairs).map(([name, pair]) => [name, a11y.contrastRatio(pair[0], pair[1])]));
   })()`);
@@ -496,21 +501,51 @@ try {
     return { statsVisible, statsFocused, statsFocusRestored, backgroundVisible, backgroundFocused, backgroundFocusRestored };
   })()`);
 
-  const whiteSceneResult = await evaluate(`(async () => {
+  const curatedScenesResult = await evaluate(`(async () => {
+    const readSavedPreset = () => JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.background.presetId;
+
+    document.querySelector('#bgMidnightBtn').click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const midnight = {
+      enabled: document.body.classList.contains('theme-midnight'),
+      pressed: document.querySelector('#bgMidnightBtn').getAttribute('aria-pressed'),
+      label: document.querySelector('#bgPresetLabel').textContent.trim(),
+      saved: readSavedPreset(),
+      timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color
+    };
+
+    document.querySelector('#bgMossBtn').click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const moss = {
+      enabled: document.body.classList.contains('theme-moss'),
+      midnightRemoved: !document.body.classList.contains('theme-midnight'),
+      pressed: document.querySelector('#bgMossBtn').getAttribute('aria-pressed'),
+      saved: readSavedPreset()
+    };
+
     document.querySelector('#bgWhiteBtn').click();
-    let result;
+    let paper;
     for (let attempt = 0; attempt < 40; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 50));
-      result = {
+      paper = {
         enabled: document.body.classList.contains('bg-white-background'),
+        mossRemoved: !document.body.classList.contains('theme-moss'),
+        pressed: document.querySelector('#bgWhiteBtn').getAttribute('aria-pressed'),
+        saved: readSavedPreset(),
         timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
         panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
       };
-      if (result.enabled && result.timerColor === 'rgb(39, 37, 32)' && result.panelBackground !== 'none') break;
+      if (paper.enabled && paper.timerColor === 'rgb(39, 37, 32)' && paper.panelBackground !== 'none') break;
     }
+
     document.querySelector('#bgBlackBtn').click();
     await new Promise((resolve) => setTimeout(resolve, 100));
-    return result;
+    const studio = {
+      cleanTheme: !document.body.classList.contains('theme-midnight') && !document.body.classList.contains('theme-moss') && !document.body.classList.contains('bg-white-background'),
+      pressed: document.querySelector('#bgBlackBtn').getAttribute('aria-pressed'),
+      saved: readSavedPreset()
+    };
+    return { midnight, moss, paper, studio };
   })()`);
 
   const playerResult = await evaluate(`(async () => {
@@ -610,8 +645,27 @@ try {
   ) failures.push("session history editing or trend summaries failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.statsFocusRestored || !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored) failures.push("drawer interaction or focus restoration failed");
-  if (!whiteSceneResult.enabled || whiteSceneResult.timerColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
-    failures.push("White Scene theme adaptation failed");
+  if (
+    !curatedScenesResult.midnight.enabled ||
+    curatedScenesResult.midnight.pressed !== "true" ||
+    curatedScenesResult.midnight.label !== "Midnight" ||
+    curatedScenesResult.midnight.saved !== "midnight" ||
+    curatedScenesResult.midnight.timerColor !== "rgb(237, 246, 251)" ||
+    !curatedScenesResult.moss.enabled ||
+    !curatedScenesResult.moss.midnightRemoved ||
+    curatedScenesResult.moss.pressed !== "true" ||
+    curatedScenesResult.moss.saved !== "moss" ||
+    !curatedScenesResult.paper.enabled ||
+    !curatedScenesResult.paper.mossRemoved ||
+    curatedScenesResult.paper.pressed !== "true" ||
+    curatedScenesResult.paper.saved !== "paper" ||
+    curatedScenesResult.paper.timerColor !== "rgb(39, 37, 32)" ||
+    curatedScenesResult.paper.panelBackground === "none" ||
+    !curatedScenesResult.studio.cleanTheme ||
+    curatedScenesResult.studio.pressed !== "true" ||
+    curatedScenesResult.studio.saved !== "quiet-studio"
+  ) {
+    failures.push("curated Scene preset adaptation or persistence failed");
   }
   if (
     playerResult.pausedAfterClick ||
@@ -625,7 +679,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, expandableRegionResult, responsiveNotesResult, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, expandableRegionResult, responsiveNotesResult, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

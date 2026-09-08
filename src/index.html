@@ -334,16 +334,27 @@
             </div>
             <button id="backgroundCloseBtn" class="window-btn" title="Close Background" aria-label="Close Background">×</button>
           </div>
-          <p class="panel-description">Choose a quiet tone, the current track cover, or your own local media.</p>
+          <p class="panel-description">Choose a curated atmosphere, the current track cover, or your own local media.</p>
 
-          <div class="mt-4 bg-option-row">
-            <button id="bgBlackBtn" class="control-btn" title="Use a black background">Black</button>
-            <button id="bgVideoBtn" class="control-btn" title="Import a video background">Video</button>
-            <button id="bgWhiteBtn" class="control-btn" title="Use a white background">White</button>
-            <button id="bgCoverBtn" class="control-btn" title="Use the current track cover as the background">Track Cover</button>
-            <button id="bgWallpaperBtn" class="control-btn" title="Use the desktop wallpaper">Wallpaper</button>
-            <button id="bgImageBtn" class="control-btn" title="Import a background image">Import Image</button>
-            <button id="bgResetBtn" class="control-btn" title="Reset background settings">Reset</button>
+          <div class="scene-section" aria-labelledby="scenePresetsTitle">
+            <h3 id="scenePresetsTitle" class="scene-section-title">Curated presets</h3>
+            <div class="scene-preset-grid">
+              <button id="bgBlackBtn" class="scene-preset-card" type="button" data-preset="quiet-studio" aria-pressed="true" title="Use the Quiet Studio preset"><span class="scene-swatch scene-swatch-studio" aria-hidden="true"></span><strong>Quiet Studio</strong><small>Warm charcoal</small></button>
+              <button id="bgMidnightBtn" class="scene-preset-card" type="button" data-preset="midnight" aria-pressed="false" title="Use the Midnight preset"><span class="scene-swatch scene-swatch-midnight" aria-hidden="true"></span><strong>Midnight</strong><small>Deep blue</small></button>
+              <button id="bgMossBtn" class="scene-preset-card" type="button" data-preset="moss" aria-pressed="false" title="Use the Moss preset"><span class="scene-swatch scene-swatch-moss" aria-hidden="true"></span><strong>Moss</strong><small>Forest green</small></button>
+              <button id="bgWhiteBtn" class="scene-preset-card" type="button" data-preset="paper" aria-pressed="false" title="Use the Paper preset"><span class="scene-swatch scene-swatch-paper" aria-hidden="true"></span><strong>Paper</strong><small>Warm light</small></button>
+            </div>
+          </div>
+
+          <div class="scene-section" aria-labelledby="sceneMediaTitle">
+            <h3 id="sceneMediaTitle" class="scene-section-title">Local media</h3>
+            <div class="bg-option-row">
+              <button id="bgVideoBtn" class="control-btn" title="Import a video background">Video</button>
+              <button id="bgCoverBtn" class="control-btn" title="Use the current track cover as the background">Track Cover</button>
+              <button id="bgWallpaperBtn" class="control-btn" title="Use the desktop wallpaper">Wallpaper</button>
+              <button id="bgImageBtn" class="control-btn" title="Import a background image">Import Image</button>
+              <button id="bgResetBtn" class="control-btn" title="Reset background settings">Reset</button>
+            </div>
           </div>
 
           <div class="mt-4 bg-preview">
@@ -351,8 +362,9 @@
           </div>
 
           <div class="scene-meta">
-            <div>Mode: <span id="bgModeLabel">Black</span></div>
-            <div class="mt-1 break-all">Image: <span id="bgPathLabel">None</span></div>
+            <div>Preset: <span id="bgPresetLabel">Quiet Studio</span></div>
+            <div class="mt-1">Source: <span id="bgModeLabel">Built-in</span></div>
+            <div class="mt-1 break-all">Media: <span id="bgPathLabel">None</span></div>
           </div>
         </section>
       </aside>

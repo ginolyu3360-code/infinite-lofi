@@ -20,14 +20,6 @@ const DEFAULT_SHORTCUT_SETTINGS = {
   notesSave: true,
   notesClear: true
 };
-const DEFAULT_BACKGROUND_SETTINGS = {
-  mode: "black",
-  customImageUrl: "",
-  customImageName: "",
-  customVideoUrl: "",
-  customVideoName: ""
-};
-
 if (!window.InfiniteLofiCore) {
   throw new Error("Infinite Lo-Fi core helpers failed to load");
 }
@@ -77,7 +69,11 @@ const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
+  DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
+  applyBackgroundSource,
+  applyCuratedPreset,
   buildRenderKey: buildBackgroundRenderKey,
+  getCuratedPreset,
   normalizeBackgroundSettings,
   resolveEffectiveBackground
 } = window.InfiniteLofiBackgrounds;
@@ -195,12 +191,15 @@ const bgToggleBtn = document.getElementById("bgToggleBtn");
 const backgroundDrawer = document.getElementById("backgroundDrawer");
 const backgroundCloseBtn = document.getElementById("backgroundCloseBtn");
 const bgBlackBtn = document.getElementById("bgBlackBtn");
+const bgMidnightBtn = document.getElementById("bgMidnightBtn");
+const bgMossBtn = document.getElementById("bgMossBtn");
 const bgWhiteBtn = document.getElementById("bgWhiteBtn");
 const bgCoverBtn = document.getElementById("bgCoverBtn");
 const bgWallpaperBtn = document.getElementById("bgWallpaperBtn");
 const bgImageBtn = document.getElementById("bgImageBtn");
 const bgResetBtn = document.getElementById("bgResetBtn");
 const bgPreviewSurface = document.getElementById("bgPreviewSurface");
+const bgPresetLabel = document.getElementById("bgPresetLabel");
 const bgModeLabel = document.getElementById("bgModeLabel");
 const bgPathLabel = document.getElementById("bgPathLabel");
 const bgVideoBtn = document.getElementById("bgVideoBtn");
@@ -421,17 +420,26 @@ function saveUiSettings() {
 }
 
 function renderBackgroundUi() {
+  const preset = getCuratedPreset(backgroundSettings.presetId);
+  if (bgPresetLabel) {
+    bgPresetLabel.textContent = preset?.label || "Custom Media";
+  }
+  for (const button of [bgBlackBtn, bgMidnightBtn, bgMossBtn, bgWhiteBtn]) {
+    if (button) {
+      button.setAttribute("aria-pressed", String(button.dataset.preset === backgroundSettings.presetId));
+    }
+  }
   if (bgModeLabel) {
     bgModeLabel.textContent =
       backgroundSettings.mode === "image"
         ? "Image"
-        : backgroundSettings.mode === "white"
-        ? "White"
+        : backgroundSettings.mode === "white" || backgroundSettings.mode === "black"
+        ? "Built-in"
         : backgroundSettings.mode === "video"
         ? "Video"
         : backgroundSettings.mode === "cover"
         ? "Track Cover"
-        : "Black";
+        : "Built-in";
   }
   if (bgPathLabel) {
     if (backgroundSettings.mode === "image") {
@@ -468,9 +476,9 @@ function renderBackgroundUi() {
       bgPreviewSurface.style.backgroundImage = `url('${currentTrackArtwork.url}')`;
       bgPreviewSurface.style.backgroundColor = "rgba(0, 0, 0, 0.35)";
       bgPreviewSurface.textContent = "";
-    } else if (backgroundSettings.mode === "white") {
-      bgPreviewSurface.style.backgroundImage = "none";
-      bgPreviewSurface.style.backgroundColor = "#f3efe7";
+    } else if (preset) {
+      bgPreviewSurface.style.backgroundImage = preset.previewBackground;
+      bgPreviewSurface.style.backgroundColor = preset.backgroundColor;
       bgPreviewSurface.textContent = "";
     } else {
       bgPreviewSurface.style.backgroundImage = "none";
@@ -581,11 +589,11 @@ function toggleStatsPanel(forceOpen) {
 }
 
 function setBackgroundMode(mode) {
-  if (!["black", "white", "image", "cover"].includes(mode)) {
+  if (!["image", "cover"].includes(mode)) {
     return;
   }
 
-  backgroundSettings.mode = mode;
+  backgroundSettings = applyBackgroundSource(backgroundSettings, mode);
   if (mode !== "image") {
     backgroundSettings.customImageUrl = backgroundSettings.customImageUrl || "";
     backgroundSettings.customImageName = backgroundSettings.customImageName || "";
@@ -593,6 +601,14 @@ function setBackgroundMode(mode) {
   renderBackgroundUi();
   applyBackground();
   saveUiSettings();
+}
+
+function setBackgroundPreset(presetId) {
+  backgroundSettings = applyCuratedPreset(backgroundSettings, presetId);
+  renderBackgroundUi();
+  applyBackground();
+  saveUiSettings();
+  announceStatus(`${getCuratedPreset(backgroundSettings.presetId)?.label || "Scene"} preset selected.`);
 }
 
 async function useDesktopWallpaperBackground() {
@@ -608,7 +624,7 @@ async function useDesktopWallpaperBackground() {
       return;
     }
 
-    backgroundSettings.mode = "image";
+    backgroundSettings = applyBackgroundSource(backgroundSettings, "image");
     backgroundSettings.customImageUrl = result.fileUrl;
     backgroundSettings.customImageName = result.filePath ? result.filePath.split(/[\\/]/).pop() || "Wallpaper" : "Wallpaper";
     renderBackgroundUi();
@@ -631,7 +647,7 @@ async function importBackgroundImage() {
       return;
     }
 
-    backgroundSettings.mode = "image";
+    backgroundSettings = applyBackgroundSource(backgroundSettings, "image");
     backgroundSettings.customImageUrl = result.fileUrl;
     backgroundSettings.customImageName = result.filePath ? result.filePath.split(/[\\/]/).pop() || "Imported Image" : "Imported Image";
     renderBackgroundUi();
@@ -654,7 +670,7 @@ async function importBackgroundVideo() {
       return;
     }
 
-    backgroundSettings.mode = "video";
+    backgroundSettings = applyBackgroundSource(backgroundSettings, "video");
     backgroundSettings.customVideoUrl = result.fileUrl;
     backgroundSettings.customVideoName = result.filePath ? result.filePath.split(/[\\/\\\\]/).pop() || "Imported Video" : "Imported Video";
     renderBackgroundUi();
@@ -668,12 +684,14 @@ async function importBackgroundVideo() {
 function applyBackground() {
   try {
     const effectiveBackground = getEffectiveBackground();
+    const preset = getCuratedPreset(backgroundSettings.presetId);
     const showcaseActive = showcaseModeEnabled;
     const hasVisualBackground = effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
     document.body.classList.toggle("has-visual-background", hasVisualBackground);
     // Theme colors are application state, so apply them immediately. The media
     // layer can still fade on the next animation frame, including in headless CI.
-    document.body.classList.toggle("bg-white-background", effectiveBackground.mode === "white");
+    document.body.classList.remove("theme-midnight", "theme-moss", "bg-white-background");
+    if (preset?.themeClass) document.body.classList.add(preset.themeClass);
     const backgroundOpacity = effectiveBackground.mode === "white" || showcaseActive
       ? "1"
       : effectiveBackground.fromTrackArtwork
@@ -698,7 +716,6 @@ function applyBackground() {
       if (effectiveBackground.mode === "video") {
         const src = effectiveBackground.customVideoUrl || backgroundConfig.video || "";
         if (bgImage) bgImage.style.display = "none";
-        document.body.classList.remove("bg-white-background");
         if (bgVideo) {
           if (src) {
             bgVideo.src = src;
@@ -725,7 +742,6 @@ function applyBackground() {
 
       if (effectiveBackground.mode === "image" && effectiveBackground.customImageUrl) {
         if (bgVideo) bgVideo.style.display = "none";
-        document.body.classList.remove("bg-white-background");
         if (bgImage) {
           bgImage.style.display = "block";
           bgImage.style.backgroundImage = `url('${effectiveBackground.customImageUrl}')`;
@@ -742,13 +758,7 @@ function applyBackground() {
         bgImage.style.backgroundImage = "none";
         bgImage.style.backgroundSize = "cover";
         bgImage.style.backgroundPosition = "center";
-        if (effectiveBackground.mode === "white") {
-          bgImage.style.backgroundColor = "#f3efe7";
-          document.body.classList.add("bg-white-background");
-        } else {
-          bgImage.style.backgroundColor = "#000000";
-          document.body.classList.remove("bg-white-background");
-        }
+        bgImage.style.backgroundColor = preset?.backgroundColor || "#000000";
       }
     };
 
@@ -1339,6 +1349,8 @@ async function init() {
       bgCoverBtn,
       drawerBackdrop,
       bgBlackBtn,
+      bgMidnightBtn,
+      bgMossBtn,
       bgWhiteBtn,
       bgWallpaperBtn,
       bgImageBtn,
@@ -1387,6 +1399,7 @@ async function init() {
       toggleBackgroundDrawer,
       importBackgroundVideo,
       setBackgroundMode,
+      setBackgroundPreset,
       useDesktopWallpaperBackground,
       importBackgroundImage,
       resetBackground: () => {
