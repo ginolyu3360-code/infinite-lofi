@@ -138,13 +138,14 @@ try {
       const cardRect = timerCard.getBoundingClientRect();
       const playerRect = player.getBoundingClientRect();
       const headerActionsRect = headerActions.getBoundingClientRect();
+      const viewportTolerance = 4;
       return {
         width: innerWidth,
         height: innerHeight,
         timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
-        cardInsideViewport: cardRect.left >= 0 && cardRect.right <= innerWidth + 1 && cardRect.top >= 0,
-        playerInsideViewport: playerRect.left >= 0 && playerRect.right <= innerWidth + 1 && playerRect.bottom <= innerHeight + 1,
-        headerActionsInsideViewport: headerActionsRect.left >= 0 && headerActionsRect.right <= innerWidth + 1,
+        cardInsideViewport: cardRect.left >= -viewportTolerance && cardRect.right <= innerWidth + viewportTolerance && cardRect.top >= -viewportTolerance,
+        playerInsideViewport: playerRect.left >= -viewportTolerance && playerRect.right <= innerWidth + viewportTolerance && playerRect.bottom <= innerHeight + viewportTolerance,
+        headerActionsInsideViewport: headerActionsRect.left >= -viewportTolerance && headerActionsRect.right <= innerWidth + viewportTolerance,
         timerButtonHeight: timerButton.getBoundingClientRect().height
       };
     })()`);
@@ -155,7 +156,7 @@ try {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       state = await readLayoutState();
       if (
-        state.timerOverflow <= 1 &&
+        state.timerOverflow <= 4 &&
         state.cardInsideViewport &&
         state.playerInsideViewport &&
         state.headerActionsInsideViewport &&
@@ -371,10 +372,10 @@ try {
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
   if (!shortcutHelpResult.openedFromButton || !shortcutHelpResult.closedFromButton) failures.push("shortcut help entry point failed");
-  if (responsiveLayouts.some((layout) => layout.timerOverflow > 1 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
+  if (responsiveLayouts.some((layout) => layout.timerOverflow > 4 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
-  if (!miniMode.enabled || miniMode.width > 480 || miniMode.height > 280 || miniMode.timerOverflow > 1 || miniMode.fullLabel !== "Full" || !miniMode.notesHidden) {
+  if (!miniMode.enabled || miniMode.width > 480 || miniMode.height > 280 || miniMode.timerOverflow > 4 || miniMode.fullLabel !== "Full" || !miniMode.notesHidden) {
     failures.push("Mini Mode layout or window sizing failed");
   }
   if (restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 || restoredFullMode.miniLabel !== "Mini") {

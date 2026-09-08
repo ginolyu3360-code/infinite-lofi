@@ -593,6 +593,9 @@ function applyBackground() {
     const showcaseActive = showcaseModeEnabled;
     const hasVisualBackground = effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
     document.body.classList.toggle("has-visual-background", hasVisualBackground);
+    // Theme colors are application state, so apply them immediately. The media
+    // layer can still fade on the next animation frame, including in headless CI.
+    document.body.classList.toggle("bg-white-background", effectiveBackground.mode === "white");
     const backgroundOpacity = effectiveBackground.mode === "white" || showcaseActive
       ? "1"
       : effectiveBackground.fromTrackArtwork
@@ -831,7 +834,7 @@ function adjustTimerFont() {
   if (!cardRect.width || !cardRect.height) return;
   const isMiniMode = document.body.classList.contains("is-mini-mode");
   const availableWidth = Math.max(120, cardRect.width - (isMiniMode ? 32 : 80));
-  const availableHeight = Math.max(42, cardRect.height * (isMiniMode ? 0.52 : 0.34));
+  const availableHeight = Math.max(42, cardRect.height * (isMiniMode ? 0.48 : 0.34));
 
   const text = timerDisplay.textContent || "00:00";
   const cs = getComputedStyle(timerDisplay);
