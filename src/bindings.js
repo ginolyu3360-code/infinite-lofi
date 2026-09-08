@@ -40,7 +40,7 @@
         }
         if (!elements.playlistPanel.classList.contains("hidden")) {
           event.preventDefault();
-          elements.playlistPanel.classList.add("hidden");
+          actions.togglePlaylistPanel(false);
         }
         if (elements.statsDrawer.classList.contains("is-open")) {
           event.preventDefault();
@@ -53,6 +53,13 @@
         if (elements.focusPlanDrawer?.classList.contains("is-open")) {
           event.preventDefault();
           actions.toggleFocusPlanDrawer(false);
+        }
+        if (
+          elements.notesPanel?.getAttribute("aria-hidden") === "false" &&
+          targetWindow.matchMedia?.("(max-width: 900px)").matches
+        ) {
+          event.preventDefault();
+          actions.toggleNotesPanel(false);
         }
         return;
       }

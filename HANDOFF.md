@@ -17,10 +17,10 @@ Updated: 2026-09-08
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with Phase 3A and Phase 3B source work, and Phase 3C is complete in the current source tree.
-- Main CI run `34213769888` at the Phase 3A merge commit and the repaired v1.2.0 Release run `34185493625` both passed.
+- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with Phase 3A–3C source work, and Phase 3D is complete in the current source tree.
+- Main CI run `34242718071` at the Phase 3C CI-stability merge commit and the repaired v1.2.0 Release run `34185493625` both passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3A Focus Plan, Phase 3B Session History, and Phase 3C Playlist & Media Controls are complete in the source tree; none has been included in a new tagged release.
+- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, and Phase 3D Accessibility are complete in the source tree; none has been included in a new tagged release.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -48,6 +48,15 @@ Updated: 2026-09-08
 - Added Reconnect Folder, Rescan, Clear Missing, and Use Defaults recovery actions with live queue status.
 - Added native Media Session metadata, artwork, playback state, play/pause/stop, previous/next, and seeking handlers with safe fallback when the API is unavailable.
 - Kept relaunch playback paused; the saved queue and current selection restore without unexpected audio.
+
+## Phase 3D delivered
+
+- Added a reusable focus manager for modal focus entry, Tab/Shift+Tab containment, closed-surface inert state, and trigger focus restoration.
+- Applied accessible dialog names and disclosure state to Focus Plan, Stats, Scene, shortcut help, responsive Notes, and Queue.
+- Added a polite live region for timer, phase, track, playback, Focus Plan, and session-history status changes without noisy per-second countdown announcements.
+- Exposed statistics range selection, chart rows, current playlist selection, and contextual history action names to assistive technology.
+- Increased muted-text contrast and corrected White Scene primary-control contrast to meet the WCAG AA 4.5:1 target for ordinary text.
+- Extended the real Electron smoke path to validate focus behavior, Escape handling, the Chromium accessibility tree, core contrast ratios, and emulated reduced-motion behavior.
 
 ## Phase 2 delivered
 
@@ -84,7 +93,7 @@ Updated: 2026-09-08
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 37 passed, 0 failed.
+- Unit tests: 46 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.
@@ -104,6 +113,8 @@ Updated: 2026-09-08
 - The Session History smoke path verifies schema v3 persistence, manual creation, duration editing, derived daily totals, recent-history rendering, and trend updates.
 - Phase 3C passed 42 unit tests, `npm run check`, isolated development and Universal packaged-app UI smoke tests, and Universal packaging.
 - The playlist smoke path verifies schema v4 persistence, the bundled queue, Media Session metadata/playback state, responsive layouts, and Mini Mode; controller tests cover missing-folder reconnect and cleanup.
+- Phase 3D passed 46 unit tests, isolated development and Universal packaged-app UI smoke tests, and Universal packaging with an `x86_64 arm64` executable.
+- The accessibility smoke path verifies focus entry/return, Tab containment, Escape behavior, inert hidden surfaces, named dialogs and live status in Chromium's accessibility tree, AA contrast ratios, and reduced-motion transition suppression.
 - The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
 
 ## Repository cleanup
@@ -114,6 +125,6 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-After Phase 3C is merged and its `main` CI passes, the recommended next bounded slice is Phase 3D: focus management, screen-reader announcements, contrast checks, and reduced-motion/accessibility verification. Keep curated themes as a later independent slice.
+After Phase 3D is merged and its `main` CI passes, the next optional product slice is curated themes and background presets. Keep it independent from release work and decide its data model before implementation.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

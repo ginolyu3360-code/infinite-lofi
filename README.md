@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。当前源码还包含尚未发布为新版本的 Phase 3A Focus Plan、Phase 3B Session History 与 Phase 3C Playlist & Media Controls。
+当前发布版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。当前源码还包含尚未发布为新版本的 Phase 3A Focus Plan、Phase 3B Session History、Phase 3C Playlist & Media Controls 与 Phase 3D Accessibility。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -24,6 +24,8 @@
 - 背景模式：黑/白/壁纸/图片/视频；White Scene 使用完整暖白主题，视觉背景使用中性半透明玻璃层
 - 系统原生窗口按钮、标准 macOS 关闭/退出行为与托盘菜单
 - 顶栏快捷键入口，也可按 `Shift + /`（即 `?`）打开快捷键面板
+- 面板与响应式 Notes 的焦点进入、Tab 圈定、Escape 关闭和焦点返回，以及计时器、播放器与历史操作的读屏播报
+- 深色/White Scene 核心文字通过 WCAG AA 对比度检查，并遵循系统“减少动态效果”设置
 - 实时时钟、可关闭或指定城市的天气，以及支持逐次记录编辑与有限趋势的统计面板
 - 严格 CSP、Electron 沙箱和导航限制；生产包默认关闭 DevTools
 - 离线本地字体，不再在运行时访问 Google Fonts
@@ -76,6 +78,7 @@ src/
   ├─ weather.js         # 天气文本规范化
   ├─ weather-controller.js # 时钟、天气网络与缓存控制器
   ├─ ui.js              # UI 设置规范化
+  ├─ accessibility.js   # 焦点管理、读屏播报与对比度计算
   ├─ bindings.js        # 鼠标、表单、媒体与键盘事件绑定
   └─ styles/            # 本地字体、Tailwind、组件与生成样式
 assets/                 # 内置资源：图标、示例音轨、托盘模板、背景等
@@ -142,6 +145,7 @@ electron-builder 的关键配置（来自 package.json）：
 - Phase 3A Focus Plan 已完成：可配置长休息与循环、独立自动开始选项和每日专注目标。
 - Phase 3B Session History 已完成：逐次专注记录可新增、修改和删除，并提供活跃天数、当前连续天数和相对上一周期变化；schema v3 会把旧的每日汇总安全迁移成可编辑条目。
 - Phase 3C Playlist & Media Controls 已完成：schema v4 使用文件夹内相对文件名保存稳定队列，移动文件夹后可重连，缺失曲目不会静默消失，并接入系统媒体信息与播放键。
+- Phase 3D Accessibility 已完成：弹层与响应式 Notes/Queue 具备可预测的键盘焦点，重要状态会经实时区域播报，核心深浅主题文字有 AA 对比度回归检查，减少动态效果也有真实 Electron 验证。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -177,7 +181,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The current source also contains the not-yet-released Phase 3A Focus Plan, Phase 3B Session History, and Phase 3C Playlist & Media Controls.
+Current release: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The current source also contains the not-yet-released Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, and Phase 3D Accessibility.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -191,6 +195,8 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Background modes: black, white, wallpaper, image, and video, with a complete warm-light White Scene and adaptive neutral glass over visual backgrounds
 - Native OS window controls, standard macOS close/quit behavior, and a tray menu
 - Visible keyboard-shortcut entry point; `Shift + /` (`?`) also opens the shortcut panel
+- Predictable dialog, responsive Notes, and Queue focus behavior with live screen-reader announcements
+- WCAG AA checks for core dark/light text colors and verified reduced-motion behavior
 - Live clock, opt-in automatic or city-based weather, and a focus stats panel with editable session history and bounded trends
 - Restrictive CSP, renderer sandboxing, blocked navigation, and production DevTools disabled
 - Locally bundled fonts for an offline main UI

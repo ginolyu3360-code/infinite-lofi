@@ -7,6 +7,9 @@
       elements,
       beforeBackup = () => {},
       beforeRestore = () => {},
+      announce = () => {},
+      focusManager = null,
+      setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
       alert: showAlert = globalScope.alert.bind(globalScope)
     } = options;
@@ -38,6 +41,15 @@
         : !elements.statsDrawer.classList.contains("is-open");
       elements.statsDrawer.classList.toggle("is-open", nextOpen);
       elements.statsToggleBtn.textContent = nextOpen ? "Hide Stats" : "Stats";
+      setDisclosureState(elements.statsToggleBtn, nextOpen);
+      if (nextOpen) {
+        focusManager?.open(elements.statsDrawer, {
+          trigger: elements.statsToggleBtn,
+          initialFocus: elements.statsCloseBtn
+        });
+      } else {
+        focusManager?.close(elements.statsDrawer, { fallbackFocus: elements.statsToggleBtn });
+      }
       elements.drawerBackdrop?.classList.toggle("visible", nextOpen);
     }
 
@@ -80,6 +92,7 @@
           day,
           focusSeconds: Math.round(Number(minutes) * 60)
         }));
+        announce(`Focus session updated for ${day}, ${Math.round(Number(minutes))} minutes.`);
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not update this session.");
       }
@@ -88,6 +101,7 @@
     function deleteFocusSession(id) {
       if (!confirmAction("Delete this focus session? This cannot be undone.")) return;
       persistSessions((sessions) => statsModel.removeFocusSession(sessions, id));
+      announce("Focus session deleted.");
     }
 
     function renderSessionHistory(sessions) {
@@ -132,6 +146,7 @@
         saveButton.type = "button";
         saveButton.className = "stats-export-btn";
         saveButton.textContent = "Save";
+        saveButton.setAttribute("aria-label", `Save focus session for ${session.day}`);
         saveButton.addEventListener("click", () =>
           updateFocusSession(session.id, dateInput.value, minutesInput.value)
         );
@@ -139,6 +154,7 @@
         deleteButton.type = "button";
         deleteButton.className = "stats-danger-btn";
         deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("aria-label", `Delete focus session for ${session.day}`);
         deleteButton.addEventListener("click", () => deleteFocusSession(session.id));
         actions.append(saveButton, deleteButton);
         row.append(dateInput, minutesInput, source, actions);
@@ -159,6 +175,7 @@
           focusSeconds: Math.round(Number(minutes) * 60),
           source: "manual"
         }));
+        announce(`Focus session added for ${day}, ${Math.round(Number(minutes))} minutes.`);
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not add this session.");
       }
@@ -232,6 +249,7 @@
         const height = Math.max(6, Math.round((value / summary.maxSeconds) * 100));
         const barWrap = elements.document.createElement("div");
         barWrap.className = `stat-bar stat-bar-${(index % 4) + 1}`;
+        barWrap.setAttribute("role", "listitem");
         barWrap.style.transform = `rotate(${((index % 5) - 2) * 0.22}deg) translateY(${((index % 3) - 1) * 0.65}px)`;
         const fill = elements.document.createElement("div");
         fill.className = `stat-bar-fill stat-bar-fill-${(index % 4) + 1}`;
@@ -263,6 +281,9 @@
       elements.statsRangeTodayBtn.classList.toggle("is-active", rangeMode === "today");
       elements.statsRangeWeekBtn.classList.toggle("is-active", rangeMode === "week");
       elements.statsRangeMonthBtn.classList.toggle("is-active", rangeMode === "month");
+      elements.statsRangeTodayBtn.setAttribute("aria-pressed", String(rangeMode === "today"));
+      elements.statsRangeWeekBtn.setAttribute("aria-pressed", String(rangeMode === "week"));
+      elements.statsRangeMonthBtn.setAttribute("aria-pressed", String(rangeMode === "month"));
       elements.sessionHistoryDateInput.max = todayKey;
       if (!elements.sessionHistoryDateInput.value || elements.sessionHistoryDateInput.value > todayKey) {
         elements.sessionHistoryDateInput.value = todayKey;
@@ -369,6 +390,7 @@
         state.stats.focusRows = [];
       });
       renderStats();
+      announce("All focus statistics cleared.");
     }
 
     return {

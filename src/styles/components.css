@@ -2,7 +2,7 @@
   --scene-brightness: 1;
   --ink: #f4f0e8;
   --ink-soft: rgba(244, 240, 232, 0.68);
-  --ink-muted: rgba(244, 240, 232, 0.46);
+  --ink-muted: rgba(244, 240, 232, 0.62);
   --accent: #e8b66b;
   --accent-strong: #f3c77f;
   --surface: rgba(27, 28, 28, 0.78);
@@ -48,9 +48,20 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: fixed !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
 }
 
 .app-shell {
@@ -1458,7 +1469,7 @@ body.has-visual-background .glass-panel {
 body.bg-white-background {
   --ink: #272520;
   --ink-soft: rgba(39, 37, 32, 0.72);
-  --ink-muted: rgba(39, 37, 32, 0.5);
+  --ink-muted: rgba(39, 37, 32, 0.68);
   --accent: #946126;
   --accent-strong: #b6752d;
   --surface: rgba(247, 243, 235, 0.78);
@@ -1501,13 +1512,13 @@ body.bg-white-background .control-btn.primary-control,
 body.bg-white-background .transport-primary,
 body.bg-white-background .stats-range-btn.is-active {
   border-color: rgba(125, 77, 25, 0.32);
-  background: var(--accent-strong);
+  background: #9f6325;
   color: #fffaf1;
 }
 
 body.bg-white-background .control-btn.primary-control:hover,
 body.bg-white-background .transport-primary:hover {
-  background: #9f6325;
+  background: #87501b;
 }
 
 body.bg-white-background .danger-subtle,

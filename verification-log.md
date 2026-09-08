@@ -1,5 +1,29 @@
 # Verification Log
 
+## 2026-09-08 — Phase 3D Accessibility
+
+### Implemented
+
+- Added reusable focus management for modal entry, Tab/Shift+Tab containment, responsive Notes and Queue behavior, Escape close, inert hidden surfaces, and trigger focus restoration.
+- Added named dialog, disclosure, selected-range, chart-list, current-track, and contextual history-action semantics.
+- Added polite announcements for timer and phase changes, track/playback state, Focus Plan changes, and session-history operations without reading every countdown tick.
+- Raised muted-text opacity in dark and White Scene themes and darkened White Scene primary controls so core ordinary text meets WCAG AA contrast.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 46 unit tests with zero failures.
+- Added unit coverage for focus entry/trapping/restoration, repeat announcements, color parsing/compositing, WCAG contrast ratios, and reduced-motion CSS.
+- Passed the isolated development UI smoke test across all supported sizes and Mini Mode with no renderer exceptions.
+- Verified responsive Notes and Queue focus behavior, modal focus return, Tab containment, Escape handling, inert hidden surfaces, live timer announcements, and named dialogs/live status in Chromium's accessibility tree.
+- Emulated `prefers-reduced-motion: reduce` in Electron and confirmed key background/drawer transitions reduce to 0.01 ms.
+- Verified core text contrast ratios: dark text 16.63:1, dark muted 6.83:1, light text 13.35:1, light muted 5.02:1, and White Scene primary controls 4.71:1.
+- Rebuilt the unsigned Universal application with electron-builder 26.15.3, passed the same isolated packaged-app accessibility smoke path, and confirmed `x86_64 arm64` with `lipo`.
+
+### Scope status
+
+- Phase 3D is complete. Curated themes and background presets remain a separate optional future slice.
+- Package/release version remains 1.2.0. No tag or Release was created.
+
 ## 2026-09-08 — Phase 3C Playlist Persistence and Native Media Controls
 
 ### Implemented

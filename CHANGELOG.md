@@ -13,6 +13,9 @@
 - Added a stable saved playlist queue that survives local music-folder moves and keeps missing tracks visible
 - Added reconnect, rescan, clear-missing, and bundled-playlist recovery actions
 - Added native Media Session metadata, transport, and seeking controls; upgraded local state to schema v4
+- Added focus entry/restoration, modal Tab containment, Escape handling, and hidden-surface semantics across dialogs, responsive Notes, and Queue
+- Added screen-reader announcements for timer, playback, playlist, Focus Plan, and focus-history actions
+- Added WCAG AA contrast checks for core dark/light UI colors and real Electron reduced-motion/accessibility-tree verification
 
 ## 1.2.0 — 2026-09-08
 
