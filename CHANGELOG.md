@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 — Unreleased
+## 1.2.0 — 2026-09-08
 
 - Made weather opt-in with Off, automatic IP location, and manual city modes plus clear privacy descriptions
 - Added a restrictive Content Security Policy and bundled the UI fonts for offline use

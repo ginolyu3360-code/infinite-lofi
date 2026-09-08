@@ -1,5 +1,12 @@
 # Verification Log
 
+## 2026-09-08 — v1.2.0 release preparation
+
+- Finalized the v1.2.0 changelog date and changed the README, roadmap, and handoff from an unreleased-stage description to the release baseline.
+- Confirmed package version 1.2.0, a clean release-preparation branch, no existing v1.2.0 tag or Release, and passing `main` CI run `34181113375` at commit `45bad8b` before creating the release tag.
+- The user explicitly authorized publishing v1.2.0. Future version tags and Releases still require separate explicit authorization.
+- The v1.2.0 tag is intentionally created only after this preparation change passes PR review and CI.
+
 ## 2026-09-08 — Native window and visual-background polish
 
 ### Implemented
@@ -20,7 +27,7 @@
 
 ### Stage status
 
-- These feedback changes are local and awaiting user review; no tag or Release was created, and Phase 3 has not started.
+- These feedback changes were committed to `main` and passed CI before v1.2.0 release preparation. Phase 3 has not started.
 
 ## 2026-09-07 — UI foundation refresh
 

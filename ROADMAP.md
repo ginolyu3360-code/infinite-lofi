@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.1.0 is the latest published release. Version 1.2.0 source is stage-complete with opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, automated releases, pre-Phase 3 correctness hardening, and the refreshed UI foundation. Its tag and Release have intentionally not been created.
+Version 1.2.0 is the current release, delivering opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, automated releases, pre-Phase 3 correctness hardening, and the refreshed UI foundation.
 
-The latest `main` CI result must be confirmed before any v1.2.0 tag is created. Version 1.2.0 should then be released and observed before Phase 3 product expansion begins.
+Version 1.2.0 should be observed after release before Phase 3 product expansion begins. Every future release must still be based on a passing `main` CI result.
 
 ## Phase 0 — Stabilize the core
 
