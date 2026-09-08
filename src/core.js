@@ -1,5 +1,6 @@
 (function exposeInfiniteLofiCore(globalScope) {
   const MAX_FOCUS_HISTORY_DAYS = 366;
+  const MAX_FOCUS_SESSIONS = 5000;
   const MAX_TIMER_SECONDS = 6 * 60 * 60;
   const DEFAULT_TIMER_SETTINGS = Object.freeze({
     focusSeconds: 25 * 60,
@@ -31,6 +32,15 @@
     const month = String(value.getMonth() + 1).padStart(2, "0");
     const day = String(value.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  }
+
+  function isValidLocalDayKey(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return false;
+    }
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(year, month - 1, day, 12);
+    return !Number.isNaN(date.getTime()) && getLocalDayKey(date) === value;
   }
 
   function remainingSecondsUntil(deadlineMs, nowMs = Date.now()) {
@@ -132,7 +142,7 @@
     const totals = new Map();
     if (Array.isArray(rows)) {
       rows.forEach((row) => {
-        if (!row || typeof row.day !== "string" || !row.day.trim()) {
+        if (!row || !isValidLocalDayKey(row.day)) {
           return;
         }
         const seconds = Number(row.focusSeconds);
@@ -148,16 +158,67 @@
       .map(([day, focusSeconds]) => ({ day, focusSeconds }));
   }
 
+  function normalizeFocusSessions(rawSessions, fallbackRows, now = Date.now()) {
+    const hasSessionLedger = Array.isArray(rawSessions);
+    const source = hasSessionLedger
+      ? rawSessions
+      : aggregateFocusRows(fallbackRows).map((row, index) => ({
+          id: `focus-migrated-${row.day}-${index}`,
+          day: row.day,
+          focusSeconds: row.focusSeconds,
+          completedAt: "",
+          source: "migrated"
+        }));
+    const seenIds = new Set();
+    const sessions = [];
+
+    source.forEach((item, index) => {
+      if (!item || typeof item !== "object" || !isValidLocalDayKey(item.day)) return;
+      const seconds = Math.round(Number(item.focusSeconds));
+      if (!Number.isSafeInteger(seconds) || seconds <= 0) return;
+      const requestedId = typeof item.id === "string" ? item.id.trim().slice(0, 128) : "";
+      let id = requestedId || `focus-${item.day}-${now}-${index}`;
+      while (seenIds.has(id)) id = `${id}-${index}`;
+      seenIds.add(id);
+      const completedAt = typeof item.completedAt === "string" && !Number.isNaN(Date.parse(item.completedAt))
+        ? item.completedAt.slice(0, 64)
+        : "";
+      const sourceType = ["timer", "manual", "migrated"].includes(item.source)
+        ? item.source
+        : hasSessionLedger
+        ? "manual"
+        : "migrated";
+      sessions.push({ id, day: item.day, focusSeconds: seconds, completedAt, source: sourceType });
+    });
+
+    sessions.sort((left, right) =>
+      left.day.localeCompare(right.day) ||
+      left.completedAt.localeCompare(right.completedAt) ||
+      left.id.localeCompare(right.id)
+    );
+    const retainedDays = new Set(
+      [...new Set(sessions.map((session) => session.day))]
+        .sort()
+        .slice(-MAX_FOCUS_HISTORY_DAYS)
+    );
+    return sessions
+      .filter((session) => retainedDays.has(session.day))
+      .slice(-MAX_FOCUS_SESSIONS);
+  }
+
   const api = {
     DEFAULT_TIMER_SETTINGS,
     MAX_FOCUS_HISTORY_DAYS,
+    MAX_FOCUS_SESSIONS,
     MAX_TIMER_SECONDS,
     aggregateFocusRows,
     clamp,
     formatTime,
     getLocalDayKey,
+    isValidLocalDayKey,
     normalizeDailyGoalSeconds,
     normalizeMinutes,
+    normalizeFocusSessions,
     normalizeTimerSettings,
     normalizeVolume,
     remainingSecondsUntil,

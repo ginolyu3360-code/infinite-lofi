@@ -80,6 +80,17 @@ Status: completed and locally verified on 2026-09-08.
 - [x] Attribute an expired restored focus session to its actual local completion day without replaying missed cycles.
 - [x] Cover the state machine, migration, responsive Focus Plan UI, development app, and Universal packaged app with automated tests.
 
+### Phase 3B — Session History and Trends
+
+Status: completed and locally verified on 2026-09-08.
+
+- [x] Store completed focus periods as individual ledger entries while keeping daily chart totals derived and consistent.
+- [x] Migrate schema v1/v2 daily totals and old backups to schema v3 as one editable imported entry per day.
+- [x] Add recent-session creation, date/duration editing, and confirmed deletion without introducing projects, tags, or complex filtering.
+- [x] Add active-day count, current streak, and previous-period comparison for Today, Week, and Month ranges.
+- [x] Retain at most 366 distinct history days and 5,000 individual sessions to bound local storage growth.
+- [x] Cover migration, editing, trends, responsive UI, development app, and Universal packaged app with automated checks.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.
@@ -103,7 +114,6 @@ Status: completed and verified locally on 2026-09-07. See `UI-REFRESH-PLAN.md` f
 - [x] Enlarge interactive targets and add safe trackpad/touch-friendly behavior.
 - [x] Verify representative full-window sizes and Mini Mode in development and packaged builds.
 
-- Add session history editing and richer trends without turning the app into a complex analytics product.
 - Improve playlist persistence, missing-file handling, and native media controls.
 - Improve accessibility: focus management, reduced-motion support, contrast checks, and screen-reader announcements.
 - Add curated themes and background presets after the underlying settings model is stable.

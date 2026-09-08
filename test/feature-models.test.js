@@ -12,8 +12,11 @@ const { buildRenderKey, normalizeBackgroundSettings, resolveEffectiveBackground 
 const {
   buildRangeDays,
   recordFocusSession,
+  removeFocusSession,
   summarizeDailyGoal,
-  summarizeFocusRows
+  summarizeFocusRows,
+  summarizeFocusTrends,
+  upsertFocusSession
 } = require("../src/stats");
 const {
   buildForecastUrl,
@@ -246,14 +249,77 @@ test("builds and summarizes local focus-stat ranges", () => {
 });
 
 test("records focus sessions without truncating a year of imported history", () => {
-  const rows = Array.from({ length: 365 }, (_, index) => ({
-    day: `2025-${String(Math.floor(index / 31) + 1).padStart(2, "0")}-${String((index % 31) + 1).padStart(2, "0")}`,
+  const start = new Date(2025, 0, 1, 12);
+  const sessions = Array.from({ length: 365 }, (_, index) => ({
+    id: `session-${index}`,
+    day: (() => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    })(),
     focusSeconds: 60
   }));
-  const updated = recordFocusSession(rows, "2026-01-01", 1500);
+  const updated = recordFocusSession(sessions, "2026-01-01", 1500, {
+    id: "timer-new-year",
+    completedAt: "2026-01-01T10:00:00.000Z"
+  });
 
   assert.equal(updated.length, 366);
-  assert.deepEqual(updated.at(-1), { day: "2026-01-01", focusSeconds: 1500 });
+  assert.deepEqual(updated.at(-1), {
+    id: "timer-new-year",
+    day: "2026-01-01",
+    focusSeconds: 1500,
+    completedAt: "2026-01-01T10:00:00.000Z",
+    source: "timer"
+  });
+});
+
+test("edits and removes individual focus sessions without merging same-day entries", () => {
+  const first = upsertFocusSession([], {
+    id: "manual-1",
+    day: "2026-09-06",
+    focusSeconds: 1200,
+    source: "manual"
+  });
+  const second = upsertFocusSession(first, {
+    id: "manual-2",
+    day: "2026-09-06",
+    focusSeconds: 1800,
+    source: "manual"
+  });
+  const edited = upsertFocusSession(second, {
+    id: "manual-1",
+    day: "2026-09-07",
+    focusSeconds: 1500
+  });
+
+  assert.equal(edited.length, 2);
+  assert.deepEqual(summarizeFocusRows(edited, [
+    { key: "2026-09-06" },
+    { key: "2026-09-07" }
+  ]).values, [1800, 1500]);
+  assert.deepEqual(removeFocusSession(edited, "manual-2").map((session) => session.id), ["manual-1"]);
+  assert.throws(
+    () => upsertFocusSession(edited, { id: "bad", day: "2026-02-30", focusSeconds: 60 }),
+    /valid session date/
+  );
+});
+
+test("summarizes bounded trends against the previous matching period", () => {
+  const days = buildRangeDays(new Date(2026, 8, 8, 12), "week", "en-US");
+  const rows = [
+    { day: "2026-08-30", focusSeconds: 1800 },
+    { day: "2026-09-05", focusSeconds: 3600 },
+    { day: "2026-09-06", focusSeconds: 3600 },
+    { day: "2026-09-07", focusSeconds: 1800 }
+  ];
+  assert.deepEqual(summarizeFocusTrends(rows, days, 3600, new Date(2026, 8, 8, 12)), {
+    activeDays: 3,
+    goalDays: 2,
+    streakDays: 3,
+    comparisonPercent: 400,
+    previousTotalMinutes: 30
+  });
 });
 
 test("normalizes weather labels, payloads, and cache age", () => {

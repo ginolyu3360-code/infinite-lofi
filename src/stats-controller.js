@@ -11,6 +11,7 @@
       alert: showAlert = globalScope.alert.bind(globalScope)
     } = options;
     let rangeMode = "week";
+    const visibleHistoryLimit = 12;
 
     function download(payload, filename, type) {
       const blob = new Blob([payload], { type });
@@ -64,11 +65,116 @@
       elements.statsTooltip.classList.add("hidden");
     }
 
+    function persistSessions(mutator) {
+      appStorage.update((state) => {
+        state.stats.focusSessions = mutator(state.stats.focusSessions);
+      });
+      renderStats();
+    }
+
+    function updateFocusSession(id, day, minutes) {
+      try {
+        if (day > core.getLocalDayKey(new Date())) throw new Error("Session date cannot be in the future.");
+        persistSessions((sessions) => statsModel.upsertFocusSession(sessions, {
+          id,
+          day,
+          focusSeconds: Math.round(Number(minutes) * 60)
+        }));
+      } catch (error) {
+        showAlert(error instanceof Error ? error.message : "Could not update this session.");
+      }
+    }
+
+    function deleteFocusSession(id) {
+      if (!confirmAction("Delete this focus session? This cannot be undone.")) return;
+      persistSessions((sessions) => statsModel.removeFocusSession(sessions, id));
+    }
+
+    function renderSessionHistory(sessions) {
+      if (!elements.sessionHistoryList) return;
+      const normalized = core.normalizeFocusSessions(sessions, []);
+      const recent = normalized.slice(-visibleHistoryLimit).reverse();
+      elements.sessionHistoryCount.textContent = `${normalized.length} saved`;
+      elements.sessionHistoryEmpty.classList.toggle("hidden", normalized.length > 0);
+      elements.sessionHistoryList.innerHTML = "";
+
+      recent.forEach((session) => {
+        const row = elements.document.createElement("div");
+        row.className = "session-history-row";
+        row.dataset.sessionId = session.id;
+
+        const dateInput = elements.document.createElement("input");
+        dateInput.type = "date";
+        dateInput.className = "session-history-input";
+        dateInput.value = session.day;
+        dateInput.max = core.getLocalDayKey(new Date());
+        dateInput.setAttribute("aria-label", "Focus session date");
+
+        const minutesInput = elements.document.createElement("input");
+        minutesInput.type = "number";
+        minutesInput.className = "session-history-input";
+        minutesInput.min = "1";
+        minutesInput.max = "720";
+        minutesInput.value = String(Math.max(1, Math.round(session.focusSeconds / 60)));
+        minutesInput.setAttribute("aria-label", "Focus session minutes");
+
+        const source = elements.document.createElement("span");
+        source.className = "session-history-source";
+        source.textContent = session.source === "migrated"
+          ? "Imported daily total"
+          : session.source === "timer"
+          ? "Timer"
+          : "Manual";
+
+        const actions = elements.document.createElement("div");
+        actions.className = "session-history-actions";
+        const saveButton = elements.document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "stats-export-btn";
+        saveButton.textContent = "Save";
+        saveButton.addEventListener("click", () =>
+          updateFocusSession(session.id, dateInput.value, minutesInput.value)
+        );
+        const deleteButton = elements.document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "stats-danger-btn";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deleteFocusSession(session.id));
+        actions.append(saveButton, deleteButton);
+        row.append(dateInput, minutesInput, source, actions);
+        elements.sessionHistoryList.appendChild(row);
+      });
+    }
+
+    function addFocusSessionFromForm() {
+      const day = elements.sessionHistoryDateInput.value;
+      const minutes = elements.sessionHistoryMinutesInput.value;
+      const now = new Date();
+      const id = `focus-manual-${now.getTime()}-${appStorage.getState().stats.focusSessions.length}`;
+      try {
+        if (day > core.getLocalDayKey(now)) throw new Error("Session date cannot be in the future.");
+        persistSessions((sessions) => statsModel.upsertFocusSession(sessions, {
+          id,
+          day,
+          focusSeconds: Math.round(Number(minutes) * 60),
+          source: "manual"
+        }));
+      } catch (error) {
+        showAlert(error instanceof Error ? error.message : "Could not add this session.");
+      }
+    }
+
     function renderStats() {
       const state = appStorage.getState();
       const rows = state.stats.focusRows;
       const days = statsModel.buildRangeDays(new Date(), rangeMode);
       const summary = statsModel.summarizeFocusRows(rows, days);
+      const trends = statsModel.summarizeFocusTrends(
+        rows,
+        days,
+        state.settings.goals?.dailyFocusSeconds,
+        new Date()
+      );
       const todayKey = core.getLocalDayKey(new Date());
       const goal = statsModel.summarizeDailyGoal(
         rows,
@@ -106,6 +212,15 @@
       elements.statsTotalValue.textContent = formatShortDuration(summary.totalMinutes);
       elements.statsAverageValue.textContent = `${summary.averageMinutes}m`;
       elements.statsPeakValue.textContent = `${summary.peakMinutes}m`;
+      elements.statsActiveDaysValue.textContent = `${trends.activeDays} / ${days.length}`;
+      elements.statsActiveDaysValue.title = state.settings.goals?.dailyFocusSeconds > 0
+        ? `${trends.goalDays} day${trends.goalDays === 1 ? "" : "s"} reached the daily goal in this range`
+        : "Days with recorded focus in this range";
+      elements.statsStreakValue.textContent = `${trends.streakDays}d`;
+      elements.statsComparisonValue.textContent = trends.comparisonPercent === null
+        ? "New"
+        : `${trends.comparisonPercent > 0 ? "+" : ""}${trends.comparisonPercent}%`;
+      elements.statsComparisonValue.title = `${formatShortDuration(trends.previousTotalMinutes)} in the previous matching period`;
       elements.statsBars.classList.toggle("is-month-range", rangeMode === "month");
       elements.statsBars.style.gridTemplateColumns = rangeMode === "month"
         ? `repeat(${days.length}, minmax(2.45rem, 1fr))`
@@ -148,6 +263,16 @@
       elements.statsRangeTodayBtn.classList.toggle("is-active", rangeMode === "today");
       elements.statsRangeWeekBtn.classList.toggle("is-active", rangeMode === "week");
       elements.statsRangeMonthBtn.classList.toggle("is-active", rangeMode === "month");
+      elements.sessionHistoryDateInput.max = todayKey;
+      if (!elements.sessionHistoryDateInput.value || elements.sessionHistoryDateInput.value > todayKey) {
+        elements.sessionHistoryDateInput.value = todayKey;
+      }
+      if (!elements.sessionHistoryMinutesInput.value) {
+        elements.sessionHistoryMinutesInput.value = String(
+          Math.round(state.settings.timer.focusSeconds / 60)
+        );
+      }
+      renderSessionHistory(state.stats.focusSessions);
     }
 
     function setStatsRange(mode) {
@@ -159,10 +284,18 @@
     }
 
     function recordCompletedFocusSession(focusSeconds, completedAt = new Date()) {
-      const rows = appStorage.getState().stats.focusRows;
       const today = core.getLocalDayKey(completedAt);
       appStorage.update((state) => {
-        state.stats.focusRows = statsModel.recordFocusSession(rows, today, focusSeconds);
+        state.stats.focusSessions = statsModel.recordFocusSession(
+          state.stats.focusSessions,
+          today,
+          focusSeconds,
+          {
+            id: `focus-timer-${completedAt.getTime()}-${state.stats.focusSessions.length}`,
+            completedAt,
+            source: "timer"
+          }
+        );
       });
       renderStats();
     }
@@ -213,7 +346,7 @@
       try {
         const rawBackup = await file.text();
         const restored = globalScope.InfiniteLofiStorage.importBackup(rawBackup);
-        if (!confirmAction(`Restore this backup (${restored.notes.files.length} notes, ${restored.stats.focusRows.length} focus-stat rows)? Current local data will be replaced.`)) return;
+        if (!confirmAction(`Restore this backup (${restored.notes.files.length} notes, ${restored.stats.focusSessions.length} focus sessions)? Current local data will be replaced.`)) return;
         beforeRestore();
         appStorage.importBackup(rawBackup);
         appStorage.dismissRecoveryNotice();
@@ -232,12 +365,14 @@
     function clearStats() {
       if (!confirmAction("Clear all focus stats? This cannot be undone.")) return;
       appStorage.update((state) => {
+        state.stats.focusSessions = [];
         state.stats.focusRows = [];
       });
       renderStats();
     }
 
     return {
+      addFocusSessionFromForm,
       clearStats,
       dismissStorageRecovery,
       downloadStorageRecoveryCopy,

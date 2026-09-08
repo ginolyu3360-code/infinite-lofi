@@ -2,10 +2,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  MAX_FOCUS_HISTORY_DAYS,
+  MAX_FOCUS_SESSIONS,
   aggregateFocusRows,
   formatTime,
   getLocalDayKey,
   normalizeDailyGoalSeconds,
+  normalizeFocusSessions,
   normalizeMinutes,
   normalizeTimerSettings,
   normalizeVolume,
@@ -88,9 +91,44 @@ test("aggregates duplicate valid focus rows", () => {
     { day: "2026-09-06", focusSeconds: 300 },
     { day: "2026-09-07", focusSeconds: "120" },
     { day: "", focusSeconds: 10 },
+    { day: "2026-02-30", focusSeconds: 10 },
     { day: "2026-09-08", focusSeconds: -1 }
   ]), [
     { day: "2026-09-06", focusSeconds: 300 },
     { day: "2026-09-07", focusSeconds: 720 }
   ]);
+});
+
+test("bounds and sanitizes the per-session focus ledger", () => {
+  const start = new Date(2025, 0, 1, 12);
+  const datedSessions = Array.from({ length: MAX_FOCUS_HISTORY_DAYS + 1 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      id: `dated-${index}`,
+      day: getLocalDayKey(date),
+      focusSeconds: 60,
+      source: "timer"
+    };
+  });
+  const retainedDays = normalizeFocusSessions(datedSessions, [], 1000);
+  assert.equal(retainedDays.length, MAX_FOCUS_HISTORY_DAYS);
+  assert.equal(retainedDays[0].id, "dated-1");
+
+  const manySessions = Array.from({ length: MAX_FOCUS_SESSIONS + 1 }, (_, index) => ({
+    id: `same-day-${String(index).padStart(5, "0")}`,
+    day: "2026-09-08",
+    focusSeconds: 60
+  }));
+  assert.equal(normalizeFocusSessions(manySessions, [], 1000).length, MAX_FOCUS_SESSIONS);
+  assert.deepEqual(normalizeFocusSessions(undefined, [
+    { day: "2026-09-08", focusSeconds: 600 },
+    { day: "2026-09-08", focusSeconds: 300 }
+  ], 1000), [{
+    id: "focus-migrated-2026-09-08-0",
+    day: "2026-09-08",
+    focusSeconds: 900,
+    completedAt: "",
+    source: "migrated"
+  }]);
 });

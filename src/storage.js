@@ -8,7 +8,7 @@
     throw new Error("Infinite Lo-Fi core helpers are required by storage");
   }
 
-  const CURRENT_SCHEMA_VERSION = 2;
+  const CURRENT_SCHEMA_VERSION = 3;
   const STORAGE_KEY = "infiniteLofiState";
   const RECOVERY_KEY = "infiniteLofiStateRecovery";
   const BACKUP_FORMAT = "infinite-lofi-backup";
@@ -72,6 +72,7 @@
         activeId: ""
       },
       stats: {
+        focusSessions: [],
         focusRows: []
       },
       player: {
@@ -126,6 +127,12 @@
     const deadline = Number(runtimeSource.deadlineMs);
     const hasDeadline = Number.isFinite(deadline) && deadline > 0;
 
+    const focusSessions = core.normalizeFocusSessions(
+      Number(source.schemaVersion) >= 3 ? statsSource.focusSessions : undefined,
+      statsSource.focusRows,
+      now
+    );
+
     return {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       updatedAt: Number.isFinite(Number(source.updatedAt)) ? Number(source.updatedAt) : now,
@@ -141,7 +148,8 @@
       },
       notes: { files, activeId },
       stats: {
-        focusRows: core.aggregateFocusRows(statsSource.focusRows).slice(-core.MAX_FOCUS_HISTORY_DAYS)
+        focusSessions,
+        focusRows: core.aggregateFocusRows(focusSessions).slice(-core.MAX_FOCUS_HISTORY_DAYS)
       },
       player: {
         folderPath: normalizeString(playerSource.folderPath, 8192),
@@ -166,6 +174,7 @@
 
   function readLegacyState(storage, now = Date.now()) {
     const state = createDefaultState(now);
+    state.schemaVersion = 1;
     const timerSettings = parseJson(storage.getItem(LEGACY_KEYS.timerSettings), {});
     const uiSettings = parseJson(storage.getItem(LEGACY_KEYS.uiSettings), {});
     const noteFiles = parseJson(storage.getItem(LEGACY_KEYS.noteFiles), []);
@@ -277,6 +286,7 @@
     }
 
     const migrated = createDefaultState(now);
+    migrated.schemaVersion = 1;
     migrated.settings.timer = isObject(payload.timerSettings)
       ? payload.timerSettings
       : migrated.settings.timer;

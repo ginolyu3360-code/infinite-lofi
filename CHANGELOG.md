@@ -7,6 +7,9 @@
 - Added an optional daily focus goal with progress in the timer and statistics views
 - Upgraded local state to schema v2 with automatic v1 and legacy-backup migration
 - Preserved the actual local completion day when an expired focus timer is restored after midnight
+- Added editable per-session focus history with manual entry and confirmed deletion
+- Added active-day, current-streak, and previous-period trend summaries
+- Upgraded local state to schema v3, migrating older daily totals into editable history entries
 
 ## 1.2.0 — 2026-09-08
 

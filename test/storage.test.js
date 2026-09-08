@@ -55,6 +55,13 @@ test("migrates legacy local storage without losing notes or stats", () => {
   assert.deepEqual(state.stats.focusRows, [
     { day: "2026-09-07", focusSeconds: 720 }
   ]);
+  assert.deepEqual(state.stats.focusSessions, [{
+    id: "focus-migrated-2026-09-07-0",
+    day: "2026-09-07",
+    focusSeconds: 720,
+    completedAt: "",
+    source: "migrated"
+  }]);
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).schemaVersion, CURRENT_SCHEMA_VERSION);
 });
 
@@ -94,6 +101,13 @@ test("exports and restores a complete versioned backup", () => {
   const repository = createRepository(storage, () => 3000);
   repository.update((state) => {
     state.settings.goals.dailyFocusSeconds = 5400;
+    state.stats.focusSessions = [{
+      id: "focus-1",
+      day: "2026-09-07",
+      focusSeconds: 1800,
+      completedAt: "2026-09-07T10:00:00.000Z",
+      source: "timer"
+    }];
     state.player.folderPath = "/Music/Focus";
     state.notes.files = [
       { id: "note-1", name: "Ideas", content: "Keep me", pinned: true, updatedAt: 10 }
@@ -109,6 +123,8 @@ test("exports and restores a complete versioned backup", () => {
   assert.equal(restored.player.folderPath, "/Music/Focus");
   assert.equal(restored.notes.files[0].content, "Keep me");
   assert.equal(restored.settings.goals.dailyFocusSeconds, 5400);
+  assert.equal(restored.stats.focusSessions[0].id, "focus-1");
+  assert.deepEqual(restored.stats.focusRows, [{ day: "2026-09-07", focusSeconds: 1800 }]);
 });
 
 test("imports old backups and rejects unrelated or newer files", () => {
@@ -140,6 +156,27 @@ test("imports old backups and rejects unrelated or newer files", () => {
   assert.equal(migratedVersionOne.settings.timer.shortBreakSeconds, 480);
   assert.equal(migratedVersionOne.timerRuntime.phase, "shortBreak");
   assert.equal(migratedVersionOne.settings.goals.dailyFocusSeconds, 0);
+
+  const versionTwoBackup = {
+    format: BACKUP_FORMAT,
+    schemaVersion: 2,
+    state: {
+      schemaVersion: 2,
+      stats: {
+        focusRows: [
+          { day: "2026-09-07", focusSeconds: 1200 },
+          { day: "2026-09-07", focusSeconds: 600 }
+        ]
+      }
+    }
+  };
+  const migratedVersionTwo = importBackup(versionTwoBackup, 5002);
+  assert.equal(migratedVersionTwo.schemaVersion, CURRENT_SCHEMA_VERSION);
+  assert.deepEqual(migratedVersionTwo.stats.focusRows, [
+    { day: "2026-09-07", focusSeconds: 1800 }
+  ]);
+  assert.equal(migratedVersionTwo.stats.focusSessions.length, 1);
+  assert.equal(migratedVersionTwo.stats.focusSessions[0].source, "migrated");
 
   assert.throws(() => importBackup({ hello: "world" }), /not an Infinite Lo-Fi backup/);
   assert.throws(

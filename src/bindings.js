@@ -218,6 +218,7 @@
     on(e.statsRangeTodayBtn, "click", () => a.setStatsRange("today"));
     on(e.statsRangeWeekBtn, "click", () => a.setStatsRange("week"));
     on(e.statsRangeMonthBtn, "click", () => a.setStatsRange("month"));
+    on(e.sessionHistoryAddBtn, "click", a.addFocusSessionFromForm);
     on(e.exportStatsBtn, "click", a.exportStatsCsv);
     on(e.backupStatsBtn, "click", a.exportStatsBackup);
     on(e.restoreBackupBtn, "click", () => e.backupFileInput?.click());

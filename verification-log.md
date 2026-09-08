@@ -1,5 +1,28 @@
 # Verification Log
 
+## 2026-09-08 — Phase 3B Session History and Trends
+
+### Implemented
+
+- Added a schema v3 per-session focus ledger while retaining derived daily totals for charts, goals, CSV exports, and compatibility.
+- Migrated schema v1/v2 state, versioned backups, and legacy daily totals into one editable imported entry per day without changing valid focus totals.
+- Added manual session creation, date/duration editing, and confirmed deletion for recent focus entries.
+- Added active-day count, current streak, and previous-period comparison for the existing Today, Week, and Month ranges.
+- Bounded retention to 366 distinct history days and 5,000 individual sessions.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 37 unit tests with zero failures.
+- Passed the isolated development UI smoke test across all supported window sizes and Mini Mode with no renderer exceptions.
+- Verified manual session creation, editing from 35 to 40 minutes, schema v3 persistence, derived daily totals, recent-history rendering, and live trend updates.
+- Visually inspected the statistics overview and scrolled session-history editor at 1100 × 760.
+- Rebuilt the unsigned Universal application with electron-builder 26.15.3, passed the isolated packaged-app UI smoke test, and confirmed `x86_64 arm64` with `lipo`.
+
+### Scope status
+
+- Phase 3B is complete. Playlist/media improvements, the broader accessibility pass, and curated themes remain separate future slices.
+- Package/release version remains 1.2.0. No tag or Release was created.
+
 ## 2026-09-08 — Phase 3A Focus Plan
 
 ### Implemented
