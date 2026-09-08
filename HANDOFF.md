@@ -18,7 +18,8 @@ Updated: 2026-09-08
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
 - Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with Phase 3A–3C source work, and Phase 3D is complete in the current source tree.
-- Main CI run `34242718071` at the Phase 3C CI-stability merge commit and the repaired v1.2.0 Release run `34185493625` both passed.
+- Phase 3D was squash-merged through PR #8 as commit `3dca230`; its PR CI run `34245931075` and post-merge `main` CI run `34246166218` both passed.
+- The repaired v1.2.0 Release run `34185493625` passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, and Phase 3D Accessibility are complete in the source tree; none has been included in a new tagged release.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.

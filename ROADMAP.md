@@ -105,7 +105,7 @@ Status: completed and locally verified on 2026-09-08.
 
 ### Phase 3D — Accessibility
 
-Status: completed and locally verified on 2026-09-08.
+Status: completed, merged, and verified by passing `main` CI on 2026-09-08.
 
 - [x] Give Focus Plan, Stats, Scene, shortcut help, responsive Notes, and Queue predictable focus entry and focus restoration.
 - [x] Keep modal focus inside open dialogs, close responsive panels with Escape, and hide closed surfaces from the accessibility tree.
