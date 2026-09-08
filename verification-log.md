@@ -1,5 +1,28 @@
 # Verification Log
 
+## 2026-09-08 — Phase 3C Playlist Persistence and Native Media Controls
+
+### Implemented
+
+- Upgraded local storage to schema v4 with ordered queue snapshots and stable active-track keys.
+- Migrated schema v1–v3 built-in and local playlist data; local tracks now use folder-relative identities that survive a folder move.
+- Preserved missing tracks as visible queue entries, skipped them during playback, and added reconnect, rescan, clear-missing, and bundled-playlist recovery actions.
+- Added native Media Session metadata, artwork, playback state, play/pause/stop, previous/next, seek-back, seek-forward, and seek-to controls.
+- Kept app startup paused and made Media Session support optional so unsupported environments continue to work normally.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 42 unit tests with zero failures.
+- Covered schema v3-to-v4 migration for built-in and local tracks, moved-folder reconnect, missing-entry cleanup, playback skipping, and native media action/position behavior.
+- Passed the isolated development UI smoke test across all supported window sizes and Mini Mode with no renderer exceptions.
+- Verified schema v4 queue persistence and native Media Session metadata plus playing state in real Electron.
+- Rebuilt the unsigned Universal application with electron-builder 26.15.3, passed the isolated packaged-app UI smoke test, and confirmed `x86_64 arm64` with `lipo`.
+
+### Scope status
+
+- Phase 3C is complete. The broader accessibility pass and curated themes remain separate future slices.
+- Package/release version remains 1.2.0. No tag or Release was created.
+
 ## 2026-09-08 — Phase 3B Session History and Trends
 
 ### Implemented

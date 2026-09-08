@@ -39,6 +39,7 @@ if (
   !window.InfiniteLofiNotes ||
   !window.InfiniteLofiNotesController ||
   !window.InfiniteLofiPlayer ||
+  !window.InfiniteLofiMediaSession ||
   !window.InfiniteLofiPlayerController ||
   !window.InfiniteLofiBackgrounds ||
   !window.InfiniteLofiStats ||
@@ -73,6 +74,7 @@ const {
 } = window.InfiniteLofiTimer;
 const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
+const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
   buildRenderKey: buildBackgroundRenderKey,
   normalizeBackgroundSettings,
@@ -115,6 +117,7 @@ const playlistToggleBtn = document.getElementById("playlistToggleBtn");
 const trackLabel = document.getElementById("trackLabel");
 const playlistPanel = document.getElementById("playlistPanel");
 const playlistItems = document.getElementById("playlistItems");
+const playlistStatus = document.getElementById("playlistStatus");
 const volumeSlider = document.getElementById("volumeSlider");
 const brightnessSlider = document.getElementById("brightnessSlider");
 const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
@@ -178,6 +181,9 @@ const weatherCityInput = document.getElementById("weatherCityInput");
 const weatherApplyBtn = document.getElementById("weatherApplyBtn");
 const weatherPrivacyHint = document.getElementById("weatherPrivacyHint");
 const loadMusicFolderBtn = document.getElementById("loadMusicFolderBtn");
+const rescanMusicFolderBtn = document.getElementById("rescanMusicFolderBtn");
+const removeMissingTracksBtn = document.getElementById("removeMissingTracksBtn");
+const useDefaultTracksBtn = document.getElementById("useDefaultTracksBtn");
 const musicFolderDisplay = document.getElementById("musicFolderDisplay");
 const bgToggleBtn = document.getElementById("bgToggleBtn");
 const backgroundDrawer = document.getElementById("backgroundDrawer");
@@ -220,14 +226,20 @@ let backgroundRenderKey = "";
 let backgroundFadeRaf = 0;
 let isRestoringBackup = false;
 
+const mediaSessionController = createMediaSessionController({
+  mediaSession: navigator.mediaSession,
+  MediaMetadata: window.MediaMetadata,
+  audio: lofiPlayer
+});
+
 const playerController = createPlayerController({
   appStorage,
   desktopApp: window.desktopApp,
   playerModel: window.InfiniteLofiPlayer,
   defaultTracks: [
-    { label: "Track 01", src: "../assets/track-01.wav" },
-    { label: "Track 02", src: "../assets/track-02.wav" },
-    { label: "Track 03", src: "../assets/track-03.wav" }
+    { key: "builtin:track-01", label: "Track 01", src: "../assets/track-01.wav" },
+    { key: "builtin:track-02", label: "Track 02", src: "../assets/track-02.wav" },
+    { key: "builtin:track-03", label: "Track 03", src: "../assets/track-03.wav" }
   ],
   elements: {
     document,
@@ -235,27 +247,41 @@ const playerController = createPlayerController({
     playPauseBtn,
     playlistPanel,
     playlistItems,
+    playlistStatus,
     trackLabel,
     volumeSlider,
-    musicFolderDisplay
+    musicFolderDisplay,
+    loadMusicFolderBtn,
+    rescanMusicFolderBtn,
+    removeMissingTracksBtn,
+    useDefaultTracksBtn
   },
   onArtworkChange: (artwork) => {
     currentTrackArtwork = artwork;
     renderBackgroundUi();
     applyBackground();
-  }
+  },
+  onTrackChange: mediaSessionController.updateMetadata
 });
 const {
   loadMusicFolder,
   persistState: persistPlayerState,
   prevTrack,
+  removeMissingTracks,
+  rescanMusicFolder,
   restorePersistedPlayer,
   switchTrack,
   togglePlayback,
   togglePlaylistPanel,
   updateTrack,
-  updateVolume
+  updateVolume,
+  useDefaultTracks
 } = playerController;
+
+mediaSessionController.installActionHandlers({
+  previousTrack: prevTrack,
+  nextTrack: switchTrack
+});
 
 const notesController = createNotesController({
   appStorage,
@@ -1229,6 +1255,9 @@ async function init() {
       prevTrackBtn,
       playlistToggleBtn,
       loadMusicFolderBtn,
+      rescanMusicFolderBtn,
+      removeMissingTracksBtn,
+      useDefaultTracksBtn,
       shortcutHelpCloseBtn,
       shortcutHelpOverlay,
       shortcutHelpPanel,
@@ -1277,6 +1306,9 @@ async function init() {
       prevTrack,
       togglePlaylistPanel,
       loadMusicFolder,
+      rescanMusicFolder,
+      removeMissingTracks,
+      useDefaultTracks,
       toggleShortcutHelp,
       isShortcutEnabled,
       setShortcutEnabled: (key, enabled) => {

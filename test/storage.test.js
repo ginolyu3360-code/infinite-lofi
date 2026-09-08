@@ -92,8 +92,36 @@ test("normalizes versioned state and rejects unsafe values", () => {
   assert.equal(state.settings.statsRange, "week");
   assert.equal(state.notes.activeId, "a");
   assert.deepEqual(state.stats.focusRows, []);
-  assert.deepEqual(state.player.trackOrder, ["one", "two"]);
+  assert.deepEqual(state.player.queue, [
+    { key: "one", label: "one", relativePath: "", isLocal: false },
+    { key: "two", label: "two", relativePath: "", isLocal: false }
+  ]);
   assert.equal(state.timerRuntime.isRunning, false);
+});
+
+test("bounds and sanitizes schema v4 playlist snapshots", () => {
+  const queue = [null, { key: "", label: "ignored" }];
+  for (let index = 0; index < 1005; index += 1) {
+    queue.push({
+      key: `local:${index}.mp3`,
+      label: index === 0 ? "" : `Track ${index}`,
+      relativePath: `${index}.mp3`,
+      isLocal: true
+    });
+  }
+  queue.push({ key: "local:0.mp3", label: "duplicate" });
+  const storage = createMemoryStorage({
+    [STORAGE_KEY]: JSON.stringify({
+      schemaVersion: 4,
+      player: { folderPath: "/Music", queue, activeTrackKey: 42 }
+    })
+  });
+
+  const player = migrateStoredState(storage, 2500).player;
+  assert.equal(player.queue.length, 1000);
+  assert.equal(player.queue[0].label, "Untitled track");
+  assert.equal(player.queue[0].key, "local:0.mp3");
+  assert.equal(player.activeTrackKey, "");
 });
 
 test("exports and restores a complete versioned backup", () => {
@@ -178,6 +206,46 @@ test("imports old backups and rejects unrelated or newer files", () => {
   assert.equal(migratedVersionTwo.stats.focusSessions.length, 1);
   assert.equal(migratedVersionTwo.stats.focusSessions[0].source, "migrated");
 
+  const versionThreeBackup = {
+    format: BACKUP_FORMAT,
+    schemaVersion: 3,
+    state: {
+      schemaVersion: 3,
+      player: {
+        folderPath: "/Old/Music",
+        trackOrder: ["/Old/Music/two.mp3", "/Old/Music/one.mp3"],
+        activeTrackSrc: "/Old/Music/two.mp3"
+      }
+    }
+  };
+  const migratedVersionThree = importBackup(versionThreeBackup, 5003);
+  assert.deepEqual(migratedVersionThree.player, {
+    folderPath: "/Old/Music",
+    queue: [
+      { key: "local:two.mp3", label: "two", relativePath: "two.mp3", isLocal: true },
+      { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true }
+    ],
+    activeTrackKey: "local:two.mp3"
+  });
+
+  const migratedBuiltIns = importBackup({
+    format: BACKUP_FORMAT,
+    schemaVersion: 3,
+    state: {
+      schemaVersion: 3,
+      player: {
+        folderPath: "",
+        trackOrder: ["../assets/track-03.wav", "../assets/track-01.wav"],
+        activeTrackSrc: "../assets/track-03.wav"
+      }
+    }
+  }, 5004);
+  assert.deepEqual(migratedBuiltIns.player.queue.map((track) => track.key), [
+    "builtin:track-03",
+    "builtin:track-01"
+  ]);
+  assert.equal(migratedBuiltIns.player.activeTrackKey, "builtin:track-03");
+
   assert.throws(() => importBackup({ hello: "world" }), /not an Infinite Lo-Fi backup/);
   assert.throws(
     () =>
@@ -223,8 +291,11 @@ test("restores documented settings and active state after repository recreation"
     state.settings.ui = { volume: 0, brightness: 1.2 };
     state.player = {
       folderPath: "/Music/Focus",
-      trackOrder: ["b.wav", "a.wav"],
-      activeTrackSrc: "b.wav"
+      queue: [
+        { key: "local:b.wav", label: "B", relativePath: "b.wav", isLocal: true },
+        { key: "local:a.wav", label: "A", relativePath: "a.wav", isLocal: true }
+      ],
+      activeTrackKey: "local:b.wav"
     };
     state.timerRuntime = {
       phase: "shortBreak",
@@ -241,8 +312,8 @@ test("restores documented settings and active state after repository recreation"
   assert.equal(relaunched.settings.timer.autoStartBreaks, false);
   assert.equal(relaunched.settings.goals.dailyFocusSeconds, 7200);
   assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2 });
-  assert.deepEqual(relaunched.player.trackOrder, ["b.wav", "a.wav"]);
-  assert.equal(relaunched.player.activeTrackSrc, "b.wav");
+  assert.deepEqual(relaunched.player.queue.map((track) => track.key), ["local:b.wav", "local:a.wav"]);
+  assert.equal(relaunched.player.activeTrackKey, "local:b.wav");
   assert.equal(relaunched.timerRuntime.isRunning, true);
   assert.equal(relaunched.timerRuntime.deadlineMs, 20_000);
   assert.equal(relaunched.timerRuntime.phase, "shortBreak");

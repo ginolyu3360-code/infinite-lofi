@@ -7,26 +7,63 @@
       playerModel,
       defaultTracks,
       onArtworkChange = () => {},
+      onTrackChange = () => {},
       alert: showAlert = globalScope.alert?.bind(globalScope) || (() => {}),
       logger = globalScope.console
     } = options;
 
-    let playlist = defaultTracks.map((track) => ({ ...track }));
+    const bundledTracks = defaultTracks.map((track) => ({ ...track, isMissing: false }));
+    let playlist = bundledTracks.map((track) => ({ ...track }));
     let currentTrackIndex = 0;
     let draggedItem = null;
     let localMusicFolder = null;
-    let preserveUnavailableState = false;
+    let folderUnavailable = false;
+    let isScanning = false;
+
+    function getActiveTrack() {
+      return playlist[currentTrackIndex] || null;
+    }
+
+    function getMissingCount() {
+      return playlist.filter((track) => track.isMissing === true).length;
+    }
 
     function persistState() {
-      if (preserveUnavailableState) return;
-      const activeTrack = playlist[currentTrackIndex];
+      const activeTrack = getActiveTrack();
       appStorage.update((state) => {
         state.player = {
           folderPath: localMusicFolder || "",
-          trackOrder: playlist.map(playerModel.getTrackKey).filter(Boolean),
-          activeTrackSrc: playerModel.getTrackKey(activeTrack)
+          queue: playerModel.createQueueSnapshot(playlist),
+          activeTrackKey: playerModel.getTrackKey(activeTrack)
         };
       });
+    }
+
+    function updateFolderStatus() {
+      const missingCount = getMissingCount();
+      const playableCount = playlist.filter(playerModel.isTrackPlayable).length;
+      const folderName = localMusicFolder?.split(/[\\/]/).pop() || "Default";
+      let status = `${folderName} · ${playableCount} track${playableCount === 1 ? "" : "s"}`;
+      if (isScanning) status = `${folderName} · Scanning…`;
+      else if (folderUnavailable) status = `${folderName} · Reconnect needed`;
+      else if (missingCount > 0) status += ` · ${missingCount} missing`;
+      elements.musicFolderDisplay.textContent = status;
+      elements.musicFolderDisplay.title = localMusicFolder || "Bundled Infinite Lo-Fi tracks";
+      if (elements.playlistStatus) {
+        elements.playlistStatus.textContent = folderUnavailable
+          ? "The saved folder cannot be read. Choose Reconnect Folder to locate it again."
+          : missingCount > 0
+          ? `${missingCount} saved track${missingCount === 1 ? " is" : "s are"} unavailable. Restore the file and rescan, or remove missing entries.`
+          : localMusicFolder
+          ? "Queue order and the current track are saved automatically."
+          : "Using the bundled offline playlist.";
+      }
+      if (elements.loadMusicFolderBtn) {
+        elements.loadMusicFolderBtn.textContent = folderUnavailable ? "Reconnect Folder" : "Load Folder";
+      }
+      if (elements.rescanMusicFolderBtn) elements.rescanMusicFolderBtn.hidden = !localMusicFolder;
+      if (elements.removeMissingTracksBtn) elements.removeMissingTracksBtn.hidden = missingCount === 0;
+      if (elements.useDefaultTracksBtn) elements.useDefaultTracksBtn.hidden = !localMusicFolder;
     }
 
     function renderPlaylist() {
@@ -34,12 +71,36 @@
       playlist.forEach((track, index) => {
         const itemButton = elements.document.createElement("button");
         itemButton.type = "button";
-        itemButton.className = `playlist-item ${index === currentTrackIndex ? "is-active" : ""}`;
-        itemButton.textContent = track.label;
+        itemButton.className = [
+          "playlist-item",
+          index === currentTrackIndex ? "is-active" : "",
+          track.isMissing === true ? "is-missing" : ""
+        ].filter(Boolean).join(" ");
         itemButton.draggable = true;
         itemButton.dataset.index = String(index);
-        itemButton.title = `Play ${track.label}`;
-        itemButton.addEventListener("click", () => playSelectedTrack(index));
+        itemButton.setAttribute("aria-disabled", String(track.isMissing === true));
+
+        const label = elements.document.createElement("span");
+        label.className = "playlist-item-label";
+        label.textContent = track.label;
+        itemButton.appendChild(label);
+        if (track.isMissing === true) {
+          const status = elements.document.createElement("span");
+          status.className = "playlist-item-status";
+          status.textContent = "Missing";
+          itemButton.appendChild(status);
+        }
+
+        itemButton.title = track.isMissing === true
+          ? `${track.label} is unavailable. Restore it and choose Rescan.`
+          : `Play ${track.label}`;
+        itemButton.addEventListener("click", () => {
+          if (track.isMissing === true) {
+            showAlert("This track is missing. Restore the file and choose Rescan, or remove missing entries.");
+            return;
+          }
+          playSelectedTrack(index);
+        });
         itemButton.addEventListener("dragstart", (event) => {
           draggedItem = itemButton;
           itemButton.classList.add("is-dragging");
@@ -64,14 +125,19 @@
         });
         elements.playlistItems.appendChild(itemButton);
       });
+      updateFolderStatus();
     }
 
     function updateTrack() {
-      const track = playlist[currentTrackIndex];
-      if (!track) {
-        elements.trackLabel.textContent = "No playable tracks";
+      const track = getActiveTrack();
+      if (!playerModel.isTrackPlayable(track)) {
+        elements.trackLabel.textContent = playlist.length > 0 ? "No playable tracks" : "Playlist is empty";
+        elements.lofiPlayer.pause();
         elements.lofiPlayer.removeAttribute("src");
+        elements.lofiPlayer.load?.();
+        elements.playPauseBtn.textContent = "Play";
         onArtworkChange(null);
+        onTrackChange(null);
         renderPlaylist();
         return;
       }
@@ -82,70 +148,127 @@
           ? { url: track.artworkUrl, name: track.artworkName || `${track.label} Cover` }
           : null
       );
+      onTrackChange(track);
       renderPlaylist();
+    }
+
+    function setPlaylistFromScan(tracks, savedQueue, activeTrackKey) {
+      playlist = playerModel.mergePlaylistTracks(tracks, savedQueue);
+      currentTrackIndex = playerModel.findActiveTrackIndex(playlist, activeTrackKey);
+      folderUnavailable = false;
+      updateTrack();
+    }
+
+    async function scanCurrentFolder(savedQueue, activeTrackKey) {
+      if (!localMusicFolder || !desktopApp || typeof desktopApp.scanMusicFolder !== "function") {
+        folderUnavailable = Boolean(localMusicFolder);
+        renderPlaylist();
+        return false;
+      }
+      const shouldResume = !elements.lofiPlayer.paused;
+      isScanning = true;
+      updateFolderStatus();
+      try {
+        const result = await desktopApp.scanMusicFolder(localMusicFolder);
+        if (!result || !Array.isArray(result.tracks)) {
+          folderUnavailable = true;
+          renderPlaylist();
+          return false;
+        }
+        if (result.error && result.error !== "no-audio-files") {
+          folderUnavailable = true;
+          renderPlaylist();
+          return false;
+        }
+        localMusicFolder = result.folderPath || localMusicFolder;
+        setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
+        persistState();
+        if (shouldResume && playerModel.isTrackPlayable(getActiveTrack())) {
+          elements.lofiPlayer.play().catch(() => {
+            elements.playPauseBtn.textContent = "Play";
+          });
+        }
+        return true;
+      } catch (error) {
+        folderUnavailable = true;
+        logger.error("Error scanning music folder:", error);
+        renderPlaylist();
+        return false;
+      } finally {
+        isScanning = false;
+        updateFolderStatus();
+      }
     }
 
     async function restorePersistedPlayer() {
       const saved = appStorage.getState().player;
+      const savedQueue = Array.isArray(saved.queue) ? saved.queue : [];
       if (!saved.folderPath) {
-        playlist = playerModel.applyTrackOrder(playlist, saved.trackOrder);
-        currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackSrc);
+        localMusicFolder = null;
+        folderUnavailable = false;
+        playlist = playerModel.mergePlaylistTracks(bundledTracks, savedQueue);
+        currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackKey);
         updateTrack();
+        persistState();
         return;
       }
 
       localMusicFolder = saved.folderPath;
-      const folderName = localMusicFolder.split(/[\\/]/).pop() || "Local";
-      if (!desktopApp || typeof desktopApp.scanMusicFolder !== "function") {
-        preserveUnavailableState = true;
-        elements.musicFolderDisplay.textContent = `${folderName} · Restore unavailable`;
-        return;
-      }
-
-      try {
-        const result = await desktopApp.scanMusicFolder(localMusicFolder);
-        if (!result || result.error || !Array.isArray(result.tracks) || result.tracks.length === 0) {
-          preserveUnavailableState = true;
-          elements.musicFolderDisplay.textContent = `${folderName} · Folder unavailable`;
-          elements.musicFolderDisplay.title = "Choose Load Folder to reconnect or select another music folder.";
-          return;
-        }
-        playlist = playerModel.applyTrackOrder(result.tracks, saved.trackOrder);
-        currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackSrc);
-        elements.musicFolderDisplay.textContent = folderName;
-        elements.musicFolderDisplay.title = localMusicFolder;
-        updateTrack();
-        persistState();
-      } catch (error) {
-        preserveUnavailableState = true;
-        logger.error("Error restoring music folder:", error);
-        elements.musicFolderDisplay.textContent = `${folderName} · Folder unreadable`;
-        elements.musicFolderDisplay.title = "Choose Load Folder to reconnect or select another music folder.";
-      }
+      playlist = playerModel.mergePlaylistTracks([], savedQueue);
+      currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackKey);
+      folderUnavailable = true;
+      updateTrack();
+      await scanCurrentFolder(savedQueue, saved.activeTrackKey);
     }
 
     async function loadMusicFolder() {
       if (!desktopApp || typeof desktopApp.selectMusicFolder !== "function") {
-        showAlert("Music folder selection not supported");
+        showAlert("Music folder selection is not supported.");
         return;
       }
       try {
         const result = await desktopApp.selectMusicFolder();
-        if (!result || !Array.isArray(result.tracks) || result.tracks.length === 0) {
-          showAlert("No music files found in the selected folder");
+        if (!result) return;
+        if (!Array.isArray(result.tracks) || result.tracks.length === 0) {
+          showAlert("No music files were found in the selected folder.");
           return;
         }
-        playlist = result.tracks;
+        const shouldReconnect = folderUnavailable && Boolean(localMusicFolder);
+        const savedQueue = shouldReconnect ? playerModel.createQueueSnapshot(playlist) : [];
+        const activeTrackKey = shouldReconnect ? playerModel.getTrackKey(getActiveTrack()) : "";
         localMusicFolder = result.folderPath;
-        preserveUnavailableState = false;
-        elements.musicFolderDisplay.textContent = localMusicFolder.split(/[\\/]/).pop() || "Local";
-        currentTrackIndex = 0;
-        updateTrack();
+        setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
         persistState();
       } catch (error) {
         logger.error("Error loading music folder:", error);
         elements.musicFolderDisplay.textContent = "Folder unreadable · Try another";
       }
+    }
+
+    async function rescanMusicFolder() {
+      if (!localMusicFolder) return;
+      const queue = playerModel.createQueueSnapshot(playlist);
+      const activeTrackKey = playerModel.getTrackKey(getActiveTrack());
+      await scanCurrentFolder(queue, activeTrackKey);
+    }
+
+    function useDefaultTracks() {
+      elements.lofiPlayer.pause();
+      localMusicFolder = null;
+      folderUnavailable = false;
+      playlist = bundledTracks.map((track) => ({ ...track }));
+      currentTrackIndex = 0;
+      updateTrack();
+      persistState();
+    }
+
+    function removeMissingTracks() {
+      const activeKey = playerModel.getTrackKey(getActiveTrack());
+      playlist = playlist.filter((track) => track.isMissing !== true);
+      currentTrackIndex = playerModel.findActiveTrackIndex(playlist, activeKey);
+      if (playlist.length === 0) updateTrack();
+      else renderPlaylist();
+      persistState();
     }
 
     function reorderPlaylist(fromIndex, toIndex) {
@@ -160,6 +283,7 @@
     }
 
     function playSelectedTrack(index) {
+      if (!playerModel.isTrackPlayable(playlist[index])) return;
       currentTrackIndex = index;
       updateTrack();
       persistState();
@@ -170,6 +294,7 @@
 
     function togglePlayback() {
       if (!elements.lofiPlayer.src) updateTrack();
+      if (!elements.lofiPlayer.src) return;
       if (elements.lofiPlayer.paused) {
         elements.lofiPlayer.play().then(() => {
           elements.playPauseBtn.textContent = "Pause";
@@ -182,22 +307,24 @@
       }
     }
 
-    function switchTrack() {
-      currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    function moveToAdjacentTrack(direction) {
+      const shouldResume = !elements.lofiPlayer.paused || elements.lofiPlayer.ended;
+      const nextIndex = playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, direction);
+      if (nextIndex < 0) return;
+      currentTrackIndex = nextIndex;
       updateTrack();
       persistState();
-      if (!elements.lofiPlayer.paused) elements.lofiPlayer.play().catch(() => {
+      if (shouldResume) elements.lofiPlayer.play().catch(() => {
         elements.playPauseBtn.textContent = "Play";
       });
     }
 
+    function switchTrack() {
+      moveToAdjacentTrack(1);
+    }
+
     function prevTrack() {
-      currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-      updateTrack();
-      persistState();
-      if (!elements.lofiPlayer.paused) elements.lofiPlayer.play().catch(() => {
-        elements.playPauseBtn.textContent = "Play";
-      });
+      moveToAdjacentTrack(-1);
     }
 
     function togglePlaylistPanel() {
@@ -213,12 +340,15 @@
       loadMusicFolder,
       persistState,
       prevTrack,
+      removeMissingTracks,
+      rescanMusicFolder,
       restorePersistedPlayer,
       switchTrack,
       togglePlayback,
       togglePlaylistPanel,
       updateTrack,
-      updateVolume
+      updateVolume,
+      useDefaultTracks
     };
   }
 

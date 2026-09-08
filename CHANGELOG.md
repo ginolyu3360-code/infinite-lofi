@@ -10,6 +10,9 @@
 - Added editable per-session focus history with manual entry and confirmed deletion
 - Added active-day, current-streak, and previous-period trend summaries
 - Upgraded local state to schema v3, migrating older daily totals into editable history entries
+- Added a stable saved playlist queue that survives local music-folder moves and keeps missing tracks visible
+- Added reconnect, rescan, clear-missing, and bundled-playlist recovery actions
+- Added native Media Session metadata, transport, and seeking controls; upgraded local state to schema v4
 
 ## 1.2.0 — 2026-09-08
 

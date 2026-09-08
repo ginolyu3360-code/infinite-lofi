@@ -128,13 +128,15 @@ function createMusicLibrary({
       .filter((entry) => AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }));
 
-    return mapWithConcurrency(audioFiles, concurrency, async (entry, index) => {
+    return mapWithConcurrency(audioFiles, concurrency, async (entry) => {
       const audioPath = path.join(folderPath, entry.name);
       const sidecarArtwork = findSidecarArtwork(folderPath, entry.name, fileNameLookup);
       const artwork = sidecarArtwork || await getEmbeddedArtwork(audioPath);
       return {
-        id: `local-${index}`,
+        id: `local:${entry.name}`,
+        key: `local:${entry.name}`,
         label: path.basename(entry.name, path.extname(entry.name)),
+        relativePath: entry.name,
         src: audioPath,
         srcUrl: pathToFileURL(audioPath).href,
         isLocal: true,
