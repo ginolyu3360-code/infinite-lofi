@@ -56,8 +56,7 @@ test("normalizes versioned state and rejects unsafe values", () => {
       schemaVersion: 1,
       settings: {
         timer: { focusSeconds: -20, breakSeconds: 999999 },
-        statsRange: "forever",
-        closeBehavior: "delete"
+        statsRange: "forever"
       },
       notes: { files: [{ id: "a", name: "A", content: "ok" }], activeId: "missing" },
       stats: { focusRows: [{ day: "2026-09-07", focusSeconds: -1 }] },
@@ -69,7 +68,6 @@ test("normalizes versioned state and rejects unsafe values", () => {
   const state = migrateStoredState(storage, 2000);
   assert.deepEqual(state.settings.timer, { focusSeconds: 60, breakSeconds: 21600 });
   assert.equal(state.settings.statsRange, "week");
-  assert.equal(state.settings.closeBehavior, "quit");
   assert.equal(state.notes.activeId, "a");
   assert.deepEqual(state.stats.focusRows, []);
   assert.deepEqual(state.player.trackOrder, ["one", "two"]);
@@ -80,7 +78,6 @@ test("exports and restores a complete versioned backup", () => {
   const storage = createMemoryStorage();
   const repository = createRepository(storage, () => 3000);
   repository.update((state) => {
-    state.settings.closeBehavior = "tray";
     state.player.folderPath = "/Music/Focus";
     state.notes.files = [
       { id: "note-1", name: "Ideas", content: "Keep me", pinned: true, updatedAt: 10 }
@@ -93,7 +90,6 @@ test("exports and restores a complete versioned backup", () => {
   assert.equal(backup.schemaVersion, CURRENT_SCHEMA_VERSION);
 
   const restored = importBackup(JSON.stringify(backup), 4000);
-  assert.equal(restored.settings.closeBehavior, "tray");
   assert.equal(restored.player.folderPath, "/Music/Focus");
   assert.equal(restored.notes.files[0].content, "Keep me");
 });
@@ -140,7 +136,6 @@ test("restores documented settings and active state after repository recreation"
   const storage = createMemoryStorage();
   const firstRun = createRepository(storage, () => 7000);
   firstRun.update((state) => {
-    state.settings.closeBehavior = "tray";
     state.settings.statsRange = "month";
     state.settings.ui = { volume: 0, brightness: 1.2 };
     state.player = {
@@ -157,7 +152,6 @@ test("restores documented settings and active state after repository recreation"
   });
 
   const relaunched = createRepository(storage, () => 8000).getState();
-  assert.equal(relaunched.settings.closeBehavior, "tray");
   assert.equal(relaunched.settings.statsRange, "month");
   assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2 });
   assert.deepEqual(relaunched.player.trackOrder, ["b.wav", "a.wav"]);

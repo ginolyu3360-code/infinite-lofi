@@ -209,8 +209,18 @@ try {
         'statsDrawer', 'backgroundDrawer', 'lofiPlayer', 'restoreBackupBtn',
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
         'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn',
-        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn'
+        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn'
       ].every((id) => Boolean(document.getElementById(id)))
+    };
+  })()`);
+
+  const shortcutHelpResult = await evaluate(`(() => {
+    document.querySelector('#shortcutHelpBtn').click();
+    const openedFromButton = !document.querySelector('#shortcutHelpOverlay').classList.contains('hidden');
+    document.querySelector('#shortcutHelpCloseBtn').click();
+    return {
+      openedFromButton,
+      closedFromButton: document.querySelector('#shortcutHelpOverlay').classList.contains('hidden')
     };
   })()`);
 
@@ -272,6 +282,19 @@ try {
     return { statsVisible, backgroundVisible };
   })()`);
 
+  const whiteSceneResult = await evaluate(`(async () => {
+    document.querySelector('#bgWhiteBtn').click();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const result = {
+      enabled: document.body.classList.contains('bg-white-background'),
+      bodyColor: getComputedStyle(document.body).color,
+      panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
+    };
+    document.querySelector('#bgBlackBtn').click();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return result;
+  })()`);
+
   const playerResult = await evaluate(`(async () => {
     const player = document.querySelector('#lofiPlayer');
     document.querySelector('#playPauseBtn').click();
@@ -299,6 +322,7 @@ try {
   const failures = [];
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
+  if (!shortcutHelpResult.openedFromButton || !shortcutHelpResult.closedFromButton) failures.push("shortcut help entry point failed");
   if (responsiveLayouts.some((layout) => layout.timerOverflow > 1 || !layout.cardInsideViewport || !layout.playerInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
@@ -311,25 +335,16 @@ try {
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer)) failures.push("timer did not count down");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.backgroundVisible) failures.push("drawer interaction failed");
+  if (!whiteSceneResult.enabled || whiteSceneResult.bodyColor !== "rgb(39, 37, 32)" || whiteSceneResult.panelBackground === "none") {
+    failures.push("White Scene theme adaptation failed");
+  }
   if (playerResult.pausedAfterClick || !playerResult.source) failures.push("audio playback failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, responsiveLayouts, miniMode, restoredFullMode, runningTimer, notesResult, drawersResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, responsiveLayouts, miniMode, restoredFullMode, runningTimer, notesResult, drawersResult, whiteSceneResult, playerResult, finalState, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
-  if (appProcess) {
-    const exitResult = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("Quit App did not exit Electron")), 5_000);
-      appProcess.once("exit", (code, signal) => {
-        clearTimeout(timeout);
-        if (code === 0) resolve();
-        else reject(new Error(`Quit App exited unexpectedly (code ${code}, signal ${signal || "none"})`));
-      });
-    });
-    await evaluate("document.querySelector('#windowCloseBtn').click(); true");
-    await exitResult;
-  }
   console.log("Infinite Lo-Fi UI smoke test passed.");
 } finally {
   stopApp();

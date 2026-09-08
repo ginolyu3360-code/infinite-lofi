@@ -8,6 +8,10 @@
 - Added Universal macOS builds containing both Apple Silicon and Intel binaries
 - Added tag-driven GitHub Release automation with checksums and idempotent asset uploads
 - Upgraded electron-builder to 26.15.3 and resolved all npm audit findings
+- Added the responsive Quiet Studio interface, dedicated Mini Mode, larger controls, and responsive statistics
+- Replaced the custom close-mode control with native OS window controls and standard macOS close/quit behavior
+- Added a visible keyboard-shortcut entry point and adaptive neutral glass surfaces for visual backgrounds
+- Reworked White Scene as a warm light theme across panels, controls, statistics, shortcut help, and Mini Mode
 
 ## 1.1.0 — 2026-09-07
 

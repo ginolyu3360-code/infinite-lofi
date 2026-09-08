@@ -1,6 +1,6 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 
 ## Start of the next session
 
@@ -17,6 +17,7 @@ Updated: 2026-09-07
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
+- `origin/main` is at `9edd480`; CI run `34141160551` passed. The 2026-09-08 native-window, glass-surface, and shortcut-entry feedback changes are verified locally but not yet committed or pushed.
 - Phase 3 has not started.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
@@ -34,7 +35,7 @@ Updated: 2026-09-07
 ## Pre-Phase 3 hardening delivered
 
 - Unified focus-history retention at 366 daily rows so recording a new session cannot silently truncate imported history to 60 rows.
-- Made the custom Quit App action terminate Electron on macOS; tray mode continues to hide the window, and the final quit path is covered by the UI smoke test.
+- Replaced the custom close-mode control with OS-native window controls: on macOS the red button closes the window, `Cmd+Q` or the tray menu quits, and the dock or tray recreates a closed window.
 - Made track artwork an explicit `Track Cover` background mode so black, white, wallpaper, image, and video choices are respected.
 - Replaced synchronous, unbounded music-folder scanning with asynchronous directory access, bounded metadata concurrency, sidecar-first artwork lookup, and file-backed embedded-artwork caching.
 - Restricted restore scans to canonical folders previously approved through the native folder chooser.
@@ -48,11 +49,14 @@ Updated: 2026-09-07
 - Removed timer-area scrolling and made the timer fit all supported full and Mini window sizes.
 - Rebuilt the statistics drawer with larger controls and readable horizontal month-chart scrolling.
 - Increased primary control targets to 44 px in full view and added backdrop, Escape, touch/pen swipe, keyboard-focus, and reduced-motion behavior.
+- Added a visible `Keys ?` header entry and retained `Shift + /` as the keyboard shortcut for the configurable shortcut panel.
+- Changed visual-background surfaces to neutral translucent glass with stronger wallpaper visibility and stable text contrast.
+- Reworked White Scene into a complete warm-light palette covering the workspace, player, drawers, forms, statistics, shortcut help, sliders, and Mini Mode.
 
 ## Last completed verification
 
 - `npm run check`: passed.
-- Unit tests: 31 passed, 0 failed.
+- Unit tests: 30 passed, 0 failed.
 - Development UI smoke test: passed with no renderer exceptions.
 - Universal packaged-app UI smoke test: passed with no renderer exceptions.
 - Offline-font checks: both bundled font families loaded; zero remote stylesheets.

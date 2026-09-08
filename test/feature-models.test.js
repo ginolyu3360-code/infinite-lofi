@@ -17,7 +17,6 @@ const {
 const { normalizeToggleSettings } = require("../src/ui");
 const { bindSwipeToClose, isTypingElement } = require("../src/bindings");
 const { isTrustedNavigationUrl } = require("../src/security");
-const { resolveWindowCloseAction } = require("../src/app-lifecycle");
 
 test("restores an active timer from its deadline", () => {
   const restored = resolveRestoredRuntime(
@@ -165,12 +164,6 @@ test("allows only the trusted application document to navigate", () => {
   assert.equal(isTrustedNavigationUrl(`${trusted}?external=1`, trusted), false);
   assert.equal(isTrustedNavigationUrl("https://example.com/", trusted), false);
   assert.equal(isTrustedNavigationUrl("not a URL", trusted), false);
-});
-
-test("maps window close requests to quit, hide, or final close consistently", () => {
-  assert.equal(resolveWindowCloseAction({ closeBehavior: "quit", isQuitting: false }), "quit");
-  assert.equal(resolveWindowCloseAction({ closeBehavior: "tray", isQuitting: false }), "hide");
-  assert.equal(resolveWindowCloseAction({ closeBehavior: "tray", isQuitting: true }), "close");
 });
 
 test("detects typing targets without depending on Electron", () => {

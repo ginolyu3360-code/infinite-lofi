@@ -111,12 +111,10 @@ const playlistPanel = document.getElementById("playlistPanel");
 const playlistItems = document.getElementById("playlistItems");
 const volumeSlider = document.getElementById("volumeSlider");
 const brightnessSlider = document.getElementById("brightnessSlider");
-const windowMinBtn = document.getElementById("windowMinBtn");
-const windowCloseBtn = document.getElementById("windowCloseBtn");
+const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
 const focusMinutesInput = document.getElementById("focusMinutesInput");
 const breakMinutesInput = document.getElementById("breakMinutesInput");
 const timerConfigPanel = document.getElementById("timerConfigPanel");
-const closeModeToggleBtn = document.getElementById("closeModeToggleBtn");
 const todayFocusStat = document.getElementById("todayFocusStat");
 const statsBars = document.getElementById("statsBars");
 const statsRangeTodayBtn = document.getElementById("statsRangeTodayBtn");
@@ -182,7 +180,6 @@ let focusDurationSeconds = DEFAULT_FOCUS_SECONDS;
 let breakDurationSeconds = DEFAULT_BREAK_SECONDS;
 let remainingSeconds = focusDurationSeconds;
 let timerPhase = "focus";
-let closeBehavior = "quit";
 let miniModeEnabled = false;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
@@ -389,7 +386,7 @@ function renderBackgroundUi() {
       bgPreviewSurface.textContent = "";
     } else if (backgroundSettings.mode === "white") {
       bgPreviewSurface.style.backgroundImage = "none";
-      bgPreviewSurface.style.backgroundColor = "#ffffff";
+      bgPreviewSurface.style.backgroundColor = "#f3efe7";
       bgPreviewSurface.textContent = "";
     } else {
       bgPreviewSurface.style.backgroundImage = "none";
@@ -535,7 +532,15 @@ function applyBackground() {
   try {
     const effectiveBackground = getEffectiveBackground();
     const showcaseActive = showcaseModeEnabled;
-    const backgroundOpacity = effectiveBackground.mode === "white" || showcaseActive ? "1" : effectiveBackground.fromTrackArtwork ? "0.9" : "0.45";
+    const hasVisualBackground = effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
+    document.body.classList.toggle("has-visual-background", hasVisualBackground);
+    const backgroundOpacity = effectiveBackground.mode === "white" || showcaseActive
+      ? "1"
+      : effectiveBackground.fromTrackArtwork
+        ? "0.92"
+        : hasVisualBackground
+          ? "0.82"
+          : "0.45";
     const nextKey = buildBackgroundRenderKey(effectiveBackground, showcaseModeEnabled);
     const shouldFade = nextKey !== backgroundRenderKey;
     backgroundRenderKey = nextKey;
@@ -598,7 +603,7 @@ function applyBackground() {
         bgImage.style.backgroundSize = "cover";
         bgImage.style.backgroundPosition = "center";
         if (effectiveBackground.mode === "white") {
-          bgImage.style.backgroundColor = "#ffffff";
+          bgImage.style.backgroundColor = "#f3efe7";
           document.body.classList.add("bg-white-background");
         } else {
           bgImage.style.backgroundColor = "#000000";
@@ -704,29 +709,6 @@ function setTimerInputsLocked(locked) {
   focusMinutesInput.disabled = locked;
   breakMinutesInput.disabled = locked;
   timerConfigPanel.classList.toggle("is-locked", locked);
-}
-
-function renderCloseModeToggle() {
-  closeModeToggleBtn.textContent = closeBehavior === "tray" ? "To Tray" : "Quit App";
-}
-
-async function loadCloseBehavior() {
-  closeBehavior = appStorage.getState().settings.closeBehavior === "tray" ? "tray" : "quit";
-  if (window.desktopApp && typeof window.desktopApp.setCloseBehavior === "function") {
-    window.desktopApp.setCloseBehavior(closeBehavior);
-  }
-  renderCloseModeToggle();
-}
-
-function toggleCloseBehavior() {
-  closeBehavior = closeBehavior === "tray" ? "quit" : "tray";
-  renderCloseModeToggle();
-  appStorage.update((state) => {
-    state.settings.closeBehavior = closeBehavior;
-  });
-  if (window.desktopApp && typeof window.desktopApp.setCloseBehavior === "function") {
-    window.desktopApp.setCloseBehavior(closeBehavior);
-  }
 }
 
 function renderTimer() {
@@ -973,11 +955,8 @@ function normalizeConfigInputDisplay() {
 
 
 function bindWindowControls() {
-  if (!window.desktopWindow) {
-    return;
-  }
-  windowMinBtn.addEventListener("click", () => window.desktopWindow.minimize());
-  windowCloseBtn.addEventListener("click", () => window.desktopWindow.close());
+  document.documentElement.dataset.platform = window.desktopWindow?.platform || "unknown";
+  shortcutHelpBtn?.addEventListener("click", () => toggleShortcutHelp(true));
   miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
   notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
@@ -1020,8 +999,6 @@ async function init() {
   loadStatsRange();
   loadTimerSettings();
   loadTimerRuntime();
-  await loadCloseBehavior();
-  renderCloseModeToggle();
   updateConfigInputs();
   setTimerInputsLocked(timerId !== null);
   applyBackground();
@@ -1045,7 +1022,6 @@ async function init() {
       timerReset,
       focusMinutesInput,
       breakMinutesInput,
-      closeModeToggleBtn,
       statsToggleBtn,
       statsDrawer,
       statsCloseBtn,
@@ -1099,7 +1075,6 @@ async function init() {
       resetTimer,
       applyTimerConfigLive,
       normalizeConfigInputDisplay,
-      toggleCloseBehavior,
       toggleStatsDrawer,
       setStatsRange,
       exportStatsCsv,

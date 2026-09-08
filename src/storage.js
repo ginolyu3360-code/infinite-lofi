@@ -68,8 +68,7 @@
           breakSeconds: DEFAULT_BREAK_SECONDS
         },
         ui: {},
-        statsRange: "week",
-        closeBehavior: "quit"
+        statsRange: "week"
       },
       notes: {
         files: [],
@@ -138,8 +137,7 @@
         ui: isObject(settings.ui) ? clone(settings.ui) : {},
         statsRange: ["today", "week", "month"].includes(settings.statsRange)
           ? settings.statsRange
-          : defaults.settings.statsRange,
-        closeBehavior: settings.closeBehavior === "tray" ? "tray" : "quit"
+          : defaults.settings.statsRange
       },
       notes: { files, activeId },
       stats: {

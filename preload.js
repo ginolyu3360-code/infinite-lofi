@@ -1,15 +1,12 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("desktopWindow", {
-  minimize: () => ipcRenderer.send("window:minimize"),
-  close: () => ipcRenderer.send("window:close"),
+  platform: process.platform,
   setMiniMode: (enabled) => ipcRenderer.invoke("window:setMiniMode", enabled === true)
 });
 
 contextBridge.exposeInMainWorld("desktopApp", {
   sendTrayStatus: (status) => ipcRenderer.send("app:trayStatus", status),
-  getCloseBehavior: () => ipcRenderer.invoke("app:getCloseBehavior"),
-  setCloseBehavior: (behavior) => ipcRenderer.send("app:setCloseBehavior", behavior),
   selectMusicFolder: () => ipcRenderer.invoke("music:selectFolder"),
   scanMusicFolder: (folderPath) => ipcRenderer.invoke("music:scanFolder", folderPath),
   selectBackgroundImage: () => ipcRenderer.invoke("background:selectImage"),

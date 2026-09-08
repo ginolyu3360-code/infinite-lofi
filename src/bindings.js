@@ -23,7 +23,7 @@
       const isMeta = event.metaKey || event.ctrlKey;
       const isTyping = isTypingElement(event.target, HTMLElementType);
 
-      if (key === "?" || (key === "/" && event.shiftKey)) {
+      if ((key === "?" || (key === "/" && event.shiftKey)) && isShortcutEnabled("helpToggle")) {
         event.preventDefault();
         actions.toggleShortcutHelp();
         return;
@@ -199,7 +199,6 @@
     on(e.breakMinutesInput, "input", a.applyTimerConfigLive);
     on(e.focusMinutesInput, "blur", a.normalizeConfigInputDisplay);
     on(e.breakMinutesInput, "blur", a.normalizeConfigInputDisplay);
-    on(e.closeModeToggleBtn, "click", a.toggleCloseBehavior);
     on(e.statsToggleBtn, "click", () => a.toggleStatsDrawer());
     on(e.statsCloseBtn, "click", () => a.toggleStatsDrawer(false));
     on(e.statsRangeTodayBtn, "click", () => a.setStatsRange("today"));

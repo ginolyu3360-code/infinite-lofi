@@ -35,7 +35,7 @@ Status: completed on 2026-09-07. Data protection, stylesheet extraction, and fea
 - [x] Move the large inline stylesheet out of `index.html` and into the Tailwind input stylesheet or focused component styles.
 - [x] Introduce a versioned storage schema and migration layer.
 - [x] Add backup import and restore, not only export.
-- [x] Persist useful app state such as close behavior, selected local music folder, playlist order, and the active timer state where appropriate.
+- [x] Persist useful app state such as the selected local music folder, playlist order, and active timer state where appropriate.
 - [x] Add clear empty, error, and recovery states for unreadable media folders or corrupted stored data.
 
 ### Phase 1 completion criteria
@@ -73,7 +73,7 @@ Only start after Phases 0–2 are stable.
 Status: completed and verified locally on 2026-09-07. Implemented in commit `c3bbf69`; the latest `main` GitHub Actions result must still be confirmed after the source push.
 
 - [x] Keep focus-history retention consistent at 366 daily rows across storage and session recording.
-- [x] Make Quit App exit reliably on macOS while preserving minimize-to-tray behavior.
+- [x] Use native OS window controls and standard macOS close/quit behavior while preserving tray reopen and Quit actions.
 - [x] Respect explicit background choices and make current-track artwork an opt-in background mode.
 - [x] Isolate UI smoke tests from the normal application profile and run development plus packaged smoke tests in CI.
 - [x] Move music scanning off synchronous filesystem calls, bound metadata concurrency, cache embedded artwork as files, and avoid base64 artwork IPC payloads.

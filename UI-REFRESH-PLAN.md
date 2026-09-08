@@ -31,7 +31,7 @@ Use a quiet-studio aesthetic:
 
 ### Full view
 
-1. Compact top bar: local time, date, weather, Mini Mode, minimize, and close.
+1. Compact top bar: local time, date, weather, shortcut help, and Mini Mode; window controls remain OS-native.
 2. Collapsible notes workspace on the left.
 3. Central focus workspace containing phase, timer, controls, and session settings.
 4. Persistent player dock at the bottom of the focus workspace.
@@ -114,7 +114,7 @@ Full mode target bounds:
 - Mini Mode works at its target and minimum bounds and returns to the previous full bounds.
 - Primary controls meet the target sizing rules and remain keyboard accessible.
 - Month statistics remain readable and horizontally scrollable on small widths.
-- Notes, player, background, weather, backup, restore, and close behavior remain functional.
+- Notes, player, background, weather, backup, restore, native close, and tray reopen behavior remain functional.
 - Reduced-motion mode removes nonessential transitions.
 - Existing unit tests pass; new layout and Mini Mode tests are added.
 - Development and Universal packaged-app smoke tests pass with isolated profiles and no renderer exceptions.

@@ -20,8 +20,9 @@
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹并缓存嵌入封面
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
-- 背景模式：黑/白/壁纸/图片/视频
-- 托盘图标与“最小化到托盘”行为
+- 背景模式：黑/白/壁纸/图片/视频；White Scene 使用完整暖白主题，视觉背景使用中性半透明玻璃层
+- 系统原生窗口按钮、标准 macOS 关闭/退出行为与托盘菜单
+- 顶栏快捷键入口，也可按 `Shift + /`（即 `?`）打开快捷键面板
 - 实时时钟、可关闭或指定城市的天气与简单统计面板
 - 严格 CSP、Electron 沙箱和导航限制；生产包默认关闭 DevTools
 - 离线本地字体，不再在运行时访问 Google Fonts
@@ -134,7 +135,7 @@ electron-builder 的关键配置（来自 package.json）：
 
 ## 已知/重要事项
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
-- Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；关闭行为、音乐目录/顺序和活动计时器可以恢复。
+- Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；音乐目录/顺序和活动计时器可以恢复。
 - Phase 2（签名除外）已完成：天气默认关闭，可选择自动 IP 定位或手动城市；设置面板会解释相应网络行为。
 - Phase 3 尚未开始；其之前的正确性加固和 UI 基础改版已完成并通过源码版与 Universal 打包版验证。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
@@ -182,8 +183,9 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks and ability to load and scan a local music folder
 - Versioned local storage with legacy migration and validated backup restore
-- Background modes: black, white, wallpaper, image, video
-- Tray icon with "minimize to tray" behavior
+- Background modes: black, white, wallpaper, image, and video, with a complete warm-light White Scene and adaptive neutral glass over visual backgrounds
+- Native OS window controls, standard macOS close/quit behavior, and a tray menu
+- Visible keyboard-shortcut entry point; `Shift + /` (`?`) also opens the shortcut panel
 - Live clock, opt-in automatic or city-based weather, and focus stats panel
 - Restrictive CSP, renderer sandboxing, blocked navigation, and production DevTools disabled
 - Locally bundled fonts for an offline main UI

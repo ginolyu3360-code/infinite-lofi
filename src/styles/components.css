@@ -5,9 +5,9 @@
   --ink-muted: rgba(244, 240, 232, 0.46);
   --accent: #e8b66b;
   --accent-strong: #f3c77f;
-  --surface: rgba(24, 24, 22, 0.88);
-  --surface-raised: rgba(35, 34, 31, 0.94);
-  --surface-soft: rgba(255, 255, 255, 0.055);
+  --surface: rgba(27, 28, 28, 0.78);
+  --surface-raised: rgba(34, 35, 35, 0.9);
+  --surface-soft: rgba(255, 255, 255, 0.07);
   --line: rgba(255, 246, 230, 0.12);
   --line-strong: rgba(255, 246, 230, 0.2);
   --danger: #ef9a9a;
@@ -101,13 +101,16 @@ textarea {
   gap: 1rem;
   padding: 0.45rem 0.75rem 0.45rem 1rem;
   border-bottom: 1px solid rgba(255, 246, 230, 0.07);
-  background: rgba(16, 16, 14, 0.74);
+  background: rgba(15, 16, 16, 0.62);
   backdrop-filter: blur(18px);
 }
 
+html[data-platform="darwin"] #appHeader {
+  padding-left: 5.25rem;
+}
+
 #statusWidget,
-.header-actions,
-.window-controls {
+.header-actions {
   display: flex;
   align-items: center;
 }
@@ -146,11 +149,6 @@ textarea {
   flex: 0 0 auto;
   gap: 0.45rem;
   -webkit-app-region: no-drag;
-}
-
-.window-controls {
-  gap: 0.38rem;
-  margin-left: 0.15rem;
 }
 
 .header-action-btn,
@@ -210,9 +208,23 @@ textarea {
 
 .glass-panel {
   border: 1px solid var(--line);
-  background: linear-gradient(155deg, rgba(38, 37, 34, 0.9), rgba(22, 22, 20, 0.86));
+  background: linear-gradient(155deg, rgba(36, 37, 38, 0.78), rgba(20, 21, 22, 0.7));
   box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px) saturate(0.94);
+}
+
+body.has-visual-background #ambienceOverlay {
+  background: linear-gradient(145deg, rgba(10, 11, 12, 0.38), rgba(14, 15, 16, 0.18));
+}
+
+body.has-visual-background #appHeader {
+  background: rgba(12, 13, 14, 0.48);
+}
+
+body.has-visual-background .glass-panel {
+  border-color: rgba(255, 255, 255, 0.17);
+  background: linear-gradient(155deg, rgba(29, 31, 32, 0.64), rgba(15, 17, 18, 0.52));
+  backdrop-filter: blur(24px) saturate(0.88);
 }
 
 #appLayout {
@@ -449,8 +461,7 @@ textarea {
 
 .timer-kicker,
 .timer-phase,
-.timer-limit-hint,
-.close-action-row {
+.timer-limit-hint {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   text-transform: uppercase;
 }
@@ -495,9 +506,9 @@ textarea {
 }
 
 #timerConfigPanel {
-  width: min(100%, 31rem);
+  width: min(100%, 18rem);
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   align-items: end;
   gap: 0.6rem 1rem;
   margin-top: 0.35rem;
@@ -537,15 +548,6 @@ textarea {
   padding: 0 0.65rem;
   text-align: center;
   font-family: "IBM Plex Mono", ui-monospace, monospace;
-}
-
-.close-action-row {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  color: var(--ink-muted);
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
 }
 
 .timer-limit-hint {
@@ -1163,11 +1165,140 @@ textarea {
 }
 
 body.bg-white-background {
-  background: #f0ece4;
+  --ink: #272520;
+  --ink-soft: rgba(39, 37, 32, 0.72);
+  --ink-muted: rgba(39, 37, 32, 0.5);
+  --accent: #946126;
+  --accent-strong: #b6752d;
+  --surface: rgba(247, 243, 235, 0.78);
+  --surface-raised: rgba(250, 247, 240, 0.94);
+  --surface-soft: rgba(55, 47, 36, 0.065);
+  --line: rgba(55, 47, 36, 0.14);
+  --line-strong: rgba(55, 47, 36, 0.24);
+  --danger: #a34141;
+  --shadow-panel: 0 18px 55px rgba(78, 59, 31, 0.16);
+  background: #f3efe7;
+  color-scheme: light;
 }
 
 body.bg-white-background #ambienceOverlay {
-  background: linear-gradient(150deg, rgba(250, 248, 242, 0.16), rgba(222, 215, 203, 0.22));
+  background: linear-gradient(150deg, rgba(255, 255, 252, 0.34), rgba(220, 210, 194, 0.28));
+}
+
+body.bg-white-background #appHeader {
+  border-bottom-color: rgba(55, 47, 36, 0.1);
+  background: rgba(247, 243, 235, 0.72);
+}
+
+body.bg-white-background .glass-panel {
+  border-color: var(--line);
+  background: linear-gradient(155deg, rgba(255, 253, 248, 0.82), rgba(231, 225, 213, 0.68));
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(22px) saturate(0.88);
+}
+
+body.bg-white-background .header-action-btn:hover,
+body.bg-white-background .window-btn:hover,
+body.bg-white-background .control-btn:hover,
+body.bg-white-background .transport-btn:hover,
+body.bg-white-background .stats-range-btn:hover,
+body.bg-white-background .stats-export-btn:hover {
+  background: rgba(55, 47, 36, 0.1);
+}
+
+body.bg-white-background .control-btn.primary-control,
+body.bg-white-background .transport-primary,
+body.bg-white-background .stats-range-btn.is-active {
+  border-color: rgba(125, 77, 25, 0.32);
+  background: var(--accent-strong);
+  color: #fffaf1;
+}
+
+body.bg-white-background .control-btn.primary-control:hover,
+body.bg-white-background .transport-primary:hover {
+  background: #9f6325;
+}
+
+body.bg-white-background .danger-subtle,
+body.bg-white-background .stats-danger-btn {
+  border-color: rgba(163, 65, 65, 0.22);
+  background: rgba(163, 65, 65, 0.07);
+  color: #8d3434;
+}
+
+body.bg-white-background .note-tab,
+body.bg-white-background .playlist-item,
+body.bg-white-background .stats-metric-card,
+body.bg-white-background .stat-bar,
+body.bg-white-background .shortcut-key {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+body.bg-white-background .note-tab:hover,
+body.bg-white-background .playlist-item:hover {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+body.bg-white-background .note-tab.is-active,
+body.bg-white-background .playlist-item.is-active {
+  border-color: rgba(148, 97, 38, 0.34);
+  background: rgba(182, 117, 45, 0.12);
+}
+
+body.bg-white-background #notesInput,
+body.bg-white-background .timer-config-input,
+body.bg-white-background .weather-settings-input,
+body.bg-white-background #playlistPanel,
+body.bg-white-background .segmented-control,
+body.bg-white-background .weather-settings,
+body.bg-white-background .stats-chart-wrap,
+body.bg-white-background .scene-meta {
+  background-color: rgba(255, 255, 255, 0.38);
+}
+
+body.bg-white-background .drawer-header {
+  background: rgba(244, 239, 230, 0.94);
+}
+
+body.bg-white-background .stats-chart-wrap {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2.7rem,
+    rgba(55, 47, 36, 0.08) 2.7rem calc(2.7rem + 1px)
+  );
+}
+
+body.bg-white-background .stat-bar {
+  border-color: rgba(55, 47, 36, 0.08);
+}
+
+body.bg-white-background .stats-tooltip {
+  background: #f7f2e9;
+}
+
+body.bg-white-background #drawerBackdrop,
+body.bg-white-background #shortcutHelpOverlay {
+  background: rgba(68, 58, 45, 0.3);
+}
+
+body.bg-white-background #shortcutHelpPanel,
+body.bg-white-background #storageRecoveryNotice {
+  background: var(--surface-raised);
+}
+
+body.bg-white-background #shortcutHelpTitle,
+body.bg-white-background #shortcutHelpPanel > p {
+  color: var(--ink);
+}
+
+body.bg-white-background .progress-slider,
+body.bg-white-background .aux-slider {
+  background: linear-gradient(90deg, rgba(182, 117, 45, 0.9), rgba(55, 47, 36, 0.16));
+}
+
+body.bg-white-background .progress-slider::-webkit-slider-thumb,
+body.bg-white-background .aux-slider::-webkit-slider-thumb {
+  background: #fbf7ef;
 }
 
 body.is-showcase-mode #appHeader,
@@ -1292,10 +1423,6 @@ body.is-showcase-mode .grain-layer {
     width: min(100%, 22rem);
   }
 
-  .close-action-row {
-    justify-content: center;
-  }
-
   .timer-limit-hint {
     display: none;
   }
@@ -1364,10 +1491,14 @@ body.is-mini-mode #appHeader {
   padding: 0.25rem 0.45rem 0.25rem 0.75rem;
 }
 
+html[data-platform="darwin"] body.is-mini-mode #appHeader {
+  padding-left: 5.25rem;
+}
+
 body.is-mini-mode #statusDate,
 body.is-mini-mode #statusWeather,
 body.is-mini-mode #notesToggleBtn,
-body.is-mini-mode #windowMinBtn,
+body.is-mini-mode #shortcutHelpBtn,
 body.is-mini-mode #notesPanel,
 body.is-mini-mode #showcaseToggleBtn,
 body.is-mini-mode .timer-kicker,

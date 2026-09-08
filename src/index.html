@@ -50,11 +50,8 @@
         </div>
         <div class="header-actions">
           <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes">Notes</button>
+          <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts">Keys ?</button>
           <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
-          <div class="window-controls">
-            <button id="windowMinBtn" class="window-btn" title="Minimize" aria-label="Minimize">−</button>
-            <button id="windowCloseBtn" class="window-btn" title="Close" aria-label="Close">×</button>
-          </div>
         </div>
       </header>
 
@@ -110,10 +107,6 @@
                     Break (min)
                     <input id="breakMinutesInput" type="number" min="1" max="360" value="5" class="timer-config-input" title="Set break duration in minutes" />
                   </label>
-                </div>
-                <div class="close-action-row">
-                  <span>Close Action</span>
-                  <button id="closeModeToggleBtn" class="control-btn" title="Toggle close behavior">Quit App</button>
                 </div>
                 <p class="timer-limit-hint">
                   Max duration: 6h (360min)
@@ -283,7 +276,7 @@
             <h2 id="shortcutHelpTitle" class="font-mono text-xs uppercase tracking-[0.25em] text-zinc-100/90">Keyboard Shortcuts</h2>
             <button id="shortcutHelpCloseBtn" class="window-btn" title="Close" aria-label="Close help">x</button>
           </div>
-          <p class="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-300/70">Press Shift + / ( ? ) to toggle this panel. Use the checkboxes to enable or disable each shortcut.</p>
+          <p class="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-300/70">Open this anytime from Keys ? in the top bar, or press Shift + /. Use the checkboxes to enable or disable each shortcut.</p>
 
           <h3 class="shortcut-group-title">Timer</h3>
           <div class="shortcut-row"><span class="shortcut-label">Start / Pause Timer</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Enter</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="timerToggle" checked aria-label="Toggle Start Pause Timer shortcut" /></div>

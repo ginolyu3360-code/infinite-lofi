@@ -1,5 +1,27 @@
 # Verification Log
 
+## 2026-09-08 — Native window and visual-background polish
+
+### Implemented
+
+- Removed the custom Quit App/minimize-to-tray setting and its stale persisted field.
+- Restored native OS window controls and standard macOS behavior: close destroys the window, dock/tray activation recreates it, and `Cmd+Q` or tray Quit exits.
+- Added a visible `Keys ?` entry in the top bar while retaining `Shift + /` to open the shortcut panel.
+- Rebalanced panels toward neutral translucent glass for wallpaper, imported image, video, and track-cover backgrounds; visual backgrounds now render more clearly without giving up the contrast layer.
+- Reworked White Scene into a warm light theme with dark typography, light glass panels, brown-gold accents, and matching controls across full view, drawers, shortcut help, and Mini Mode.
+- Changed desktop-wallpaper lookup from a blocking system call to an asynchronous call with a five-second timeout.
+
+### Checks completed
+
+- Passed syntax checks, stylesheet build, and 30 unit tests with zero failures.
+- Passed the isolated development UI smoke test, including the visible shortcut-help entry, White Scene theme assertion, all responsive sizes, and Mini Mode.
+- Rebuilt the unsigned Universal macOS application and passed the isolated packaged-app UI smoke test with the same shortcut and responsive coverage and no renderer exceptions.
+- Visually confirmed the native macOS traffic lights, shortcut panel, wallpaper-aware glass treatment, White Scene full view, statistics drawer, shortcut overlay, and Mini Mode in the current workspace build.
+
+### Stage status
+
+- These feedback changes are local and awaiting user review; no tag or Release was created, and Phase 3 has not started.
+
 ## 2026-09-07 — UI foundation refresh
 
 ### Implemented

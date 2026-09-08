@@ -1,20 +1,19 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, screen } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
-const { execFileSync } = require("child_process");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 const fs = require("fs");
 const musicMetadata = require("music-metadata");
-const { resolveWindowCloseAction } = require("./src/app-lifecycle");
 const { createMusicLibrary } = require("./src/music-library");
 const { isTrustedNavigationUrl } = require("./src/security");
 
 const mainDocumentPath = path.join(__dirname, "src", "index.html");
 const mainDocumentUrl = pathToFileURL(mainDocumentPath).href;
+const execFileAsync = promisify(execFile);
 
 let mainWindow = null;
 let tray = null;
-let isQuitting = false;
-let closeBehavior = "quit";
 let miniModeEnabled = false;
 let fullWindowBounds = null;
 let musicLibrary = null;
@@ -34,6 +33,7 @@ function sendCommandToRenderer(command) {
 
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
     return;
   }
   mainWindow.show();
@@ -62,11 +62,9 @@ function refreshTrayMenu() {
 
   const runLabel = trayStatus.isRunning ? "Pause Timer" : "Start Timer";
   const visibilityLabel = mainWindow && mainWindow.isVisible() ? "Hide Window" : "Show Window";
-  const closeModeLabel = closeBehavior === "tray" ? "Close Mode: Minimize To Tray" : "Close Mode: Quit App";
   const menu = Menu.buildFromTemplate([
     { label: `Pomodoro ${trayStatus.timerText}`, enabled: false },
     { label: trayStatus.phaseText, enabled: false },
-    { label: closeModeLabel, enabled: false },
     { type: "separator" },
     {
       label: runLabel,
@@ -89,10 +87,7 @@ function refreshTrayMenu() {
     { type: "separator" },
     {
       label: "Quit",
-      click: () => {
-        isQuitting = true;
-        app.quit();
-      }
+      click: () => app.quit()
     }
   ]);
 
@@ -109,12 +104,12 @@ function createMainWindow() {
     minHeight: 520,
     center: true,
     resizable: true,
-    frame: false,
+    frame: true,
     transparent: true,
     backgroundColor: "#00000000",
     vibrancy: process.platform === "darwin" ? "under-window" : undefined,
     visualEffectState: process.platform === "darwin" ? "active" : undefined,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -142,25 +137,8 @@ function createMainWindow() {
   if (process.platform === "win32") {
     mainWindow.setBackgroundColor("#00000000");
   }
-  if (process.platform === "darwin") {
-    mainWindow.setWindowButtonVisibility(false);
-  }
-
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
-  mainWindow.on("close", (event) => {
-    const action = resolveWindowCloseAction({ closeBehavior, isQuitting });
-    if (action === "hide") {
-      event.preventDefault();
-      mainWindow?.hide();
-      return;
-    }
-    if (action === "quit") {
-      event.preventDefault();
-      isQuitting = true;
-      setImmediate(() => app.quit());
-    }
-  });
   mainWindow.on("closed", () => {
     mainWindow = null;
     miniModeEnabled = false;
@@ -191,17 +169,6 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on("before-quit", () => {
-  isQuitting = true;
-});
-
-ipcMain.on("window:minimize", (event) => {
-  const targetWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow;
-  if (targetWindow && !targetWindow.isDestroyed()) {
-    targetWindow.minimize();
-  }
-});
-
 ipcMain.handle("window:setMiniMode", (event, enabled) => {
   if (!isTrustedIpcSender(event) || !mainWindow || mainWindow.isDestroyed()) return miniModeEnabled;
   const nextEnabled = enabled === true;
@@ -220,26 +187,6 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
     fullWindowBounds = null;
   }
   return miniModeEnabled;
-});
-
-ipcMain.on("window:close", (event) => {
-  const targetWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow;
-  if (targetWindow && !targetWindow.isDestroyed()) {
-    const action = resolveWindowCloseAction({ closeBehavior, isQuitting });
-    if (action === "hide") {
-      targetWindow.hide();
-      return;
-    }
-    isQuitting = true;
-    app.quit();
-  }
-});
-
-ipcMain.handle("app:getCloseBehavior", () => closeBehavior);
-
-ipcMain.on("app:setCloseBehavior", (_event, behavior) => {
-  closeBehavior = behavior === "tray" ? "tray" : "quit";
-  refreshTrayMenu();
 });
 
 ipcMain.on("app:trayStatus", (_event, status) => {
@@ -338,18 +285,18 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
   }
 });
 
-function getCurrentDesktopWallpaperPath() {
+async function getCurrentDesktopWallpaperPath() {
   if (process.platform !== "darwin") {
     return null;
   }
 
   try {
-    const output = execFileSync(
+    const { stdout } = await execFileAsync(
       "osascript",
       ["-e", 'tell application "System Events" to get picture of current desktop'],
-      { encoding: "utf8" }
+      { encoding: "utf8", timeout: 5000 }
     );
-    const wallpaperPath = String(output || "").trim().replace(/^"|"$/g, "");
+    const wallpaperPath = String(stdout || "").trim().replace(/^"|"$/g, "");
     return wallpaperPath || null;
   } catch (error) {
     console.error("Failed to read desktop wallpaper:", error);
@@ -358,7 +305,7 @@ function getCurrentDesktopWallpaperPath() {
 }
 
 ipcMain.handle("background:getWallpaper", async () => {
-  const wallpaperPath = getCurrentDesktopWallpaperPath();
+  const wallpaperPath = await getCurrentDesktopWallpaperPath();
   if (!wallpaperPath || !fs.existsSync(wallpaperPath)) {
     return null;
   }
