@@ -59,7 +59,22 @@
       .slice(-core.MAX_FOCUS_HISTORY_DAYS);
   }
 
-  const api = { buildRangeDays, recordFocusSession, summarizeFocusRows };
+  function summarizeDailyGoal(rows, day, goalSeconds) {
+    const totals = new Map(
+      core.aggregateFocusRows(rows).map((row) => [row.day, row.focusSeconds])
+    );
+    const focusSeconds = totals.get(day) || 0;
+    const normalizedGoal = core.normalizeDailyGoalSeconds(goalSeconds);
+    return {
+      focusSeconds,
+      goalSeconds: normalizedGoal,
+      isEnabled: normalizedGoal > 0,
+      isComplete: normalizedGoal > 0 && focusSeconds >= normalizedGoal,
+      progress: normalizedGoal > 0 ? core.clamp(focusSeconds / normalizedGoal, 0, 1) : 0
+    };
+  }
+
+  const api = { buildRangeDays, recordFocusSession, summarizeDailyGoal, summarizeFocusRows };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

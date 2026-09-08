@@ -65,11 +65,39 @@
     }
 
     function renderStats() {
-      const rows = appStorage.getState().stats.focusRows;
+      const state = appStorage.getState();
+      const rows = state.stats.focusRows;
       const days = statsModel.buildRangeDays(new Date(), rangeMode);
       const summary = statsModel.summarizeFocusRows(rows, days);
-      const todayMinutes = Math.round((summary.totals.get(core.getLocalDayKey(new Date())) || 0) / 60);
-      elements.todayFocusStat.textContent = `Today ${todayMinutes}m`;
+      const todayKey = core.getLocalDayKey(new Date());
+      const goal = statsModel.summarizeDailyGoal(
+        rows,
+        todayKey,
+        state.settings.goals?.dailyFocusSeconds
+      );
+      const todayMinutes = Math.round(goal.focusSeconds / 60);
+      const goalMinutes = Math.round(goal.goalSeconds / 60);
+      elements.todayFocusStat.textContent = goal.isEnabled
+        ? `Today ${todayMinutes} / ${goalMinutes}m${goal.isComplete ? " · Goal complete" : ""}`
+        : `Today ${todayMinutes}m · Daily goal off`;
+      if (elements.todayGoalProgress) {
+        elements.todayGoalProgress.setAttribute("aria-valuemin", "0");
+        elements.todayGoalProgress.setAttribute("aria-valuenow", String(todayMinutes));
+        elements.todayGoalProgress.setAttribute(
+          "aria-valuemax",
+          String(goal.isEnabled ? goalMinutes : Math.max(todayMinutes, 1))
+        );
+        elements.todayGoalProgress.setAttribute(
+          "aria-label",
+          goal.isEnabled
+            ? `${todayMinutes} of ${goalMinutes} focus minutes completed today`
+            : `${todayMinutes} focus minutes completed today; daily goal is off`
+        );
+      }
+      if (elements.todayGoalBar) {
+        elements.todayGoalBar.style.width = `${Math.round(goal.progress * 100)}%`;
+        elements.todayGoalBar.classList.toggle("is-complete", goal.isComplete);
+      }
       elements.statsHeadingLabel.textContent = {
         today: "Focus Stats (Today)",
         week: "Focus Stats (This Week)",
@@ -130,9 +158,9 @@
       renderStats();
     }
 
-    function recordCompletedFocusSession(focusSeconds) {
+    function recordCompletedFocusSession(focusSeconds, completedAt = new Date()) {
       const rows = appStorage.getState().stats.focusRows;
-      const today = core.getLocalDayKey(new Date());
+      const today = core.getLocalDayKey(completedAt);
       appStorage.update((state) => {
         state.stats.focusRows = statsModel.recordFocusSession(rows, today, focusSeconds);
       });

@@ -10,12 +10,12 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。
+当前发布版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。当前源码还包含尚未发布为新版本的 Phase 3A Focus Plan。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
 ## 主要特性
-- 番茄专注 / 休息计时器，支持开始/暂停/重置与托盘显示
+- 番茄专注 / 短休息 / 长休息计时器，支持可配置循环、独立自动开始选项、每日目标、开始/暂停/重置与托盘显示
 - Quiet Studio 响应式界面，以及可独立切换并恢复完整窗口大小的 Mini Mode
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹并缓存嵌入封面
@@ -137,7 +137,7 @@ electron-builder 的关键配置（来自 package.json）：
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
 - Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；音乐目录/顺序和活动计时器可以恢复。
 - Phase 2（签名除外）已完成：天气默认关闭，可选择自动 IP 定位或手动城市；设置面板会解释相应网络行为。
-- Phase 3 尚未开始；其之前的正确性加固和 UI 基础改版已完成并通过源码版与 Universal 打包版验证。
+- Phase 3A Focus Plan 已完成：可配置长休息与循环、独立自动开始选项、每日专注目标，以及兼容旧数据和备份的 schema v2 迁移。后续 Phase 3 分片尚未开始。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -173,12 +173,12 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current version: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon.
+Current release: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The current source also contains the not-yet-released Phase 3A Focus Plan.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
 ## Key features
-- Pomodoro-style focus/break timer with start/pause/reset and tray display
+- Pomodoro-style focus, short-break, and long-break timer with configurable cycles, independent auto-start options, an optional daily goal, start/pause/reset, and tray display
 - Responsive Quiet Studio interface with an explicit Mini Mode that restores the previous full-window bounds
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks and ability to load and scan a local music folder
@@ -241,7 +241,7 @@ Run the automated Electron UI smoke test with:
 npm run smoke
 ```
 
-The smoke test exercises the timer, notes, player, statistics drawer, and background drawer. It restores the previous local storage after the run.
+The smoke test exercises the timer, Focus Plan, notes, player, statistics drawer, and background drawer. It restores the previous local storage after the run.
 Each launched smoke-test app now uses a fresh temporary profile, so the test cannot modify the normal application profile even if it fails midway.
 
 Run both the checks and UI smoke test with:

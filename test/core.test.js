@@ -5,7 +5,9 @@ const {
   aggregateFocusRows,
   formatTime,
   getLocalDayKey,
+  normalizeDailyGoalSeconds,
   normalizeMinutes,
+  normalizeTimerSettings,
   normalizeVolume,
   remainingSecondsUntil,
   sanitizeNoteFiles
@@ -41,6 +43,23 @@ test("normalizes timer settings", () => {
   assert.equal(normalizeMinutes(0, 1_500), 1);
   assert.equal(normalizeMinutes(999, 1_500), 360);
   assert.equal(normalizeMinutes("invalid", 1_500), 25);
+  assert.deepEqual(normalizeTimerSettings({
+    focusSeconds: -20,
+    breakSeconds: 600,
+    longBreakSeconds: 999999,
+    focusSessionsPerLongBreak: 99,
+    autoStartBreaks: false
+  }), {
+    focusSeconds: 60,
+    shortBreakSeconds: 600,
+    longBreakSeconds: 21600,
+    focusSessionsPerLongBreak: 12,
+    autoStartBreaks: false,
+    autoStartFocus: true
+  });
+  assert.equal(normalizeDailyGoalSeconds(0), 0);
+  assert.equal(normalizeDailyGoalSeconds(60), 900);
+  assert.equal(normalizeDailyGoalSeconds(999999), 43200);
 });
 
 test("preserves an intentional zero volume", () => {

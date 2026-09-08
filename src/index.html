@@ -50,6 +50,7 @@
         </div>
         <div class="header-actions">
           <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes">Notes</button>
+          <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal">Plan</button>
           <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts">Keys ?</button>
           <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
         </div>
@@ -86,6 +87,9 @@
                 <p id="timerPhaseLabel" class="timer-phase">
                   Focus Session
                 </p>
+                <p id="timerPlanStatus" class="timer-plan-status" aria-live="polite">
+                  Focus 1 of 4 · Goal off
+                </p>
                 <h1
                   id="timerDisplay"
                   class="timer-display"
@@ -98,20 +102,8 @@
                 </div>
 
                 <div id="timerConfigPanel">
-                <div class="timer-config-fields">
-                  <label class="timer-config-label">
-                    Focus (min)
-                    <input id="focusMinutesInput" type="number" min="1" max="360" value="25" class="timer-config-input" title="Set focus duration in minutes" />
-                  </label>
-                  <label class="timer-config-label">
-                    Break (min)
-                    <input id="breakMinutesInput" type="number" min="1" max="360" value="5" class="timer-config-input" title="Set break duration in minutes" />
-                  </label>
+                  <p id="timerPlanSummary" class="timer-plan-summary">25 / 5 / 15 min · long every 4</p>
                 </div>
-                <p class="timer-limit-hint">
-                  Max duration: 6h (360min)
-                </p>
-              </div>
               </div>
             </div>
           </div>
@@ -165,6 +157,58 @@
         </section>
       </main>
 
+      <aside id="focusPlanDrawer" aria-hidden="true">
+        <section id="focusPlanPanel" class="glass-panel drawer-panel" aria-labelledby="focusPlanTitle">
+          <div class="drawer-header">
+            <div>
+              <p class="panel-eyebrow">Routine</p>
+              <h2 id="focusPlanTitle" class="panel-title">Focus Plan</h2>
+            </div>
+            <button id="focusPlanCloseBtn" class="window-btn" type="button" title="Close Focus Plan" aria-label="Close Focus Plan">×</button>
+          </div>
+          <p class="panel-description">Set the rhythm for one focus cycle. A long break follows the configured number of completed focus sessions.</p>
+
+          <div class="focus-plan-grid">
+            <label class="focus-plan-field">
+              <span>Focus minutes</span>
+              <input id="focusMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="25" />
+            </label>
+            <label class="focus-plan-field">
+              <span>Short break</span>
+              <input id="shortBreakMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="5" />
+            </label>
+            <label class="focus-plan-field">
+              <span>Long break</span>
+              <input id="longBreakMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="15" />
+            </label>
+            <label class="focus-plan-field">
+              <span>Focuses per cycle</span>
+              <input id="focusSessionsInput" class="timer-config-input" type="number" min="1" max="12" value="4" />
+            </label>
+            <label class="focus-plan-field focus-plan-field-wide">
+              <span>Daily goal minutes <small>0 turns it off · try 120</small></span>
+              <input id="dailyGoalMinutesInput" class="timer-config-input" type="number" min="0" max="720" value="0" />
+            </label>
+          </div>
+
+          <div class="focus-plan-toggles">
+            <label class="focus-plan-toggle">
+              <span><strong>Auto-start breaks</strong><small>Begin short and long breaks automatically.</small></span>
+              <input id="autoStartBreaksInput" type="checkbox" checked />
+            </label>
+            <label class="focus-plan-toggle">
+              <span><strong>Auto-start focus</strong><small>Begin the next focus after a break automatically.</small></span>
+              <input id="autoStartFocusInput" type="checkbox" checked />
+            </label>
+          </div>
+
+          <div class="focus-plan-actions">
+            <p id="focusPlanLockHint">Changes start a fresh focus cycle.</p>
+            <button id="focusPlanApplyBtn" class="control-btn primary-control" type="button">Apply Plan</button>
+          </div>
+        </section>
+      </aside>
+
       <aside id="statsDrawer">
         <section id="statsPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
@@ -188,7 +232,10 @@
               <button id="clearStatsBtn" class="stats-danger-btn" title="Clear all stats">Clear</button>
             </div>
           </div>
-          <p id="todayFocusStat" class="today-focus-stat">Today 0m</p>
+          <p id="todayFocusStat" class="today-focus-stat">Today 0m · Daily goal off</p>
+          <div id="todayGoalProgress" class="today-goal-progress" role="progressbar" aria-valuemin="0" aria-valuenow="0" aria-valuemax="1" aria-label="0 focus minutes completed today; daily goal is off">
+            <span id="todayGoalBar"></span>
+          </div>
           <section class="weather-settings" aria-labelledby="weatherSettingsTitle">
             <div class="weather-settings-row">
               <label id="weatherSettingsTitle" for="weatherModeSelect">Weather</label>
