@@ -284,14 +284,14 @@ try {
 
   const whiteSceneResult = await evaluate(`(async () => {
     document.querySelector('#bgWhiteBtn').click();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise((resolve) => setTimeout(resolve, 320));
     const result = {
       enabled: document.body.classList.contains('bg-white-background'),
       timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
       panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
     };
     document.querySelector('#bgBlackBtn').click();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise((resolve) => setTimeout(resolve, 320));
     return result;
   })()`);
 
