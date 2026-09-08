@@ -249,8 +249,10 @@
       a.toggleStatsDrawer(false);
       a.toggleFocusPlanDrawer(false);
     });
-    on(e.bgBlackBtn, "click", () => a.setBackgroundMode("black"));
-    on(e.bgWhiteBtn, "click", () => a.setBackgroundMode("white"));
+    on(e.bgBlackBtn, "click", () => a.setBackgroundPreset("quiet-studio"));
+    on(e.bgMidnightBtn, "click", () => a.setBackgroundPreset("midnight"));
+    on(e.bgMossBtn, "click", () => a.setBackgroundPreset("moss"));
+    on(e.bgWhiteBtn, "click", () => a.setBackgroundPreset("paper"));
     on(e.bgWallpaperBtn, "click", a.useDesktopWallpaperBackground);
     on(e.bgImageBtn, "click", a.importBackgroundImage);
     on(e.bgResetBtn, "click", a.resetBackground);

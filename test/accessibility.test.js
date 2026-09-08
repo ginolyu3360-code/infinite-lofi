@@ -81,7 +81,7 @@ test("updates disclosure state and repeats identical live-region announcements",
   assert.equal(region.textContent, "Timer started");
 });
 
-test("meets WCAG AA contrast for core dark and light interface text", () => {
+test("meets WCAG AA contrast for every curated interface theme", () => {
   const pairs = [
     ["#f4f0e8", "#11110f"],
     [compositeColor("rgba(244, 240, 232, 0.62)", "#11110f"), "#11110f"],
@@ -90,7 +90,13 @@ test("meets WCAG AA contrast for core dark and light interface text", () => {
     [compositeColor("rgba(39, 37, 32, 0.68)", "#f3efe7"), "#f3efe7"],
     ["#946126", "#f3efe7"],
     ["#fffaf1", "#9f6325"],
-    ["#8d3434", "#f3efe7"]
+    ["#8d3434", "#f3efe7"],
+    ["#edf6fb", "#07111d"],
+    [compositeColor("rgba(237, 246, 251, 0.66)", "#07111d"), "#07111d"],
+    ["#76badc", "#07111d"],
+    ["#f0f6ed", "#0b1510"],
+    [compositeColor("rgba(240, 246, 237, 0.66)", "#0b1510"), "#0b1510"],
+    ["#9bc58e", "#0b1510"]
   ];
   for (const [foreground, background] of pairs) {
     assert.ok(contrastRatio(foreground, background) >= 4.5);

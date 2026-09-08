@@ -114,6 +114,17 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-08.
 - [x] Raise core dark and White Scene text contrast to WCAG AA, including White Scene primary controls.
 - [x] Verify reduced-motion behavior, contrast ratios, focus behavior, and the Chromium accessibility tree in development and packaged Electron checks.
 
+### Phase 3E — Curated Scenes
+
+Status: completed and locally verified on 2026-09-09.
+
+- [x] Add four built-in scene presets: Quiet Studio, Midnight, Moss, and Paper.
+- [x] Give presets distinct interface palettes, atmospheric backgrounds, live previews, and accessible selected states.
+- [x] Keep wallpaper, image, video, and track-cover sources independent from the curated presets.
+- [x] Add `presetId` within the existing `settings.ui.background` object without changing schema v4.
+- [x] Map legacy black, white, and custom-media settings to safe presets while preserving saved media paths.
+- [x] Verify every preset, persistence, WCAG AA core text contrast, responsive layouts, development Electron, and Universal packaged Electron.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.
@@ -136,8 +147,6 @@ Status: completed and verified locally on 2026-09-07. See `UI-REFRESH-PLAN.md` f
 - [x] Rebuild statistics for readable responsive sizing and horizontal month navigation.
 - [x] Enlarge interactive targets and add safe trackpad/touch-friendly behavior.
 - [x] Verify representative full-window sizes and Mini Mode in development and packaged builds.
-
-- Add curated themes and background presets after the underlying settings model is stable.
 
 ## Deliberate non-goals for now
 
