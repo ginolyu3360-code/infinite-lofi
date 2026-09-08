@@ -4,7 +4,7 @@
 
 Version 1.2.0 is the current release, delivering opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, automated releases, pre-Phase 3 correctness hardening, and the refreshed UI foundation.
 
-Version 1.2.0 should be observed after release before Phase 3 product expansion begins. Every future release must still be based on a passing `main` CI result.
+Version 1.2.0 has been published with its Universal DMG, Universal ZIP, and checksums after successful `main` CI and Release workflow runs. Every future release must still be based on a passing `main` CI result.
 
 ## Phase 0 — Stabilize the core
 
@@ -70,7 +70,7 @@ Only start after Phases 0–2 are stable.
 
 ### Pre-Phase 3 hardening
 
-Status: completed and verified locally on 2026-09-07. Implemented in commit `c3bbf69`; the latest `main` GitHub Actions result must still be confirmed after the source push.
+Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.
 
 - [x] Keep focus-history retention consistent at 366 daily rows across storage and session recording.
 - [x] Use native OS window controls and standard macOS close/quit behavior while preserving tray reopen and Quit actions.

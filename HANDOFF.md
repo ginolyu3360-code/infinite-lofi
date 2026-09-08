@@ -4,10 +4,11 @@ Updated: 2026-09-08
 
 ## Start of the next session
 
-1. Read `README.md`, `ROADMAP.md`, this file, and `verification-log.md`.
-2. Run `git status --short --branch` and `git log -5 --oneline --decorate`.
-3. Confirm the latest GitHub Actions run for `main` passed before beginning new development or release work.
-4. Do not create or push a future version tag, and do not publish another Release, unless the user explicitly requests it.
+1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the canonical local repository. The duplicate ChatGPT-folder checkout and the temporary worktree have been removed.
+2. Read `README.md`, `ROADMAP.md`, this file, and `verification-log.md`.
+3. Run `git status --short --branch` and `git log -5 --oneline --decorate`.
+4. Confirm the latest GitHub Actions run for `main` passed before beginning new development or release work.
+5. Do not create or push a future version tag, and do not publish another Release, unless the user explicitly requests it.
 
 ## Current project state
 
@@ -16,7 +17,9 @@ Updated: 2026-09-08
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- The v1.2.0 release candidate is based on `origin/main` commit `45bad8b`; CI run `34181113375` passed before release preparation.
+- `main`, `origin/main`, and tag `v1.2.0` point to commit `9aed518` (`fix: disable implicit release publishing (#2)`).
+- Main CI run `34184984658` and the repaired v1.2.0 Release run `34185493625` both passed.
+- The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3 has not started.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
@@ -67,6 +70,8 @@ Updated: 2026-09-08
 - `dist/` is ignored and is not committed.
 - The latest hardening and UI changes passed `npm run check`, isolated development UI smoke tests across supported window sizes, Universal packaging, and the isolated packaged-app UI smoke test locally.
 - Mini Mode passed at 420 × 250 and restored the previous full bounds; all measured timer overflow values were zero.
+- The final v1.2.0 release-publishing fix passed PR checks and `main` CI.
+- The tag-triggered Release workflow completed successfully and uploaded all three expected assets.
 
 ## Repository cleanup
 
@@ -76,9 +81,8 @@ Updated: 2026-09-08
 
 ## Recommended next decision
 
-After publishing v1.2.0 and confirming its Release assets, either:
+The repository is ready for Phase 3 planning. Start with one bounded product slice on a feature branch, run local verification, then use a PR and passing CI before merging to `main`.
 
-1. Observe the v1.2.0 release and collect feedback, or
-2. When the user gives a concrete instruction, plan the first Phase 3 product slice.
+Recommended first slice: configurable long breaks, focus-cycle behavior, auto-start options, and a daily focus goal. Keep session-history editing, playlist/media controls, accessibility, and curated themes as later independent slices.
 
 Do not start Phase 3 until the user gives a concrete instruction.
