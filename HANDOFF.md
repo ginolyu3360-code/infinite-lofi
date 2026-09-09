@@ -12,18 +12,18 @@ Updated: 2026-09-09
 
 ## Current project state
 
-- Release candidate and repository/package version: v1.3.0. The published release remains v1.2.0 until the authorized v1.3.0 tag workflow completes.
+- Current release and repository/package version: v1.3.0.
 - Phase 0 and Phase 1 are complete.
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
 - The pre-Phase 3 UI foundation refresh is complete and documented in `UI-REFRESH-PLAN.md`.
-- Tag `v1.2.0` resolves to release commit `9aed518` (`fix: disable implicit release publishing (#2)`). `main` has moved beyond that release baseline with completed Phase 3A–3E source work.
+- Tag `v1.3.0` resolves to release commit `2e90dbd` (`chore: prepare v1.3.0 release (#12)`) and contains completed Phase 3A–3E source work.
 - Phase 3D was squash-merged through PR #8 as commit `3dca230`; its PR CI run `34245931075` and post-merge `main` CI run `34246166218` both passed.
 - Phase 3E was squash-merged through PR #10 as commit `2c05443`; its passing PR CI run `34250458728` and post-merge `main` CI run `34250687267` both passed.
-- The repaired v1.2.0 Release run `34185493625` passed.
-- The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and included in the v1.3.0 release candidate.
-- The user explicitly authorized the v1.3.0 audit and release on 2026-09-09. Create the tag only after the release-preparation PR and its post-merge `main` CI pass.
+- The v1.3.0 release-preparation PR #12 passed CI run `34294195472`, was squash-merged as `2e90dbd`, and passed post-merge `main` CI run `34294347722`.
+- The authorized v1.3.0 Release workflow run `34294522635` passed.
+- The public v1.3.0 Release is the latest stable release and contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
+- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and released in v1.3.0.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -129,6 +129,8 @@ Updated: 2026-09-09
 - Phase 3E passed 47 unit tests, isolated development and Universal packaged-app UI smoke tests, and Universal packaging with an `x86_64 arm64` executable.
 - The curated-scene smoke path verifies every preset class, selected state, label, persistence, responsive layout, and core AA contrast, including Midnight text at 17.32:1 and Moss text at 16.93:1.
 - The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
+- The v1.3.0 Release workflow passed all checks, rebuilt the unsigned Universal artifacts, verified both architectures, generated checksums, and uploaded all three expected assets.
+- Public v1.3.0 SHA-256 values: DMG `f692af6003479ddbcf3b765df53c84ae81a6fbccad98f81598c2b1d3562eb913`; ZIP `80b108c5929aaf9879037513a04c106621486df8e6c8b98aebe621b196dcf3e7`.
 
 ## Repository cleanup
 
@@ -138,6 +140,6 @@ Updated: 2026-09-09
 
 ## Recommended next decision
 
-Complete the authorized v1.3.0 release only after the release-preparation PR and post-merge `main` CI pass, then verify the public assets and checksums before defining the next product phase.
+Define the next product phase separately. Keep future release work explicit and do not create another tag or Release without new user authorization.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

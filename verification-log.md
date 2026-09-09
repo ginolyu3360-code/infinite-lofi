@@ -1,5 +1,15 @@
 # Verification Log
 
+## 2026-09-09 — v1.3.0 release completed
+
+- Release preparation PR #12 passed CI run `34294195472`, was squash-merged as commit `2e90dbd`, and passed post-merge `main` CI run `34294347722`.
+- Created annotated tag `v1.3.0` at `2e90dbd` only after the required checks passed.
+- Release workflow run `34294522635` completed successfully, including version/tag validation, tests, unsigned Universal build, architecture checks, SHA-256 generation, and asset upload.
+- Confirmed the public Release is neither a draft nor a prerelease and is marked Latest.
+- Confirmed all expected assets: `Infinite-Lo-Fi-1.3.0-universal.dmg` (203,954,673 bytes), `Infinite-Lo-Fi-1.3.0-universal.zip` (203,915,004 bytes), and `SHA256SUMS.txt` (212 bytes).
+- Confirmed the public checksum file matches GitHub's asset digests: DMG `f692af6003479ddbcf3b765df53c84ae81a6fbccad98f81598c2b1d3562eb913`; ZIP `80b108c5929aaf9879037513a04c106621486df8e6c8b98aebe621b196dcf3e7`.
+- Signing and notarization remain intentionally deferred.
+
 ## 2026-09-09 — v1.3.0 release preparation
 
 - The user explicitly authorized a v1.3.0 audit and release after Phase 3A–3E completed.

@@ -4,7 +4,7 @@
 
 Version 1.3.0 is the current release, delivering the complete Phase 3 product pass on top of the v1.2.0 security, distribution, and refreshed UI foundation.
 
-Version 1.3.0 includes configurable focus cycles and goals, editable session history and trends, resilient playlist persistence with native media controls, expanded accessibility, and curated scenes. Every future release must still be based on a passing `main` CI result.
+Version 1.3.0 includes configurable focus cycles and goals, editable session history and trends, resilient playlist persistence with native media controls, expanded accessibility, and curated scenes. It has been published with an unsigned Universal DMG, Universal ZIP, and SHA-256 checksums after successful `main` CI and Release workflow runs. Every future release must still be based on a passing `main` CI result.
 
 ## Phase 0 — Stabilize the core
 
