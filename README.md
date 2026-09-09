@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.2.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。当前源码还包含尚未发布为新版本的 Phase 3A Focus Plan、Phase 3B Session History、Phase 3C Playlist & Media Controls、Phase 3D Accessibility 与 Phase 3E Curated Scenes。
+当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3：Focus Plan、Session History、Playlist & Media Controls、Accessibility 与 Curated Scenes。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -182,7 +182,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.2.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The current source also contains the not-yet-released Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes.
+Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. This version includes the complete Phase 3: Focus Plan, Session History, Playlist & Media Controls, Accessibility, and Curated Scenes.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-09-09
 
 - Added configurable short and long breaks with a focus-cycle counter
 - Added independent auto-start options for breaks and focus sessions
@@ -16,6 +16,8 @@
 - Added focus entry/restoration, modal Tab containment, Escape handling, and hidden-surface semantics across dialogs, responsive Notes, and Queue
 - Added screen-reader announcements for timer, playback, playlist, Focus Plan, and focus-history actions
 - Added WCAG AA contrast checks for core dark/light UI colors and real Electron reduced-motion/accessibility-tree verification
+- Added Quiet Studio, Midnight, Moss, and Paper as persisted curated scene presets
+- Preserved legacy background choices and saved local media paths while keeping storage on schema v4
 
 ## 1.2.0 — 2026-09-08
 
