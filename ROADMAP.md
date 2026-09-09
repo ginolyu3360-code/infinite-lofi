@@ -125,6 +125,75 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 - [x] Map legacy black, white, and custom-media settings to safe presets while preserving saved media paths.
 - [x] Verify every preset, persistence, WCAG AA core text contrast, responsive layouts, development Electron, and Universal packaged Electron.
 
+## Phase 4 — Focus Depth
+
+Status: proposed on 2026-09-09; no Phase 4 business code has started. The slices below are an initial product plan and should be approved one at a time before implementation.
+
+Phase 4 should deepen the path from choosing an intention, through a focused session, to reviewing useful patterns. It should remain local-first and should not turn Infinite Lo-Fi into a general project manager, streaming service, or productivity-scoring system.
+
+### Phase 4A — Focus Intent (recommended first)
+
+Goal: let the user decide what the next focus session is for without duplicating the existing free-form Notes workspace.
+
+- Add a lightweight ordered task queue with one optional active intention, simple completion, reopening, renaming, and deletion.
+- Let each focus session reference the active task while also storing a title snapshot, so deleting or renaming a task never makes historical sessions meaningless.
+- Show the active intention beside the main timer and in Mini Mode; manage the short queue in a focused drawer rather than adding permanent dashboard density.
+- Keep the first slice deliberately small: no projects, subtasks, due dates, reminders, recurring tasks, priorities, tags, search, or cloud sync.
+
+Data and migration boundary:
+
+- Proposed schema v5 adds a bounded `tasks` collection and an optional `activeTaskId`. A task needs only a stable ID, title, status, sort order, creation time, and optional completion time.
+- Focus-session ledger entries gain optional `taskId` and `taskTitle` snapshot fields. Existing schema v4 sessions migrate with both fields empty, preserving every duration and date exactly.
+- Backup import/export must accept v1–v4 data and round-trip v5 tasks and linked sessions. Invalid task references must fall back to the stored title snapshot or an unassigned session.
+
+Test boundary:
+
+- Cover v4-to-v5 migration, bounded retention, ordering, completion/reopening, deletion with preserved history, backup compatibility, timer attribution, local-day behavior, keyboard/focus management, Mini Mode, responsive UI, and packaged Electron.
+
+### Phase 4B — Soundscapes
+
+Goal: enrich focus atmosphere without changing the existing local-playlist model or starting audio unexpectedly.
+
+- Add optional ambient layers such as rain, café, and soft noise with separate music, ambience, and master levels.
+- Add short fades for play, pause, track changes, and timer phase changes; consider a simple sleep timer only after the mixer is stable.
+- Keep ambience off by default, restore it paused after relaunch, and make native media controls continue to describe the music track rather than an internal ambience layer.
+- Use only bundled assets with explicit redistribution rights or user-selected local files. Do not add remote streaming, accounts, catalogue browsing, or background downloads.
+
+Data and migration boundary:
+
+- Prefer additive settings inside the existing player state: enabled layers, per-layer volume, master ambience volume, and fade preference. Increase the schema version only if persistent user-imported sound identities require migration guarantees.
+- Missing custom files must degrade to a visible unavailable state without blocking the bundled playlist or timer.
+
+Test boundary:
+
+- Cover volume normalization, mute/zero persistence, mixing and fade state, relaunch-without-autoplay, missing-file recovery, offline behavior, Media Session separation, reduced motion, keyboard access, packaged audio playback, and an explicit package-size/performance budget.
+
+### Phase 4C — Focus Insights
+
+Goal: turn the existing session ledger into useful reflection, not pressure or opaque scoring.
+
+- Add weekly and time-of-day patterns, goal consistency, and task-linked breakdowns once Phase 4A has supplied reliable task context.
+- Extend the existing statistics drawer rather than creating a second analytics surface; preserve CSV export and clear empty/explanatory states.
+- Derive insights from the canonical session ledger at render time or through testable selectors. Do not persist duplicate totals that can drift from edited history.
+- Avoid leaderboards, shame-oriented streak messaging, predictive claims, and a single productivity score.
+
+Data and migration boundary:
+
+- The first insights slice should require no new historical schema beyond optional Phase 4A task snapshots. Persist only presentation preferences if they materially improve usability.
+- Date bucketing must continue to use local calendar days and explicitly handle daylight-saving changes, imported legacy totals, edited sessions, and deleted tasks.
+
+Test boundary:
+
+- Cover empty/sparse/dense histories, previous-period comparisons, local-day and DST edges, task renames/deletions, imported sessions, accessible chart summaries, responsive month navigation, export consistency, and packaged Electron.
+
+### Recommended Phase 4 sequence
+
+1. Phase 4A Focus Intent, because it creates the semantic link that later statistics can use while remaining a small, testable product slice.
+2. Phase 4B Soundscapes, because it is independent of analytics but needs careful asset, package-size, audio-state, and no-autoplay validation.
+3. Phase 4C Focus Insights, because it can then summarize both the established session ledger and the optional task context without another data-model rewrite.
+
+Each slice should use its own `codex/` feature branch, pull request, passing CI run, and squash merge. A Phase 4 release version, tag, and Release remain separate decisions.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.

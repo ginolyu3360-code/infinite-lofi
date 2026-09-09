@@ -24,7 +24,9 @@
     "pack:universal": "npm run build:css && electron-builder --dir --mac --universal"
   },
   "devDependencies": {
+    "autoprefixer": "^10.5.5",
     "concurrently": "^9.1.2",
+    "cssnano": "^7.1.9",
     "electron": "^41.3.0",
     "electron-builder": "^26.15.3",
     "tailwindcss": "^3.4.13"

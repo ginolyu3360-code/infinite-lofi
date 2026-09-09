@@ -24,6 +24,7 @@ Updated: 2026-09-09
 - The authorized v1.3.0 Release workflow run `34294522635` passed.
 - The public v1.3.0 Release is the latest stable release and contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and released in v1.3.0.
+- A proposed Phase 4 plan is documented in `ROADMAP.md`: Focus Intent, Soundscapes, then Focus Insights. Phase 4 business code has not started.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -140,6 +141,8 @@ Updated: 2026-09-09
 
 ## Recommended next decision
 
-Define the next product phase separately. Keep future release work explicit and do not create another tag or Release without new user authorization.
+Review and approve or revise the proposed Phase 4A Focus Intent slice in `ROADMAP.md`. The recommendation is a deliberately lightweight task queue and one active intention linked to focus-session history, without projects, deadlines, subtasks, reminders, tags, or sync.
+
+Keep each future product slice separate. Do not begin Phase 4 business implementation, create another version tag, or publish another Release without explicit user authorization.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.

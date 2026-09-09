@@ -1,5 +1,26 @@
 # Verification Log
 
+## 2026-09-09 — Actions and Browserslist maintenance; Phase 4 draft
+
+### Implemented
+
+- Upgraded `actions/checkout` and `actions/setup-node` from v4 to v5 in both CI and Release workflows. These action versions use the Node 24 action runtime while the project itself remains intentionally tested and packaged with Node 22.
+- Ran the official Browserslist database updater. Because Tailwind CSS 3.4.19 bundles an old Autoprefixer/CSSnano toolchain that cannot be changed by the lockfile updater, added current local Autoprefixer 10.5.5 and Node-22-compatible CSSnano 7.1.9 development dependencies so Tailwind prefers the maintainable local copies.
+- Locked Browserslist 4.28.9 and `caniuse-lite` 1.0.30001810. The updater reports the database is current and the stylesheet build no longer emits the stale-data warning.
+- Added a proposed Phase 4 roadmap with separate Focus Intent, Soundscapes, and Focus Insights slices. No Phase 4 product code or data-schema change is part of this maintenance.
+
+### Checks completed
+
+- Reinstalled the project from `package-lock.json` with `npm ci`; the dependency audit reported zero known vulnerabilities.
+- Passed syntax checks, the refreshed stylesheet build, and 47 unit tests with zero failures.
+- Passed the isolated development UI smoke test across every supported window size and Mini Mode, including accessibility, contrast, timer, history, scene, notes, player, and native Media Session assertions.
+- Rebuilt the unsigned Universal application and passed the same isolated packaged-app UI smoke path with no renderer exceptions. Signing and notarization remain intentionally deferred.
+
+### Scope status
+
+- Package and release version remain 1.3.0. No tag or Release was created.
+- Phase 4 remains a proposal; Phase 4A Focus Intent is the recommended first implementation slice and still requires separate approval.
+
 ## 2026-09-09 — v1.3.0 release completed
 
 - Release preparation PR #12 passed CI run `34294195472`, was squash-merged as commit `2e90dbd`, and passed post-merge `main` CI run `34294347722`.
