@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.2.0 is the current release, delivering opt-in weather, offline fonts, Electron hardening, Universal macOS packaging, automated releases, pre-Phase 3 correctness hardening, and the refreshed UI foundation.
+Version 1.3.0 is the current release, delivering the complete Phase 3 product pass on top of the v1.2.0 security, distribution, and refreshed UI foundation.
 
-Version 1.2.0 has been published with its Universal DMG, Universal ZIP, and checksums after successful `main` CI and Release workflow runs. Every future release must still be based on a passing `main` CI result.
+Version 1.3.0 includes configurable focus cycles and goals, editable session history and trends, resilient playlist persistence with native media controls, expanded accessibility, and curated scenes. Every future release must still be based on a passing `main` CI result.
 
 ## Phase 0 — Stabilize the core
 

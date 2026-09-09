@@ -30,8 +30,8 @@ Published builds are available from the [GitHub Releases page](https://github.co
 `.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete non-GUI checks, builds the unsigned Universal DMG and ZIP, creates `SHA256SUMS.txt`, and creates or updates the matching GitHub Release.
 
 ```bash
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.3.0
+git push origin v1.3.0
 ```
 
 Rerunning the workflow safely replaces assets on an existing Release instead of creating duplicates.

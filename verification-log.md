@@ -1,5 +1,17 @@
 # Verification Log
 
+## 2026-09-09 — v1.3.0 release preparation
+
+- The user explicitly authorized a v1.3.0 audit and release after Phase 3A–3E completed.
+- Confirmed a clean `main` synchronized with `origin/main` at `2c2b8a7`, with passing `main` CI run `34292964432`.
+- Confirmed that neither a `v1.3.0` tag nor GitHub Release existed before preparation.
+- Production-only and full `npm audit` checks both reported zero known vulnerabilities.
+- Updated the package and lockfile version to 1.3.0, finalized the Phase 3 changelog, and aligned release-facing documentation.
+- Passed `npm run check` with 47 unit tests, the isolated development UI smoke test, the isolated Universal packaged-app UI smoke test, and a full unsigned DMG/ZIP build.
+- Confirmed `CFBundleShortVersionString` and `CFBundleVersion` are 1.3.0, the executable contains `x86_64 arm64`, the DMG checksum is valid, and the ZIP contains no archive errors.
+- Local candidate SHA-256 values are `ce3e19188c32cc4fab986a473b4538f0f52d2492a6314c00c823315f461f0251` for the DMG and `b0dcd12409b15875a9d1c7ae61761161f2a65d0a54a60e2610cac1bb9f816d97` for the ZIP. The Release workflow will generate authoritative hashes for its own uploaded artifacts.
+- The `v1.3.0` tag must be created only after this preparation passes PR CI, squash merge, and post-merge `main` CI.
+
 ## 2026-09-09 — Phase 3E Curated Scenes
 
 ### Implemented

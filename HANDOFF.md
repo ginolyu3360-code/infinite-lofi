@@ -12,7 +12,7 @@ Updated: 2026-09-09
 
 ## Current project state
 
-- Current release and repository/package version: v1.2.0.
+- Release candidate and repository/package version: v1.3.0. The published release remains v1.2.0 until the authorized v1.3.0 tag workflow completes.
 - Phase 0 and Phase 1 are complete.
 - Phase 2 is complete for the requested scope; signing and notarization were explicitly excluded.
 - The pre-Phase 3 correctness, lifecycle, smoke-test, and music-scanning hardening pass is complete in commit `c3bbf69`.
@@ -22,7 +22,8 @@ Updated: 2026-09-09
 - Phase 3E was squash-merged through PR #10 as commit `2c05443`; its passing PR CI run `34250458728` and post-merge `main` CI run `34250687267` both passed.
 - The repaired v1.2.0 Release run `34185493625` passed.
 - The public v1.2.0 Release contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
-- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete in the source tree; none has been included in a new tagged release.
+- Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and included in the v1.3.0 release candidate.
+- The user explicitly authorized the v1.3.0 audit and release on 2026-09-09. Create the tag only after the release-preparation PR and its post-merge `main` CI pass.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -110,8 +111,8 @@ Updated: 2026-09-09
 - Universal executable: `x86_64 arm64` confirmed with `lipo`.
 - Release workflow YAML and its local architecture/version/checksum commands were validated.
 - Local artifacts were built successfully:
-  - `dist/Infinite-Lo-Fi-1.2.0-universal.dmg`
-  - `dist/Infinite-Lo-Fi-1.2.0-universal.zip`
+  - `dist/Infinite-Lo-Fi-1.3.0-universal.dmg`
+  - `dist/Infinite-Lo-Fi-1.3.0-universal.zip`
 - `dist/` is ignored and is not committed.
 - The latest hardening and UI changes passed `npm run check`, isolated development UI smoke tests across supported window sizes, Universal packaging, and the isolated packaged-app UI smoke test locally.
 - Mini Mode passed at 420 × 250 and restored the previous full bounds; all measured timer overflow values were zero.
@@ -137,6 +138,6 @@ Updated: 2026-09-09
 
 ## Recommended next decision
 
-The next decision is whether to prepare a Phase 3 release candidate or define the next product phase. Keep release work explicit and independent from feature development.
+Complete the authorized v1.3.0 release only after the release-preparation PR and post-merge `main` CI pass, then verify the public assets and checksums before defining the next product phase.
 
 Do not create a new version tag or Release until the user gives a separate explicit release instruction.
