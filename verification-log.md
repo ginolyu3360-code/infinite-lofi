@@ -18,6 +18,8 @@
 
 ### Scope status
 
+- PR #14 passed CI run `34296783894` with no annotations and was squash-merged as commit `57a5740`.
+- Post-merge `main` CI run `34296943747` passed all checks, development UI smoke, Universal packaging, and packaged-app smoke steps; its annotation list was also empty, confirming the Node 20 warning is resolved.
 - Package and release version remain 1.3.0. No tag or Release was created.
 - Phase 4 remains a proposal; Phase 4A Focus Intent is the recommended first implementation slice and still requires separate approval.
 

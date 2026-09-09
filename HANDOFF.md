@@ -25,6 +25,9 @@ Updated: 2026-09-09
 - The public v1.3.0 Release is the latest stable release and contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and released in v1.3.0.
 - A proposed Phase 4 plan is documented in `ROADMAP.md`: Focus Intent, Soundscapes, then Focus Insights. Phase 4 business code has not started.
+- Actions/Browserslist maintenance was squash-merged through PR #14 as commit `57a5740`; its PR CI run `34296783894` and post-merge `main` CI run `34296943747` passed with no Node 20 deprecation annotations.
+- CI and Release workflows now use `actions/checkout@v5` and `actions/setup-node@v5`. Their internal runtime is Node 24; the project remains intentionally configured for Node 22.
+- Tailwind 3 uses lockfile-managed Autoprefixer 10.5.5, CSSnano 7.1.9, Browserslist 4.28.9, and `caniuse-lite` 1.0.30001810; stylesheet builds no longer emit the stale Browserslist warning.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
 
 ## Phase 3A delivered
@@ -132,6 +135,7 @@ Updated: 2026-09-09
 - The rebuilt Universal executable reports `x86_64 arm64`; signing remains intentionally deferred.
 - The v1.3.0 Release workflow passed all checks, rebuilt the unsigned Universal artifacts, verified both architectures, generated checksums, and uploaded all three expected assets.
 - Public v1.3.0 SHA-256 values: DMG `f692af6003479ddbcf3b765df53c84ae81a6fbccad98f81598c2b1d3562eb913`; ZIP `80b108c5929aaf9879037513a04c106621486df8e6c8b98aebe621b196dcf3e7`.
+- Actions/Browserslist maintenance passed 47 unit tests, development and Universal packaged UI smoke tests, and Universal architecture verification locally; PR CI `34296783894` and post-merge `main` CI `34296943747` then passed with empty annotation lists.
 
 ## Repository cleanup
 
