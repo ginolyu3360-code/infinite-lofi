@@ -1,5 +1,34 @@
 # Verification Log
 
+## 2026-09-10 — Phase 4 re-audit and complete planning handoff
+
+### Documentation delivered
+
+- Replaced the initial Phase 4 draft in `ROADMAP.md` with 4A Focus Intent, 4B Focus Review, 4C1 Ambient Layer, and 4C2 Audio Transitions, in that recommended order.
+- Recorded the reason for keeping a smaller A first, the boundary with Notes, full timer/task event semantics, proposed schema v5, migration/backup rules, historical deletion semantics, atomic/idempotent completion, and storage failure handling.
+- Defined A's 100-task/120-code-point title limits, bounded rendering, performance measurement target, full/Mini responsive and accessibility requirements, and explicit acceptance checklist.
+- Narrowed B to defensible ledger-derived reflection; deferred time-of-day reconstruction and historical goal compliance. Split sound work into licensed single-layer playback and later cancellable transitions, with explicit control semantics and proposed measurement budgets.
+- Updated `HANDOFF.md` for the user's planned GPT-5.6 sol execution, including how to carry the local planning branch into the next feature branch. The user requested recording the plan, not starting product implementation.
+
+### Audit evidence
+
+- Fully read README, ROADMAP, HANDOFF, verification-log, and UI-REFRESH-PLAN. No repository AGENTS.md was found; the user-provided instructions were followed.
+- Confirmed a clean canonical checkout before documentation work and only one registered checkout: `/Users/lvjunhao/Documents/GitHub/infinite_lofi`.
+- Inspected branches, the latest eight commits, tags, and origin. Local main and origin/main were both `0004aea`; live remote main matched `0004aea4b87fcbe5d4e7ba3bfdf1486ed415a2dc`.
+- Confirmed local and remote v1.3.0 tag targets both resolve to release commit `2e90dbdc2767861714c0effe4b580a1e03700379`; package remains 1.3.0.
+- Queried current GitHub Actions and the job steps of [main CI 34297373277](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34297373277): success for the exact main head, including checks, development smoke, Universal packaging, and packaged smoke.
+- Re-ran `npm test`: 47 passed, zero failed. These are existing baseline tests, not proof that future Phase 4 behavior is implemented.
+- Read current storage, timer, history, Notes, keyboard, focus, layout, and workflow code. In-memory probes confirmed that current history normalization/editing drops unknown task fields, a date edit retains the original completion timestamp, and the importer accepts a v4 wrapper containing a future inner schema. No real user state was used or modified by these probes.
+- No fresh development/packaged Electron smoke test or packaging run was performed for this documentation-only update. Performance budgets in the plan are pending measurements, not verified results.
+- Passed `git diff --check` and documentation checks for unique slice headings, A/B/C1/C2 order, balanced code fences, removal of superseded headings, and absence of conflict markers. Reviewed the handoff/log diff for baseline and authorization consistency.
+
+### Scope and repository status
+
+- Planning is saved on local `codex/phase4-plan`, based on `0004aea`; only ROADMAP, HANDOFF, and this log are changed. No product code or dependencies changed.
+- No push, PR, merge, new CI run, package-version change, tag, or Release is part of this handoff. The recorded passing main CI belongs to the unchanged baseline.
+- The next executor must preserve/carry this local plan into an authorized feature PR, re-check remote state, and follow `codex/` branch → PR → final-commit CI → squash merge → exact main CI. Post-merge documentation also follows PR workflow.
+- Phase 4A/B/C1/C2 implementation and acceptance remain pending. Signing and notarization remain excluded.
+
 ## 2026-09-09 — Actions and Browserslist maintenance; Phase 4 draft
 
 ### Implemented

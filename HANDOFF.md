@@ -1,11 +1,11 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-09
+Updated: 2026-09-10
 
 ## Start of the next session
 
 1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the canonical local repository. The duplicate ChatGPT-folder checkout and the temporary worktree have been removed.
-2. Read `README.md`, `ROADMAP.md`, this file, and `verification-log.md`.
+2. Read `README.md`, the complete Phase 4 specification in `ROADMAP.md`, this file, `verification-log.md`, `UI-REFRESH-PLAN.md`, and repository `AGENTS.md` if present.
 3. Run `git status --short --branch` and `git log -5 --oneline --decorate`.
 4. Confirm the latest GitHub Actions run for `main` passed before beginning new development or release work.
 5. Do not create or push a future version tag, and do not publish another Release, unless the user explicitly requests it.
@@ -24,11 +24,29 @@ Updated: 2026-09-09
 - The authorized v1.3.0 Release workflow run `34294522635` passed.
 - The public v1.3.0 Release is the latest stable release and contains the unsigned Universal DMG, Universal ZIP, and `SHA256SUMS.txt`.
 - Phase 3A Focus Plan, Phase 3B Session History, Phase 3C Playlist & Media Controls, Phase 3D Accessibility, and Phase 3E Curated Scenes are complete and released in v1.3.0.
-- A proposed Phase 4 plan is documented in `ROADMAP.md`: Focus Intent, Soundscapes, then Focus Insights. Phase 4 business code has not started.
+- The Phase 4 plan was re-audited on 2026-09-10 and is fully specified in `ROADMAP.md`: 4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions. This supersedes the old A/B/C draft; B no longer means Soundscapes. Phase 4 business code has not started.
 - Actions/Browserslist maintenance was squash-merged through PR #14 as commit `57a5740`; its PR CI run `34296783894` and post-merge `main` CI run `34296943747` passed with no Node 20 deprecation annotations.
 - CI and Release workflows now use `actions/checkout@v5` and `actions/setup-node@v5`. Their internal runtime is Node 24; the project remains intentionally configured for Node 22.
 - Tailwind 3 uses lockfile-managed Autoprefixer 10.5.5, CSSnano 7.1.9, Browserslist 4.28.9, and `caniuse-lite` 1.0.30001810; stylesheet builds no longer emit the stale Browserslist warning.
 - A normal `main` push runs CI only. `.github/workflows/release.yml` runs only when a `v*` tag is pushed.
+
+## Phase 4 planning handoff for GPT-5.6 sol
+
+- The user requested that the audited A/B/C1/C2 plan be recorded completely and said they will direct GPT-5.6 sol to execute. This handoff is documentation only, not permission to implement every slice or publish anything.
+- `ROADMAP.md` is the canonical implementation specification. Read the entire Phase 4 section, including shared execution rules, before changing code. Keep the next response and any user tutorials in Chinese; write code and comments in English.
+- Last observed baseline: `main`, local `origin/main`, and real remote `main` all resolved to `0004aea4b87fcbe5d4e7ba3bfdf1486ed415a2dc`; package version is 1.3.0. The local and remote annotated `v1.3.0` tag resolves to `2e90dbdc2767861714c0effe4b580a1e03700379` (the tag object itself has a different hash).
+- Latest observed main CI: [34297373277](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34297373277), completed successfully at that exact main commit. Re-query remote state before implementation; this is a recorded observation, not a permanent guarantee.
+- The planning changes are on local branch `codex/phase4-plan`, based on `0004aea`. No planning PR, push, merge, or new CI run is part of this documentation handoff. Inspect Git status/log rather than assuming the saved plan already exists on main or GitHub.
+- If the plan is still only on this branch when the user authorizes 4A, create `codex/phase4a-focus-intent` from the planning branch so the feature PR includes the plan, or first merge a documentation PR using the standard workflow. Do not switch to main and lose the handoff, reset user changes, or create a worktree. Inspect remote changes and reconcile them before opening the feature PR.
+- Recommended next slice is 4A only. It introduces at most 100 title-only tasks, optional next-session selection, a frozen current-session snapshot, schema v5, safe/idempotent completion, and visible attribution in history. Manual ordering, Notes linkage, task analytics, and sounds do not belong in A.
+- Critical A contracts: selection changes affect the next session; pause/resume preserves this session; rename/delete does not rewrite its snapshot; completing a task does not stop a timer; finishing a timer does not complete a task. Delete confirmation must disclose retained historical names.
+- Extend all ledger normalizers/editors, runtime creation/restoration, storage normalization, backup validation, and renderer/controller integration together. Do not just add fields to the completion call. Persist session completion and next runtime atomically using one stable session ID, and publish in-memory changes only after successful storage writes.
+- Resolve verified import validation weakness: outer and inner backup schema versions must agree and be supported. Old schema timers migrate conservatively as unassigned; no task assignment may be invented from Notes or present-day selection.
+- 4B is limited to trustworthy recorded-time summaries. No time-of-day focus reconstruction or historical goal-compliance claims; existing data cannot support them. Group by task identity, account for unassigned/imported time, and retain stored local day keys after edits.
+- C1 introduces one explicitly started bundled ambient layer with licensed assets, volume, paused restart, and measured resource limits. C2 adds cancellable fades only after that state is stable. Proposed C budgets and transition defaults are design targets to validate before implementation, not passing measurements or permission to procure assets.
+- Actual layout boundaries include Notes overlay at 900 px and Mini minimum 360 × 200; also test Mini 420 × 250 and full sizes listed in the roadmap. The old UI refresh document is historical guidance, not a reason to ignore actual breakpoints.
+- Existing `npm test` was rerun during the audit: 47 passed, zero failed. No fresh Electron UI smoke, build, or packaging was run in this documentation-only pass. All Phase 4 acceptance boxes remain pending.
+- On each implemented slice: `codex/` branch → PR → passing final-commit CI → squash merge → check exact main CI. Update this file and `verification-log.md`; use a follow-up docs PR when recording evidence only available after merge. No direct main commits, version tags, Release, signing, or notarization.
 
 ## Phase 3A delivered
 
@@ -145,8 +163,8 @@ Updated: 2026-09-09
 
 ## Recommended next decision
 
-Review and approve or revise the proposed Phase 4A Focus Intent slice in `ROADMAP.md`. The recommendation is a deliberately lightweight task queue and one active intention linked to focus-session history, without projects, deadlines, subtasks, reminders, tags, or sync.
+Wait for the user's instruction to GPT-5.6 sol to implement Phase 4A using the complete specification in `ROADMAP.md`. The plan is saved; no Phase 4 product implementation has begun. Do not reopen settled A contracts merely because the older roadmap called the task pointer `activeTaskId` or put sounds in B.
 
-Keep each future product slice separate. Do not begin Phase 4 business implementation, create another version tag, or publish another Release without explicit user authorization.
+At the start of implementation, verify the local planning branch/commit and preserve its documentation. Confirm live repository and main CI state, then implement only the authorized slice through the required feature-branch/PR/CI/squash workflow in the canonical checkout.
 
-Do not create a new version tag or Release until the user gives a separate explicit release instruction.
+B, C1, and C2 remain later slices requiring the user's instruction to proceed. No new version tag or GitHub Release is authorized by this handoff.
