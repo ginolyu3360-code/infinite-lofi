@@ -1,6 +1,6 @@
 # Verification Log
 
-## 2026-09-11 — Phase 4A Focus Intent implementation (pre-PR)
+## 2026-09-11 — Phase 4A Focus Intent implementation and delivery
 
 ### Baseline revalidation
 
@@ -39,7 +39,9 @@
 - Tray menu appearance and OS notification presentation are not directly visible to renderer automation. Their unchanged IPC paths ran without exceptions; Phase 4A did not modify `main.js` or `preload.js`.
 - The Universal app is intentionally unsigned and not notarized. No tag, installer release, GitHub Release, or version change was created.
 - The first feature-PR CI attempt, run [34592349990](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34592349990), exposed 720 × 520 and Mini 420 × 250 overflow on the runner's smaller native display, two scene-transition sampling races, and an incorrect universal application of the local-M2 performance threshold. Run [34592883701](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34592883701) confirmed those races, Mini overflow, and performance-gate issue fixed, while reporting 5 px of residual 720 × 520 timer overflow. The final follow-up adds compact-layout margin, polls computed scene colors, and keeps the documented 100 ms reference gate on local hardware while CI still reports its timings and validates the bounded fixture.
-- Feature PR creation, final PR CI, squash merge, and exact post-merge main CI remain pending at this entry and must be appended with actual IDs rather than assumed.
+- Final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including syntax/unit/style checks, development UI smoke, Universal packaging, and packaged UI smoke.
+- [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) was squash-merged as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`. Exact-head [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248) passed the same complete workflow.
+- Package version remains 1.3.0. No tag, GitHub Release, signing, or notarization action was performed. Phase 4B, 4C1, and 4C2 remain unstarted and require separate authorization.
 
 ## 2026-09-10 — Phase 4 re-audit and complete planning handoff
 

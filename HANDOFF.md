@@ -14,8 +14,7 @@ Updated: 2026-09-11
 - Published release: v1.3.0; package version remains 1.3.0.
 - Phase 0 through Phase 3E are complete. The public v1.3.0 release contains Phase 3.
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
-- Phase 4A product code and local verification are complete on `codex/phase4a-focus-intent`. The branch includes planning commit `f3b374b` and is based on the verified `0004aea` main baseline.
-- The feature PR, PR CI, squash merge, and post-merge main CI were still pending when this pre-PR handoff text was written. Replace this paragraph with exact links and commit/run IDs after delivery.
+- Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B, 4C1, and 4C2 are not implemented.
 
 ## Phase 4A delivered behavior
@@ -40,7 +39,7 @@ Updated: 2026-09-11
 - Accessibility smoke covers IME/consumed-key boundaries, typing `?`, edit-local Escape, drawer Escape, focus entry/return, Tab containment, predictable focus after row removal, named Tasks dialog, live status, reduced motion, and new intention colors in Quiet Studio, Midnight, Moss, and Paper.
 - Layout smoke passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and 1440 × 797, with zero timer overflow and 44 px full-view timer controls. Both sides of the 900 px Notes breakpoint passed.
 - Mini Mode passed at 420 × 250 and 360 × 200 with `360:00`, a 120-code-point title, visible primary controls, hidden task editor, zero timer overflow, and full-window bounds restoration.
-- Performance fixture: 100 maximum-title tasks plus 5,000 maximum-title sessions, 30 repetitions. The latest development p95 was 18.2 ms drawer-open / 37.6 ms selection-update; packaged p95 was 18.8 ms / 38.0 ms.
+- Performance fixture: 100 maximum-title tasks plus 5,000 maximum-title sessions, 30 repetitions. The final pre-PR local rerun measured development p95 at 17.4 ms drawer-open / 38.0 ms selection-update and packaged p95 at 17.1 ms / 37.9 ms.
 - Regression paths covered Notes creation and quota rollback, bundled music and native Media Session state, all curated scenes, session creation/editing/totals, backup validation/restore, storage recovery, app reload, Mini/full native resizing, and renderer-to-tray status updates. `main.js` and `preload.js` were unchanged by Phase 4A.
 
 ## Explicit limitations and boundaries
