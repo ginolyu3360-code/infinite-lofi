@@ -5,6 +5,7 @@
       noteModel,
       sanitizeNoteFiles,
       elements,
+      onError = () => {},
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
       now = () => Date.now(),
       random = () => Math.random(),
@@ -28,11 +29,28 @@
       };
     }
 
+    function restoreCommittedNotes() {
+      const storedNotes = appStorage.getState().notes;
+      const loaded = sanitizeNoteFiles(storedNotes.files);
+      noteFiles = loaded.length > 0 ? noteModel.sortPinnedFirst(loaded) : [createNoteFile("Note 1", "")];
+      activeNoteId = noteModel.resolveActiveId(noteFiles, storedNotes.activeId || "");
+      const active = getActiveNoteFile();
+      elements.notesInput.value = active?.content || "";
+      renderTabs();
+    }
+
     function persist() {
-      appStorage.update((state) => {
-        state.notes.files = noteFiles;
-        state.notes.activeId = activeNoteId || "";
-      });
+      try {
+        appStorage.update((state) => {
+          state.notes.files = noteFiles;
+          state.notes.activeId = activeNoteId || "";
+        });
+        return true;
+      } catch (error) {
+        restoreCommittedNotes();
+        onError(error);
+        return false;
+      }
     }
 
     function getActiveNoteFile() {
@@ -58,7 +76,7 @@
       }
       renamingNoteId = "";
       renderTabs();
-      persist();
+      return persist();
     }
 
     function beginRename(noteId) {
@@ -168,7 +186,7 @@
       activeNoteId = target.id;
       elements.notesInput.value = target.content || "";
       renderTabs();
-      persist();
+      return persist();
     }
 
     function loadNotes() {
@@ -184,8 +202,7 @@
       const file = createNoteFile(`Note ${noteFiles.length + 1}`, "");
       noteFiles.push(file);
       noteFiles = noteModel.sortPinnedFirst(noteFiles);
-      setActiveNoteFile(file.id);
-      beginRename(file.id);
+      if (setActiveNoteFile(file.id)) beginRename(file.id);
     }
 
     function toggleActiveNotePin() {

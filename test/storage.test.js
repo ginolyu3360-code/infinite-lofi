@@ -10,18 +10,24 @@ const {
   importBackup,
   migrateStoredState
 } = require("../src/storage");
+const { commitFocusCompletion } = require("../src/focus-session");
 
 function createMemoryStorage(initial = {}) {
   const entries = new Map(Object.entries(initial));
+  let failure = null;
   return {
     getItem(key) {
       return entries.has(key) ? entries.get(key) : null;
     },
     setItem(key, value) {
+      if (failure) throw failure;
       entries.set(key, String(value));
     },
     removeItem(key) {
       entries.delete(key);
+    },
+    setFailure(error) {
+      failure = error;
     }
   };
 }
@@ -60,7 +66,9 @@ test("migrates legacy local storage without losing notes or stats", () => {
     day: "2026-09-07",
     focusSeconds: 720,
     completedAt: "",
-    source: "migrated"
+    source: "migrated",
+    taskId: null,
+    taskTitle: ""
   }]);
   assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).schemaVersion, CURRENT_SCHEMA_VERSION);
 });
@@ -97,6 +105,38 @@ test("normalizes versioned state and rejects unsafe values", () => {
     { key: "two", label: "two", relativePath: "", isLocal: false }
   ]);
   assert.equal(state.timerRuntime.isRunning, false);
+});
+
+test("treats a null v5 focus context as ready instead of inferring a started session", () => {
+  const storage = createMemoryStorage({
+    [STORAGE_KEY]: JSON.stringify({
+      schemaVersion: 5,
+      settings: { timer: { focusSeconds: 1500 } },
+      tasks: { items: [], selectedTaskId: null },
+      timerRuntime: {
+        phase: "focus",
+        completedFocusesInCycle: 0,
+        remainingSeconds: 900,
+        deadlineMs: 12345,
+        isRunning: false,
+        focusSession: null
+      }
+    })
+  });
+  const state = createRepository(storage, () => 2000).getState();
+  assert.equal(state.timerRuntime.remainingSeconds, 1500);
+  assert.equal(state.timerRuntime.deadlineMs, null);
+  assert.equal(state.timerRuntime.isRunning, false);
+  assert.equal(state.timerRuntime.focusSession, null);
+});
+
+test("preserves explicitly malformed stored schema versions for recovery", () => {
+  const raw = JSON.stringify({ schemaVersion: "five", notes: { files: [] } });
+  const storage = createMemoryStorage({ [STORAGE_KEY]: raw });
+  const repository = createRepository(storage, () => 3000);
+  assert.match(repository.getRecoveryNotice().message, /not supported/);
+  assert.equal(repository.getRecoveryNotice().rawState, raw);
+  assert.equal(repository.getState().schemaVersion, CURRENT_SCHEMA_VERSION);
 });
 
 test("bounds and sanitizes schema v4 playlist snapshots", () => {
@@ -318,4 +358,150 @@ test("restores documented settings and active state after repository recreation"
   assert.equal(relaunched.timerRuntime.deadlineMs, 20_000);
   assert.equal(relaunched.timerRuntime.phase, "shortBreak");
   assert.equal(relaunched.timerRuntime.completedFocusesInCycle, 2);
+});
+
+test("migrates running and partially elapsed schema v4 focus timers as stable unassigned sessions", () => {
+  for (const timerRuntime of [
+    { phase: "focus", remainingSeconds: 1500, deadlineMs: 20_000, isRunning: true },
+    { phase: "focus", remainingSeconds: 1200, deadlineMs: null, isRunning: false }
+  ]) {
+    const storage = createMemoryStorage({
+      [STORAGE_KEY]: JSON.stringify({ schemaVersion: 4, timerRuntime })
+    });
+    const migrated = createRepository(storage, () => 10_000).getState();
+    assert.match(migrated.timerRuntime.focusSession.id, /^focus-/);
+    assert.equal(migrated.timerRuntime.focusSession.taskId, null);
+    assert.equal(migrated.timerRuntime.focusSession.taskTitle, "");
+  }
+
+  const ready = migrateStoredState(createMemoryStorage({
+    [STORAGE_KEY]: JSON.stringify({
+      schemaVersion: 4,
+      timerRuntime: { phase: "focus", remainingSeconds: 1500, deadlineMs: null, isRunning: false }
+    })
+  }), 10_000);
+  assert.equal(ready.timerRuntime.focusSession, null);
+});
+
+test("round-trips v5 tasks, active context, and immutable history attribution", () => {
+  const storage = createMemoryStorage();
+  const repository = createRepository(storage, () => 20_000);
+  repository.update((state) => {
+    state.tasks = {
+      items: [{
+        id: "task-one",
+        title: "Write chapter",
+        status: "open",
+        createdAt: 100,
+        completedAt: null
+      }],
+      selectedTaskId: "task-one"
+    };
+    state.timerRuntime = {
+      phase: "focus",
+      completedFocusesInCycle: 0,
+      remainingSeconds: 900,
+      deadlineMs: 30_000,
+      isRunning: true,
+      focusSession: { id: "focus-one", taskId: "task-one", taskTitle: "Write chapter" }
+    };
+    state.stats.focusSessions = [{
+      id: "focus-old",
+      day: "2026-09-10",
+      focusSeconds: 1500,
+      completedAt: "2026-09-10T01:00:00.000Z",
+      source: "timer",
+      taskId: "deleted-task",
+      taskTitle: "Historical title"
+    }];
+  });
+  const restored = importBackup(repository.exportBackup("2026-09-10T02:00:00.000Z"), 21_000);
+  assert.equal(restored.schemaVersion, 5);
+  assert.equal(restored.tasks.items[0].title, "Write chapter");
+  assert.equal(restored.tasks.selectedTaskId, "task-one");
+  assert.deepEqual(restored.timerRuntime.focusSession, {
+    id: "focus-one",
+    taskId: "task-one",
+    taskTitle: "Write chapter"
+  });
+  assert.equal(restored.stats.focusSessions[0].taskId, "deleted-task");
+  assert.equal(restored.stats.focusSessions[0].taskTitle, "Historical title");
+});
+
+test("rejects mismatched, malformed, duplicate, and oversized v5 task backups", () => {
+  const wrap = (state, schemaVersion = 5) => ({
+    format: BACKUP_FORMAT,
+    schemaVersion,
+    state: { schemaVersion, ...state }
+  });
+  assert.throws(() => importBackup({
+    format: BACKUP_FORMAT,
+    schemaVersion: 4,
+    state: { schemaVersion: 5 }
+  }), /do not match/);
+  assert.throws(() => importBackup(wrap({ tasks: { items: "bad", selectedTaskId: null } })), /Task list is malformed/);
+  assert.throws(() => importBackup(wrap({ tasks: { items: [
+    { id: "same", title: "One", status: "open", createdAt: 1, completedAt: null },
+    { id: "same", title: "Two", status: "open", createdAt: 2, completedAt: null }
+  ], selectedTaskId: null } })), /duplicated/);
+  assert.throws(() => importBackup(wrap({ tasks: {
+    items: Array.from({ length: 101 }, (_, index) => ({
+      id: `task-${index}`,
+      title: `Task ${index}`,
+      status: "open",
+      createdAt: index,
+      completedAt: null
+    })),
+    selectedTaskId: null
+  } })), /100-task limit/);
+});
+
+test("publishes repository state only after a successful storage write", () => {
+  const storage = createMemoryStorage();
+  const repository = createRepository(storage, () => 30_000);
+  const before = repository.getState();
+  storage.setFailure(new Error("quota exceeded"));
+  assert.throws(() => repository.update((state) => {
+    state.tasks.items.push({
+      id: "not-saved",
+      title: "Not saved",
+      status: "open",
+      createdAt: 1,
+      completedAt: null
+    });
+  }), /quota exceeded/);
+  assert.deepEqual(repository.getState(), before);
+});
+
+test("retries one atomic completion without duplicating its stable session ID", () => {
+  const storage = createMemoryStorage();
+  const repository = createRepository(storage, () => 40_000);
+  const complete = () => commitFocusCompletion(repository, {
+    focusSession: {
+      id: "focus-stable",
+      taskId: "task-deleted",
+      taskTitle: "Frozen"
+    },
+    focusSeconds: 1500,
+    completedAtMs: Date.parse("2026-09-10T02:00:00.000Z"),
+    createNextRuntime: () => ({
+      phase: "shortBreak",
+      completedFocusesInCycle: 1,
+      remainingSeconds: 300,
+      deadlineMs: null,
+      isRunning: false,
+      focusSession: null
+    })
+  });
+
+  storage.setFailure(new Error("quota exceeded"));
+  assert.throws(complete, /quota exceeded/);
+  assert.equal(repository.getState().stats.focusSessions.length, 0);
+  assert.equal(repository.getState().timerRuntime.phase, "focus");
+  storage.setFailure(null);
+  complete();
+  complete();
+  const final = repository.getState();
+  assert.equal(final.stats.focusSessions.filter((session) => session.id === "focus-stable").length, 1);
+  assert.equal(final.timerRuntime.phase, "shortBreak");
 });

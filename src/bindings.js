@@ -18,12 +18,13 @@
     } = options;
 
     targetWindow.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
       const key = event.key;
       const lowerKey = typeof key === "string" ? key.toLowerCase() : "";
       const isMeta = event.metaKey || event.ctrlKey;
       const isTyping = isTypingElement(event.target, HTMLElementType);
 
-      if ((key === "?" || (key === "/" && event.shiftKey)) && isShortcutEnabled("helpToggle")) {
+      if (!isTyping && (key === "?" || (key === "/" && event.shiftKey)) && isShortcutEnabled("helpToggle")) {
         event.preventDefault();
         actions.toggleShortcutHelp();
         return;
@@ -54,6 +55,10 @@
           event.preventDefault();
           actions.toggleFocusPlanDrawer(false);
         }
+        if (elements.tasksDrawer?.classList.contains("is-open")) {
+          event.preventDefault();
+          actions.toggleTasksDrawer(false);
+        }
         if (
           elements.notesPanel?.getAttribute("aria-hidden") === "false" &&
           targetWindow.matchMedia?.("(max-width: 900px)").matches
@@ -63,6 +68,7 @@
         }
         return;
       }
+      if (isTyping && elements.tasksDrawer?.contains?.(event.target)) return;
       if (isTyping && !isMeta) return;
 
       if (isShortcutEnabled("timerToggle") && isMeta && key === "Enter") {
@@ -245,6 +251,7 @@
     on(e.bgVideoBtn, "click", a.importBackgroundVideo);
     on(e.bgCoverBtn, "click", () => a.setBackgroundMode("cover"));
     on(e.drawerBackdrop, "click", () => {
+      a.toggleTasksDrawer(false);
       a.toggleBackgroundDrawer(false);
       a.toggleStatsDrawer(false);
       a.toggleFocusPlanDrawer(false);
@@ -259,6 +266,7 @@
     bindSwipeToClose(e.statsDrawer, () => a.toggleStatsDrawer(false));
     bindSwipeToClose(e.backgroundDrawer, () => a.toggleBackgroundDrawer(false));
     bindSwipeToClose(e.focusPlanDrawer, () => a.toggleFocusPlanDrawer(false));
+    bindSwipeToClose(e.tasksDrawer, () => a.toggleTasksDrawer(false));
     on(e.showcaseToggleBtn, "click", (event) => {
       event.stopPropagation();
       a.toggleShowcaseMode();

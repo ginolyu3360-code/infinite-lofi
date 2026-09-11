@@ -34,6 +34,20 @@ test("uses the local calendar day instead of the UTC day", () => {
   }
 });
 
+test("keeps local day attribution correct across midnight and daylight-saving changes", () => {
+  const previousTimeZone = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    assert.equal(getLocalDayKey(new Date("2026-03-08T04:59:59.000Z")), "2026-03-07");
+    assert.equal(getLocalDayKey(new Date("2026-03-08T05:00:00.000Z")), "2026-03-08");
+    assert.equal(getLocalDayKey(new Date("2026-11-01T05:30:00.000Z")), "2026-11-01");
+    assert.equal(getLocalDayKey(new Date("2026-11-01T06:30:00.000Z")), "2026-11-01");
+  } finally {
+    if (previousTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimeZone;
+  }
+});
+
 test("derives countdown time from an absolute deadline", () => {
   assert.equal(remainingSecondsUntil(10_000, 1_000), 9);
   assert.equal(remainingSecondsUntil(10_000, 1_001), 9);
@@ -129,6 +143,8 @@ test("bounds and sanitizes the per-session focus ledger", () => {
     day: "2026-09-08",
     focusSeconds: 900,
     completedAt: "",
-    source: "migrated"
+    source: "migrated",
+    taskId: null,
+    taskTitle: ""
   }]);
 });
