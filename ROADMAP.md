@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. This section supersedes the 2026-09-09 draft. The user requested a complete implementation handoff for GPT-5.6 sol; this documentation request does not authorize starting all four slices. No Phase 4 product code has started.
+Status: re-audited and documented on 2026-09-10. Phase 4A was implemented and locally verified on 2026-09-11; Phase 4B, 4C1, and 4C2 remain unstarted. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -159,6 +159,8 @@ Recommended execution order: **4A → 4B → 4C1 → 4C2**. C1 can move ahead of
 ### Phase 4A — Focus Intent
 
 Goal: make it easy to say what the next focus session is for, without requiring a task or creating another note editor.
+
+Implementation status: complete locally on `codex/phase4a-focus-intent` as of 2026-09-11, pending the required feature PR CI, squash merge, and post-merge `main` CI evidence.
 
 #### Product scope
 
@@ -278,18 +280,20 @@ Extend the existing state; do not replace unrelated settings, notes, player iden
 
 #### Phase 4A release-independent acceptance checklist
 
-- [ ] Task operations, capacity handling, ordering, pagination, and Notes separation match the above contract.
-- [ ] Running/paused/automatic/restarted/unassigned attribution stays correct through selection changes, rename, complete, delete, reset, and applying a new plan.
-- [ ] Completion and restored-expiry paths are idempotent and atomic at the repository boundary; include local-midnight and daylight-saving cases and injected write failure/retry.
-- [ ] Legacy and schema v1–v4 migration fixtures preserve valid preexisting data; v5 backup round-trip includes active context and tasks. Reject mismatched/future versions and malformed/oversized task data without replacing current data.
-- [ ] Normalization, history editing, deletion, pruning, and daily CSV retain the intended attribution/totals. Daily CSV format stays unchanged; full backup contains task data.
-- [ ] Model/controller tests cover invalid and duplicate IDs, missing live tasks, snapshot-only history, empty/long/Unicode titles, 100/101-task limits, selection of completed tasks, and storage failure.
-- [ ] Real Electron tests cover task editing, IME/shortcut boundaries, focus entry/return, Tab trapping, Escape hierarchy, row removal, accessibility-tree names, scene contrast, and reduced visual motion.
+- [x] Task operations, capacity handling, ordering, pagination, and Notes separation match the above contract.
+- [x] Running/paused/automatic/restarted/unassigned attribution stays correct through selection changes, rename, complete, delete, reset, and applying a new plan.
+- [x] Completion and restored-expiry paths are idempotent and atomic at the repository boundary; include local-midnight and daylight-saving cases and injected write failure/retry.
+- [x] Legacy and schema v1–v4 migration fixtures preserve valid preexisting data; v5 backup round-trip includes active context and tasks. Reject mismatched/future versions and malformed/oversized task data without replacing current data.
+- [x] Normalization, history editing, deletion, pruning, and daily CSV retain the intended attribution/totals. Daily CSV format stays unchanged; full backup contains task data.
+- [x] Model/controller tests cover invalid and duplicate IDs, missing live tasks, snapshot-only history, empty/long/Unicode titles, 100/101-task limits, selection of completed tasks, and storage failure.
+- [x] Real Electron tests cover task editing, IME/shortcut boundaries, focus entry/return, Tab trapping, Escape hierarchy, row removal, accessibility-tree names, scene contrast, and reduced visual motion.
 - [ ] Full layout fits 720 × 520, 800 × 600, 1100 × 760, and 1440 × 900, plus both sides of the 900 px Notes breakpoint. Where a display cannot provide a target size, report that limitation instead of claiming it passed.
-- [ ] Mini fits 420 × 250 and 360 × 200, including maximum timer text and long titles, with no clipped primary controls or timer scrollbar; prior full bounds restore.
-- [ ] `npm run check`, isolated development smoke, Universal packaging, and isolated packaged-app smoke pass with no renderer exceptions. Update syntax-check and packaging inclusion lists for new modules.
-- [ ] Record reference-machine performance measurements and regression coverage for notes, music, backgrounds, history, restore, native window lifecycle, and tray behavior.
+- [x] Mini fits 420 × 250 and 360 × 200, including maximum timer text and long titles, with no clipped primary controls or timer scrollbar; prior full bounds restore.
+- [x] `npm run check`, isolated development smoke, Universal packaging, and isolated packaged-app smoke pass with no renderer exceptions. Update syntax-check and packaging inclusion lists for new modules.
+- [x] Record reference-machine performance measurements and regression coverage for notes, music, backgrounds, history, restore, native window lifecycle, and tray behavior.
 - [ ] PR CI passes for the final feature commit; squash merge is followed by passing main CI and updated handoff/verification evidence. No version bump, tag, or Release is implicit.
+
+Local verification note: native full-window checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and the display's largest available 1440 × 797 viewport. This machine could not provide a native 1440 × 900 viewport, so that exact height remains explicitly unverified. With 100 maximum-title tasks and 5,000 maximum-title sessions over 30 repetitions, development smoke observed p95 16.9 ms for drawer open and 37.6 ms for a visible selection update; packaged smoke observed 18.8 ms and 38.7 ms respectively.
 
 ### Phase 4B — Focus Review
 

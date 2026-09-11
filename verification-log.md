@@ -1,5 +1,45 @@
 # Verification Log
 
+## 2026-09-11 — Phase 4A Focus Intent implementation (pre-PR)
+
+### Baseline revalidation
+
+- Read the complete README, Phase 4 roadmap specification, handoff, verification log, UI refresh plan, and user profile. No repository `AGENTS.md` exists.
+- Confirmed the canonical checkout was clean on `codex/phase4-plan` at planning commit `f3b374b`; only one worktree was registered.
+- Fetched origin and confirmed local/remote `main` at `0004aea4b87fcbe5d4e7ba3bfdf1486ed415a2dc`, with annotated tag `v1.3.0` resolving to `2e90dbdc2767861714c0effe4b580a1e03700379` and package version 1.3.0.
+- Confirmed exact-head main CI run [34297373277](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34297373277) passed before implementation.
+- Created `codex/phase4a-focus-intent` from `f3b374b` in the canonical checkout, so the feature branch includes the complete audited plan.
+
+### Implemented
+
+- Added schema v5 tasks, next-session selection, frozen runtime focus snapshots, immutable history attribution, strict ID/title/count validation, v1–v4 migration, complete backup round-trip, and wrapper/inner version agreement checks.
+- Added title-only task operations with a 100-item retained limit, stored open order, newest-first completed presentation, 20-row pagination, and explicit retained-history deletion confirmation.
+- Added a main timer intention summary and accessible Tasks drawer. Mini Mode displays intention only and hides the editor.
+- Added the shared `commitFocusCompletion` boundary used by both live and restored-expiry completion. One repository write records the stable snapshot and advances/clears the runtime; duplicate retries stay idempotent.
+- Changed repository updates and imports to serialize successfully before publishing the new in-memory state. Task, timer, statistics, and Notes write failures retain and restore the last committed state while surfacing an error.
+- Removed the per-second full-state clone/history scan from timer rendering by caching the daily-goal summary and refreshing it only on relevant state changes or local-day rollover.
+- Preserved existing Notes, music, scene, statistics, timer, backup, Mini/full-window, and accessibility behavior. Phase 4B, 4C1, and 4C2 were not implemented.
+
+### Automated checks
+
+- `npm run check`: passed with 70 tests, all JavaScript syntax checks, and the minified CSS rebuild.
+- Model/controller coverage includes empty/long/Unicode titles, duplicate/invalid IDs, 100/101 capacity, completed selection rejection, ordering, pagination, missing live tasks, snapshot-only history, history editing/deletion/pruning, unchanged daily CSV, local midnight/DST, schema v1–v5 migration/restore, malformed/future/mismatched/oversized backups, task/Notes quota failures, repository publish-after-write, and injected atomic-completion failure/retry.
+- Isolated development Electron smoke: passed with no renderer exceptions.
+- Isolated Universal packaged-app smoke: passed with no renderer exceptions.
+- Real UI coverage includes task add/select/rename/complete/reopen/delete, current-vs-next copy, pause/resume, live focus/break auto-start, reset, immutable task history, expired focus recovery exactly once across two reloads, IME and shortcut boundaries, edit/drawer Escape hierarchy, focus entry/return, Tab trapping, row-removal focus, accessibility-tree dialog names, live status, reduced motion, and scene-specific intention colors.
+- Full layouts passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and the largest native viewport available on this display, 1440 × 797. Timer overflow was zero and full-view timer controls measured 44 px. Both sides of the 900 px Notes breakpoint passed.
+- Mini Mode passed at 420 × 250 and 360 × 200 with maximum `360:00` timer text and a 120-code-point intention, zero timer overflow, visible primary controls, hidden task editor, and prior full bounds restored.
+- Performance fixture used 100 maximum-title tasks plus 5,000 maximum-title sessions for 30 repetitions. Latest development p95: 18.2 ms drawer open and 37.6 ms selection update. Packaged p95: 18.8 ms and 38.0 ms. Both are below the 100 ms reference target.
+- `npm run pack:universal`: passed with electron-builder 26.15.3. `file` confirmed the unpacked executable contains both `x86_64` and `arm64` Mach-O architectures.
+- Regression smoke covered Notes, bundled music, native Media Session state, curated backgrounds, history, backup/recovery reload, Mini/full native resizing, and renderer-to-tray status updates. Fresh temporary Electron profiles ensured normal application data was never used or modified.
+
+### Limitations and delivery state
+
+- This machine could not expose a native 1440 × 900 renderer viewport; the maximum was 1440 × 797. The exact-height target remains explicitly unverified.
+- Tray menu appearance and OS notification presentation are not directly visible to renderer automation. Their unchanged IPC paths ran without exceptions; Phase 4A did not modify `main.js` or `preload.js`.
+- The Universal app is intentionally unsigned and not notarized. No tag, installer release, GitHub Release, or version change was created.
+- Feature PR creation, final PR CI, squash merge, and exact post-merge main CI remain pending at this entry and must be appended with actual IDs rather than assumed.
+
 ## 2026-09-10 — Phase 4 re-audit and complete planning handoff
 
 ### Documentation delivered

@@ -500,6 +500,39 @@ body.has-visual-background .glass-panel {
   letter-spacing: 0.1em;
 }
 
+.timer-intent-summary {
+  width: min(100%, 28rem);
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  padding: 0.45rem 0.85rem;
+  color: var(--ink);
+  text-align: left;
+}
+
+.timer-intent-summary span {
+  flex: 0 0 auto;
+  color: var(--ink-muted);
+  font: 600 0.54rem/1.2 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timer-intent-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 #timerDisplay {
   width: auto;
   max-width: 100%;
@@ -804,6 +837,7 @@ body.has-visual-background .glass-panel {
 }
 
 #focusPlanDrawer,
+#tasksDrawer,
 #statsDrawer,
 #backgroundDrawer {
   position: fixed;
@@ -821,11 +855,13 @@ body.has-visual-background .glass-panel {
 }
 
 #focusPlanDrawer,
+#tasksDrawer,
 #backgroundDrawer {
-  width: min(30rem, calc(100vw - 2rem));
+  width: min(34rem, calc(100vw - 2rem));
 }
 
 #focusPlanDrawer.is-open,
+#tasksDrawer.is-open,
 #statsDrawer.is-open,
 #backgroundDrawer.is-open {
   transform: translateX(0);
@@ -924,6 +960,180 @@ body.has-visual-background .glass-panel {
 #focusPlanDrawer.is-locked .focus-plan-grid,
 #focusPlanDrawer.is-locked .focus-plan-toggles {
   opacity: 0.5;
+}
+
+.task-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.task-intent-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: rgba(5, 5, 4, 0.18);
+  padding: 0.8rem;
+}
+
+.task-intent-card span,
+.task-add-form label,
+.task-add-form > span,
+.task-section-heading span,
+.task-page-count,
+.task-empty {
+  color: var(--ink-muted);
+  font: 600 0.58rem/1.35 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.task-intent-card strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-add-form {
+  margin-top: 1rem;
+}
+
+.task-add-form > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  margin-top: 0.45rem;
+}
+
+.task-add-form > span {
+  display: block;
+  margin-top: 0.4rem;
+  text-align: right;
+}
+
+.task-title-input,
+.task-rename-input {
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(6, 6, 5, 0.3);
+  padding: 0 0.75rem;
+  color: var(--ink);
+}
+
+.task-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+}
+
+.task-section-heading,
+.task-completed-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.task-section-heading h3,
+.task-completed-toggle > span:first-child {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.task-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.55rem;
+}
+
+.task-row-title {
+  min-width: 0;
+}
+
+.task-row-title > span {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.task-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.task-action-btn,
+.task-page-btn,
+.task-completed-toggle {
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  padding: 0 0.7rem;
+  color: var(--ink);
+  font: 600 0.58rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.task-action-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-strong);
+  color: #21180d;
+}
+
+.task-delete-btn {
+  border-color: rgba(239, 154, 154, 0.26);
+  color: var(--danger);
+}
+
+.task-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.task-page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.task-completed-toggle {
+  width: 100%;
+  border-radius: var(--radius-small);
+}
+
+.task-empty {
+  margin: 0.75rem 0 0;
+  text-transform: none;
 }
 
 .drawer-panel {
@@ -1722,6 +1932,10 @@ body.bg-white-background .focus-plan-toggle,
 body.bg-white-background .today-goal-progress,
 body.bg-white-background .session-history-input,
 body.bg-white-background .session-history-row,
+body.bg-white-background .task-title-input,
+body.bg-white-background .task-rename-input,
+body.bg-white-background .task-intent-card,
+body.bg-white-background .task-row,
 body.bg-white-background .stats-chart-wrap,
 body.bg-white-background .scene-meta {
   background-color: rgba(255, 255, 255, 0.38);
@@ -1778,6 +1992,7 @@ body.is-showcase-mode #playerPanel,
 body.is-showcase-mode #statsDrawer,
 body.is-showcase-mode #backgroundDrawer,
 body.is-showcase-mode #focusPlanDrawer,
+body.is-showcase-mode #tasksDrawer,
 body.is-showcase-mode #shortcutHelpOverlay {
   display: none !important;
 }
@@ -1990,6 +2205,7 @@ body.is-mini-mode #statusDate,
 body.is-mini-mode #statusWeather,
 body.is-mini-mode #notesToggleBtn,
 body.is-mini-mode #focusPlanToggleBtn,
+body.is-mini-mode #tasksToggleBtn,
 body.is-mini-mode #shortcutHelpBtn,
 body.is-mini-mode #notesPanel,
 body.is-mini-mode #showcaseToggleBtn,
@@ -2002,6 +2218,7 @@ body.is-mini-mode #playlistPanel,
 body.is-mini-mode #statsDrawer,
 body.is-mini-mode #backgroundDrawer,
 body.is-mini-mode #focusPlanDrawer,
+body.is-mini-mode #tasksDrawer,
 body.is-mini-mode #drawerBackdrop {
   display: none !important;
 }
@@ -2052,13 +2269,32 @@ body.is-mini-mode .timer-phase {
 }
 
 body.is-mini-mode .timer-plan-status {
+  display: none;
+}
+
+body.is-mini-mode .timer-intent-summary {
   grid-column: 1;
+  grid-row: 2;
+  min-height: 1.65rem;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
   align-self: center;
   overflow: hidden;
   font-size: 0.5rem;
   letter-spacing: 0.06em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+body.is-mini-mode .timer-intent-summary span {
+  font-size: 0.46rem;
+}
+
+body.is-mini-mode .timer-intent-summary strong {
+  font-size: 0.62rem;
 }
 
 body.is-mini-mode #timerDisplay {
@@ -2119,6 +2355,63 @@ body.is-mini-mode #nextTrackBtn {
 body.is-mini-mode .transport-primary {
   min-width: 4.6rem;
   min-height: 2.35rem;
+}
+
+@media (max-width: 480px) and (max-height: 210px) {
+  body.is-mini-mode #appHeader {
+    height: 2.25rem;
+    padding-block: 0.15rem;
+  }
+
+  body.is-mini-mode .header-action-btn,
+  body.is-mini-mode .window-btn {
+    min-height: 1.8rem;
+    height: 1.8rem;
+  }
+
+  body.is-mini-mode .window-btn {
+    min-width: 1.8rem;
+    width: 1.8rem;
+  }
+
+  body.is-mini-mode #appLayout {
+    padding: 2.55rem 0.35rem 0.35rem;
+  }
+
+  body.is-mini-mode #mainRightColumn {
+    grid-template-rows: minmax(0, 1fr) 2.85rem;
+    gap: 0.25rem;
+  }
+
+  body.is-mini-mode #timerCard {
+    padding: 0.18rem 0.5rem;
+  }
+
+  body.is-mini-mode .timer-content {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  body.is-mini-mode .timer-intent-summary {
+    min-height: 1.15rem;
+  }
+
+  body.is-mini-mode #timerDisplay {
+    font-size: clamp(1.65rem, 11vw, 2.15rem);
+  }
+
+  body.is-mini-mode .timer-actions {
+    gap: 0.18rem;
+  }
+
+  body.is-mini-mode .timer-actions .control-btn,
+  body.is-mini-mode .transport-primary {
+    min-height: 1.8rem;
+    height: 1.8rem;
+  }
+
+  body.is-mini-mode #playerPanel {
+    padding: 0.2rem 0.45rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

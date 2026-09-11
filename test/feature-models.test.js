@@ -24,6 +24,7 @@ const {
   resolveEffectiveBackground
 } = require("../src/backgrounds");
 const {
+  buildDailyCsv,
   buildRangeDays,
   recordFocusSession,
   removeFocusSession,
@@ -58,7 +59,9 @@ test("restores an active timer from its deadline", () => {
     deadlineMs: 10_000,
     isRunning: true,
     completedFocusDuringAbsence: false,
-    completedFocusAtMs: null
+    completedFocusAtMs: null,
+    completedFocusSession: null,
+    focusSession: null
   });
 });
 
@@ -80,16 +83,51 @@ test("moves an expired saved timer to a paused next phase", () => {
       completedFocusesInCycle: restored.completedFocusesInCycle,
       remainingSeconds: restored.remainingSeconds,
       deadlineMs: restored.deadlineMs,
-      isRunning: restored.isRunning
+      isRunning: restored.isRunning,
+      focusSession: restored.focusSession
     }, { focusSeconds: 1500, shortBreakSeconds: 420 }),
     {
       phase: "shortBreak",
       completedFocusesInCycle: 1,
       remainingSeconds: 420,
       deadlineMs: null,
-      isRunning: false
+      isRunning: false,
+      focusSession: null
     }
   );
+});
+
+test("preserves a frozen focus snapshot through pause, resume, and expired restore", () => {
+  const focusSession = {
+    id: "focus-stable",
+    taskId: "task-one",
+    taskTitle: "Frozen title"
+  };
+  const paused = createRuntimeSnapshot({
+    phase: "focus",
+    completedFocusesInCycle: 0,
+    remainingSeconds: 900,
+    deadlineMs: null,
+    isRunning: false,
+    focusSession
+  }, { focusSeconds: 1500 });
+  assert.deepEqual(paused.focusSession, focusSession);
+
+  const resumed = resolveRestoredRuntime({
+    ...paused,
+    deadlineMs: 20_000,
+    isRunning: true
+  }, { focusSeconds: 1500 }, 10_000);
+  assert.deepEqual(resumed.focusSession, focusSession);
+
+  const expired = resolveRestoredRuntime({
+    ...paused,
+    deadlineMs: 20_000,
+    isRunning: true
+  }, { focusSeconds: 1500, shortBreakSeconds: 300 }, 21_000);
+  assert.deepEqual(expired.completedFocusSession, focusSession);
+  assert.equal(expired.focusSession, null);
+  assert.equal(expired.phase, "shortBreak");
 });
 
 test("restores short and long breaks with their own durations", () => {
@@ -334,7 +372,9 @@ test("records focus sessions without truncating a year of imported history", () 
   }));
   const updated = recordFocusSession(sessions, "2026-01-01", 1500, {
     id: "timer-new-year",
-    completedAt: "2026-01-01T10:00:00.000Z"
+    completedAt: "2026-01-01T10:00:00.000Z",
+    taskId: "task-1",
+    taskTitle: "Write the introduction"
   });
 
   assert.equal(updated.length, 366);
@@ -343,8 +383,38 @@ test("records focus sessions without truncating a year of imported history", () 
     day: "2026-01-01",
     focusSeconds: 1500,
     completedAt: "2026-01-01T10:00:00.000Z",
-    source: "timer"
+    source: "timer",
+    taskId: "task-1",
+    taskTitle: "Write the introduction"
   });
+  assert.deepEqual(
+    recordFocusSession(updated, "2026-01-02", 3600, {
+      id: "timer-new-year",
+      taskId: "task-other",
+      taskTitle: "A changed task"
+    }),
+    updated
+  );
+});
+
+test("keeps snapshot-only task text without matching it to a live task", () => {
+  const sessions = recordFocusSession([], "2026-09-11", 1500, {
+    id: "snapshot-only",
+    completedAt: "2026-09-11T01:00:00.000Z",
+    taskId: null,
+    taskTitle: "Readable historical title"
+  });
+  assert.equal(sessions[0].taskId, null);
+  assert.equal(sessions[0].taskTitle, "Readable historical title");
+});
+
+test("keeps the daily CSV format independent of task attribution", () => {
+  assert.equal(buildDailyCsv([
+    { day: "2026-09-10", focusSeconds: 1500, taskTitle: "Not a CSV column" }
+  ], [
+    { key: "2026-09-10" },
+    { key: "2026-09-11" }
+  ]), "day,focusMinutes\n2026-09-10,25\n2026-09-11,0");
 });
 
 test("edits and removes individual focus sessions without merging same-day entries", () => {
@@ -352,7 +422,9 @@ test("edits and removes individual focus sessions without merging same-day entri
     id: "manual-1",
     day: "2026-09-06",
     focusSeconds: 1200,
-    source: "manual"
+    source: "manual",
+    taskId: "task-frozen",
+    taskTitle: "Frozen intention"
   });
   const second = upsertFocusSession(first, {
     id: "manual-2",
@@ -367,6 +439,8 @@ test("edits and removes individual focus sessions without merging same-day entri
   });
 
   assert.equal(edited.length, 2);
+  assert.equal(edited.find((session) => session.id === "manual-1").taskId, "task-frozen");
+  assert.equal(edited.find((session) => session.id === "manual-1").taskTitle, "Frozen intention");
   assert.deepEqual(summarizeFocusRows(edited, [
     { key: "2026-09-06" },
     { key: "2026-09-07" }

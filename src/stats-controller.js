@@ -8,6 +8,7 @@
       beforeBackup = () => {},
       beforeRestore = () => {},
       announce = () => {},
+      onStatsChange = () => {},
       focusManager = null,
       setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
@@ -78,9 +79,10 @@
     }
 
     function persistSessions(mutator) {
-      appStorage.update((state) => {
+      const committed = appStorage.update((state) => {
         state.stats.focusSessions = mutator(state.stats.focusSessions);
       });
+      onStatsChange(committed);
       renderStats();
     }
 
@@ -100,8 +102,12 @@
 
     function deleteFocusSession(id) {
       if (!confirmAction("Delete this focus session? This cannot be undone.")) return;
-      persistSessions((sessions) => statsModel.removeFocusSession(sessions, id));
-      announce("Focus session deleted.");
+      try {
+        persistSessions((sessions) => statsModel.removeFocusSession(sessions, id));
+        announce("Focus session deleted.");
+      } catch (error) {
+        showAlert(error instanceof Error ? error.message : "Could not delete this session.");
+      }
     }
 
     function renderSessionHistory(sessions) {
@@ -139,6 +145,13 @@
           : session.source === "timer"
           ? "Timer"
           : "Manual";
+        if (session.taskTitle) {
+          source.textContent += ` · ${session.taskTitle}`;
+          source.title = session.taskTitle;
+          source.setAttribute("aria-label", `${source.textContent}. Saved task-title snapshot.`);
+        } else {
+          source.textContent += " · Unassigned";
+        }
 
         const actions = elements.document.createElement("div");
         actions.className = "session-history-actions";
@@ -297,37 +310,24 @@
     }
 
     function setStatsRange(mode) {
+      const previousMode = rangeMode;
       rangeMode = mode === "today" || mode === "month" ? mode : "week";
-      appStorage.update((state) => {
-        state.settings.statsRange = rangeMode;
-      });
-      renderStats();
-    }
-
-    function recordCompletedFocusSession(focusSeconds, completedAt = new Date()) {
-      const today = core.getLocalDayKey(completedAt);
-      appStorage.update((state) => {
-        state.stats.focusSessions = statsModel.recordFocusSession(
-          state.stats.focusSessions,
-          today,
-          focusSeconds,
-          {
-            id: `focus-timer-${completedAt.getTime()}-${state.stats.focusSessions.length}`,
-            completedAt,
-            source: "timer"
-          }
-        );
-      });
-      renderStats();
+      try {
+        appStorage.update((state) => {
+          state.settings.statsRange = rangeMode;
+        });
+        renderStats();
+      } catch (error) {
+        rangeMode = previousMode;
+        showAlert(error instanceof Error ? error.message : "Could not save the statistics range.");
+        renderStats();
+      }
     }
 
     function exportStatsCsv() {
       const days = statsModel.buildRangeDays(new Date(), rangeMode);
-      const summary = statsModel.summarizeFocusRows(appStorage.getState().stats.focusRows, days);
-      const lines = ["day,focusMinutes"];
-      days.forEach((day) => lines.push(`${day.key},${Math.round((summary.totals.get(day.key) || 0) / 60)}`));
       download(
-        lines.join("\n"),
+        statsModel.buildDailyCsv(appStorage.getState().stats.focusRows, days),
         `infinite-lofi-focus-stats-${core.getLocalDayKey(new Date())}.csv`,
         "text/csv;charset=utf-8"
       );
@@ -367,7 +367,7 @@
       try {
         const rawBackup = await file.text();
         const restored = globalScope.InfiniteLofiStorage.importBackup(rawBackup);
-        if (!confirmAction(`Restore this backup (${restored.notes.files.length} notes, ${restored.stats.focusSessions.length} focus sessions)? Current local data will be replaced.`)) return;
+        if (!confirmAction(`Restore this backup (${restored.notes.files.length} notes, ${restored.tasks.items.length} tasks, ${restored.stats.focusSessions.length} focus sessions)? Current local data will be replaced.`)) return;
         beforeRestore();
         appStorage.importBackup(rawBackup);
         appStorage.dismissRecoveryNotice();
@@ -385,12 +385,17 @@
 
     function clearStats() {
       if (!confirmAction("Clear all focus stats? This cannot be undone.")) return;
-      appStorage.update((state) => {
-        state.stats.focusSessions = [];
-        state.stats.focusRows = [];
-      });
-      renderStats();
-      announce("All focus statistics cleared.");
+      try {
+        const committed = appStorage.update((state) => {
+          state.stats.focusSessions = [];
+          state.stats.focusRows = [];
+        });
+        onStatsChange(committed);
+        renderStats();
+        announce("All focus statistics cleared.");
+      } catch (error) {
+        showAlert(error instanceof Error ? error.message : "Could not clear focus statistics.");
+      }
     }
 
     return {
@@ -401,7 +406,6 @@
       exportStatsBackup,
       exportStatsCsv,
       loadStatsRange,
-      recordCompletedFocusSession,
       renderStats,
       renderStorageRecoveryNotice,
       restoreStatsBackup,

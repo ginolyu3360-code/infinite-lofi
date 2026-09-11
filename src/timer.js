@@ -3,9 +3,13 @@
     typeof module !== "undefined" && module.exports
       ? require("./core")
       : globalScope.InfiniteLofiCore;
+  const tasks =
+    typeof module !== "undefined" && module.exports
+      ? require("./tasks")
+      : globalScope.InfiniteLofiTasks;
 
-  if (!core) {
-    throw new Error("Infinite Lo-Fi core helpers are required by timer");
+  if (!core || !tasks) {
+    throw new Error("Infinite Lo-Fi core and task helpers are required by timer");
   }
 
   function normalizePhase(phase) {
@@ -60,7 +64,7 @@
   }
 
   function createRuntimeSnapshot(
-    { phase, completedFocusesInCycle, remainingSeconds, deadlineMs, isRunning },
+    { phase, completedFocusesInCycle, remainingSeconds, deadlineMs, isRunning, focusSession },
     settings
   ) {
     const normalizedDeadline = Number(deadlineMs);
@@ -82,7 +86,10 @@
           ? normalizedDeadline
           : null,
       isRunning:
-        isRunning === true && Number.isFinite(normalizedDeadline) && normalizedDeadline > 0
+        isRunning === true && Number.isFinite(normalizedDeadline) && normalizedDeadline > 0,
+      focusSession: normalizedPhase === "focus"
+        ? tasks.normalizeTaskSnapshot(focusSession)
+        : null
     };
   }
 
@@ -103,6 +110,9 @@
     );
     const deadlineMs = Number(runtime?.deadlineMs);
     const canResume = runtime?.isRunning === true && Number.isFinite(deadlineMs) && deadlineMs > 0;
+    const focusSession = phase === "focus"
+      ? tasks.normalizeTaskSnapshot(runtime?.focusSession)
+      : null;
 
     if (!canResume) {
       return {
@@ -112,7 +122,9 @@
         deadlineMs: null,
         isRunning: false,
         completedFocusDuringAbsence: false,
-        completedFocusAtMs: null
+        completedFocusAtMs: null,
+        completedFocusSession: null,
+        focusSession
       };
     }
 
@@ -125,7 +137,9 @@
         deadlineMs,
         isRunning: true,
         completedFocusDuringAbsence: false,
-        completedFocusAtMs: null
+        completedFocusAtMs: null,
+        completedFocusSession: null,
+        focusSession
       };
     }
 
@@ -140,7 +154,9 @@
       deadlineMs: null,
       isRunning: false,
       completedFocusDuringAbsence: transition.completedFocus,
-      completedFocusAtMs: transition.completedFocus ? deadlineMs : null
+      completedFocusAtMs: transition.completedFocus ? deadlineMs : null,
+      completedFocusSession: transition.completedFocus ? focusSession : null,
+      focusSession: null
     };
   }
 

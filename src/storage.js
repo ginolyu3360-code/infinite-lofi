@@ -3,12 +3,16 @@
     typeof module !== "undefined" && module.exports
       ? require("./core")
       : globalScope.InfiniteLofiCore;
+  const tasks =
+    typeof module !== "undefined" && module.exports
+      ? require("./tasks")
+      : globalScope.InfiniteLofiTasks;
 
-  if (!core) {
-    throw new Error("Infinite Lo-Fi core helpers are required by storage");
+  if (!core || !tasks) {
+    throw new Error("Infinite Lo-Fi core and task helpers are required by storage");
   }
 
-  const CURRENT_SCHEMA_VERSION = 4;
+  const CURRENT_SCHEMA_VERSION = 5;
   const STORAGE_KEY = "infiniteLofiState";
   const RECOVERY_KEY = "infiniteLofiStateRecovery";
   const BACKUP_FORMAT = "infinite-lofi-backup";
@@ -39,6 +43,16 @@
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function createStableId(prefix) {
+    if (globalScope?.crypto?.randomUUID) return `${prefix}-${globalScope.crypto.randomUUID()}`;
+    if (typeof require === "function") {
+      try {
+        return `${prefix}-${require("node:crypto").randomUUID()}`;
+      } catch {}
+    }
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
   function normalizeString(value, maxLength = 4096) {
@@ -135,6 +149,10 @@
         files: [],
         activeId: ""
       },
+      tasks: {
+        items: [],
+        selectedTaskId: null
+      },
       stats: {
         focusSessions: [],
         focusRows: []
@@ -149,7 +167,8 @@
         completedFocusesInCycle: 0,
         remainingSeconds: core.DEFAULT_TIMER_SETTINGS.focusSeconds,
         deadlineMs: null,
-        isRunning: false
+        isRunning: false,
+        focusSession: null
       }
     };
   }
@@ -158,6 +177,14 @@
     const defaults = createDefaultState(now);
     const source = isObject(raw) ? raw : {};
     const settings = isObject(source.settings) ? source.settings : {};
+    const requestedVersion = Number(source.schemaVersion);
+    if (
+      Object.prototype.hasOwnProperty.call(source, "schemaVersion") &&
+      (!Number.isInteger(requestedVersion) || requestedVersion < 1 || requestedVersion > CURRENT_SCHEMA_VERSION)
+    ) {
+      throw new Error(`State schema version ${source.schemaVersion} is not supported.`);
+    }
+    const sourceVersion = Number.isInteger(requestedVersion) ? requestedVersion : 1;
     const timerSettings = core.normalizeTimerSettings(settings.timer);
     const goalSettings = isObject(settings.goals) ? settings.goals : {};
 
@@ -170,7 +197,7 @@
 
     const statsSource = isObject(source.stats) ? source.stats : {};
     const playerSource = isObject(source.player) ? source.player : {};
-    const normalizedPlayer = Number(source.schemaVersion) >= 4
+    const normalizedPlayer = sourceVersion >= 4
       ? {
           folderPath: normalizeString(playerSource.folderPath, 8192),
           queue: normalizePlayerQueue(playerSource.queue),
@@ -188,7 +215,7 @@
       : runtimePhase === "longBreak"
       ? timerSettings.longBreakSeconds
       : timerSettings.shortBreakSeconds;
-    const runtimeRemaining = core.clamp(
+    let runtimeRemaining = core.clamp(
       Number.isFinite(Number(runtimeSource.remainingSeconds))
         ? Math.round(Number(runtimeSource.remainingSeconds))
         : runtimeDefault,
@@ -196,10 +223,38 @@
       core.MAX_TIMER_SECONDS
     );
     const deadline = Number(runtimeSource.deadlineMs);
-    const hasDeadline = Number.isFinite(deadline) && deadline > 0;
+    let hasDeadline = Number.isFinite(deadline) && deadline > 0;
+    const normalizedTasks = sourceVersion >= 5
+      ? tasks.normalizeTasksState(source.tasks, { strict: true })
+      : { items: [], selectedTaskId: null };
+    const hasStartedLegacyFocus = runtimePhase === "focus" && (
+      runtimeSource.isRunning === true || runtimeRemaining < runtimeDefault
+    );
+    let focusSession = null;
+    if (sourceVersion >= 5) {
+      if (runtimePhase !== "focus" && runtimeSource.focusSession !== null && runtimeSource.focusSession !== undefined) {
+        throw new Error("Break timer cannot contain a focus-session context.");
+      }
+      focusSession = runtimePhase === "focus"
+        ? tasks.normalizeTaskSnapshot(runtimeSource.focusSession, { strict: true })
+        : null;
+      if (runtimePhase === "focus" && runtimeSource.isRunning === true && !focusSession) {
+        throw new Error("Started focus timer is missing its stable session context.");
+      }
+      if (runtimePhase === "focus" && !focusSession) {
+        runtimeRemaining = runtimeDefault;
+        hasDeadline = false;
+      }
+    } else if (hasStartedLegacyFocus) {
+      focusSession = {
+        id: createStableId("focus"),
+        taskId: null,
+        taskTitle: ""
+      };
+    }
 
     const focusSessions = core.normalizeFocusSessions(
-      Number(source.schemaVersion) >= 3 ? statsSource.focusSessions : undefined,
+      sourceVersion >= 3 ? statsSource.focusSessions : undefined,
       statsSource.focusRows,
       now
     );
@@ -218,6 +273,7 @@
           : defaults.settings.statsRange
       },
       notes: { files, activeId },
+      tasks: normalizedTasks,
       stats: {
         focusSessions,
         focusRows: core.aggregateFocusRows(focusSessions).slice(-core.MAX_FOCUS_HISTORY_DAYS)
@@ -234,7 +290,8 @@
             ),
         remainingSeconds: runtimeRemaining,
         deadlineMs: hasDeadline ? deadline : null,
-        isRunning: runtimeSource.isRunning === true && hasDeadline
+        isRunning: runtimeSource.isRunning === true && hasDeadline,
+        focusSession
       }
     };
   }
@@ -340,6 +397,10 @@
       if (!Number.isInteger(version) || version < 1 || version > CURRENT_SCHEMA_VERSION) {
         throw new Error(`Backup schema version ${payload.schemaVersion} is not supported.`);
       }
+      const innerVersion = Number(payload.state.schemaVersion);
+      if (!Number.isInteger(innerVersion) || innerVersion !== version) {
+        throw new Error("Backup wrapper and state schema versions do not match.");
+      }
       return normalizeState(payload.state, now);
     }
 
@@ -400,12 +461,12 @@
       state = readLegacyState(storage, nowProvider());
     }
 
-    function persist() {
-      state.updatedAt = nowProvider();
-      storage.setItem(STORAGE_KEY, JSON.stringify(state));
+    function persist(candidate) {
+      candidate.updatedAt = nowProvider();
+      storage.setItem(STORAGE_KEY, JSON.stringify(candidate));
     }
 
-    persist();
+    persist(state);
 
     return {
       getState() {
@@ -423,16 +484,18 @@
       update(mutator) {
         const draft = clone(state);
         mutator(draft);
-        state = normalizeState(draft, nowProvider());
-        persist();
+        const candidate = normalizeState(draft, nowProvider());
+        persist(candidate);
+        state = candidate;
         return clone(state);
       },
       exportBackup(exportedAt) {
         return createBackup(state, exportedAt);
       },
       importBackup(input) {
-        state = importBackup(input, nowProvider());
-        persist();
+        const candidate = importBackup(input, nowProvider());
+        persist(candidate);
+        state = candidate;
         return clone(state);
       }
     };

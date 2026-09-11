@@ -51,6 +51,7 @@
         </div>
         <div class="header-actions">
           <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes" aria-expanded="false" aria-controls="notesPanel">Notes</button>
+          <button id="tasksToggleBtn" class="header-action-btn" type="button" title="Choose the next focus intention" aria-label="Open tasks" aria-expanded="false" aria-controls="tasksDrawer">Tasks</button>
           <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal">Plan</button>
           <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts" aria-expanded="false" aria-controls="shortcutHelpOverlay">Keys ?</button>
           <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
@@ -91,6 +92,10 @@
                 <p id="timerPlanStatus" class="timer-plan-status" aria-live="polite">
                   Focus 1 of 4 · Goal off
                 </p>
+                <button id="timerIntentSummary" class="timer-intent-summary" type="button" aria-controls="tasksDrawer" aria-expanded="false">
+                  <span id="timerIntentLabel">Next intention</span>
+                  <strong id="timerIntentValue">Unassigned</strong>
+                </button>
                 <h1
                   id="timerDisplay"
                   class="timer-display"
@@ -213,6 +218,61 @@
             <p id="focusPlanLockHint">Changes start a fresh focus cycle.</p>
             <button id="focusPlanApplyBtn" class="control-btn primary-control" type="button">Apply Plan</button>
           </div>
+        </section>
+      </aside>
+
+      <aside id="tasksDrawer" role="dialog" aria-modal="true" aria-labelledby="tasksTitle" aria-hidden="true" inert>
+        <section id="tasksPanel" class="glass-panel drawer-panel">
+          <div class="drawer-header">
+            <div>
+              <p class="panel-eyebrow">Focus Intent</p>
+              <h2 id="tasksTitle" class="panel-title">Tasks</h2>
+            </div>
+            <button id="tasksCloseBtn" class="window-btn" type="button" title="Close Tasks" aria-label="Close Tasks">×</button>
+          </div>
+          <p class="panel-description">Choose an optional intention for the next focus session. Notes remain your free-form workspace.</p>
+
+          <div class="task-intent-grid">
+            <div class="task-intent-card">
+              <span id="tasksCurrentLabel">Current session</span>
+              <strong id="tasksCurrentValue">Unassigned</strong>
+            </div>
+            <div class="task-intent-card">
+              <span id="tasksNextLabel">Next session</span>
+              <strong id="tasksNextValue">Unassigned</strong>
+            </div>
+          </div>
+
+          <form id="taskAddForm" class="task-add-form">
+            <label for="taskTitleInput">New task</label>
+            <div>
+              <input id="taskTitleInput" class="task-title-input" type="text" autocomplete="off" placeholder="Short title" aria-describedby="taskCapacity" />
+              <button id="taskAddBtn" class="control-btn primary-control" type="submit">Add</button>
+            </div>
+            <span id="taskCapacity">0 / 100 tasks</span>
+          </form>
+
+          <section class="task-section" aria-labelledby="openTasksHeading">
+            <div class="task-section-heading">
+              <h3 id="openTasksHeading">Open</h3>
+              <span id="openTasksCount">0 open</span>
+            </div>
+            <p id="openTasksEmpty" class="task-empty">No open tasks. You can still focus unassigned.</p>
+            <ul id="openTasksList" class="task-list"></ul>
+            <nav id="openTasksPagination" class="task-pagination" aria-label="Open tasks pages"></nav>
+          </section>
+
+          <section class="task-section task-completed-section" aria-labelledby="completedTasksToggle">
+            <button id="completedTasksToggle" class="task-completed-toggle" type="button" aria-expanded="false" aria-controls="completedTasksBody">
+              <span>Completed</span>
+              <span id="completedTasksCount">0 completed</span>
+            </button>
+            <div id="completedTasksBody" class="hidden">
+              <p id="completedTasksEmpty" class="task-empty">No completed tasks.</p>
+              <ul id="completedTasksList" class="task-list"></ul>
+              <nav id="completedTasksPagination" class="task-pagination" aria-label="Completed tasks pages"></nav>
+            </div>
+          </section>
         </section>
       </aside>
 
@@ -415,6 +475,7 @@
     </div>
 
     <script src="./core.js"></script>
+    <script src="./tasks.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>
@@ -424,7 +485,9 @@
     <script src="./player-controller.js"></script>
     <script src="./backgrounds.js"></script>
     <script src="./stats.js"></script>
+    <script src="./focus-session.js"></script>
     <script src="./stats-controller.js"></script>
+    <script src="./tasks-controller.js"></script>
     <script src="./weather.js"></script>
     <script src="./weather-controller.js"></script>
     <script src="./ui.js"></script>

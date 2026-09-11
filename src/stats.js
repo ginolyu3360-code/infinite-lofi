@@ -49,6 +49,14 @@
     };
   }
 
+  function buildDailyCsv(rows, days) {
+    const summary = summarizeFocusRows(rows, days);
+    return [
+      "day,focusMinutes",
+      ...days.map((day) => `${day.key},${Math.round((summary.totals.get(day.key) || 0) / 60)}`)
+    ].join("\n");
+  }
+
   function recordFocusSession(rows, day, focusSeconds, options = {}) {
     const sessions = core.normalizeFocusSessions(rows, []);
     const seconds = Math.round(Number(focusSeconds));
@@ -61,11 +69,20 @@
       ? options.completedAt
       : "";
     const id = typeof options.id === "string" && options.id.trim()
-      ? options.id.trim()
+      ? options.id.trim().slice(0, 128)
       : `focus-timer-${completedAt || day}-${sessions.length}`;
+    if (sessions.some((session) => session.id === id)) return sessions;
     return core.normalizeFocusSessions([
       ...sessions,
-      { id, day, focusSeconds: seconds, completedAt, source: options.source || "timer" }
+      {
+        id,
+        day,
+        focusSeconds: seconds,
+        completedAt,
+        source: options.source || "timer",
+        taskId: options.taskId ?? null,
+        taskTitle: options.taskTitle || ""
+      }
     ], []);
   }
 
@@ -86,7 +103,9 @@
         day: session.day,
         focusSeconds: seconds,
         completedAt: existing?.completedAt || session.completedAt || "",
-        source: existing?.source || session.source || "manual"
+        source: existing?.source || session.source || "manual",
+        taskId: existing?.taskId ?? session.taskId ?? null,
+        taskTitle: existing?.taskTitle || session.taskTitle || ""
       }
     ], []);
   }
@@ -157,6 +176,7 @@
   }
 
   const api = {
+    buildDailyCsv,
     buildPreviousRangeDays,
     buildRangeDays,
     recordFocusSession,

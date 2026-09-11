@@ -10,12 +10,13 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3：Focus Plan、Session History、Playlist & Media Controls、Accessibility 与 Curated Scenes。
+当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3；仓库源码另含尚未单独发布的 Phase 4A Focus Intent。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
 ## 主要特性
 - 番茄专注 / 短休息 / 长休息计时器，支持可配置循环、独立自动开始选项、每日目标、开始/暂停/重置与托盘显示
+- 可选的 Focus Intent：最多保存 100 个短标题任务，选择下一轮意图，并以冻结快照记录本轮与历史归属
 - Quiet Studio 响应式界面，以及可独立切换并恢复完整窗口大小的 Mini Mode
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹、稳定保存队列、重连移动后的文件夹并明确恢复缺失曲目
@@ -67,6 +68,9 @@ src/
   ├─ security.js        # 主进程导航白名单逻辑
   ├─ storage.js         # 版本化存储、旧数据迁移与备份校验
   ├─ timer.js           # 计时器恢复状态模型
+  ├─ tasks.js           # 任务、选择、排序与分页模型
+  ├─ tasks-controller.js # Tasks 抽屉与意图交互控制器
+  ├─ focus-session.js   # 完成记账与下一计时状态的原子提交
   ├─ notes.js           # 笔记排序与选择模型
   ├─ notes-controller.js # 笔记 DOM 与持久化控制器
   ├─ player.js          # 播放列表恢复模型
@@ -147,6 +151,7 @@ electron-builder 的关键配置（来自 package.json）：
 - Phase 3C Playlist & Media Controls 已完成：schema v4 使用文件夹内相对文件名保存稳定队列，移动文件夹后可重连，缺失曲目不会静默消失，并接入系统媒体信息与播放键。
 - Phase 3D Accessibility 已完成：弹层与响应式 Notes/Queue 具备可预测的键盘焦点，重要状态会经实时区域播报，核心深浅主题文字有 AA 对比度回归检查，减少动态效果也有真实 Electron 验证。
 - Phase 3E Curated Scenes 已完成：新增 Quiet Studio、Midnight、Moss 与 Paper，旧的黑/白/自定义媒体设置会自动映射，保存的本地图片和视频路径不会因切换预设而删除。
+- Phase 4A Focus Intent 已完成于源码：schema v5 保存标题任务、下一轮选择和当前轮冻结快照；完成记账与下一计时状态原子写入，任务改名、完成或删除不会重写进行中或历史快照。Phase 4B、4C1、4C2 尚未实施。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -182,12 +187,13 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. This version includes the complete Phase 3: Focus Plan, Session History, Playlist & Media Controls, Accessibility, and Curated Scenes.
+Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The release contains the complete Phase 3; the repository source also contains the not-yet-released Phase 4A Focus Intent.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
 ## Key features
 - Pomodoro-style focus, short-break, and long-break timer with configurable cycles, independent auto-start options, an optional daily goal, start/pause/reset, and tray display
+- Optional Focus Intent with up to 100 short-title tasks, a next-session choice, and immutable current/history attribution snapshots
 - Responsive Quiet Studio interface with an explicit Mini Mode that restores the previous full-window bounds
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks, stable saved queues, local-folder reconnect/rescan recovery, and explicit missing-track handling
@@ -215,7 +221,7 @@ See the Chinese section above for a full tree. Key runtime files:
 - package.json — scripts, dependencies, and build settings
 - src/ — renderer orchestration, independently testable feature models, and styles
 - src/storage.js — versioned state, legacy migration, and backup validation
-- Feature modules and controllers under src/ separate timer, notes, player, backgrounds, stats, weather, storage, and UI bindings
+- Feature modules and controllers under src/ separate timer, tasks, atomic focus-session persistence, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
 - test/ — unit tests for core logic, storage, and feature models
 - assets/ — icons and sample tracks
@@ -253,7 +259,7 @@ Run the automated Electron UI smoke test with:
 npm run smoke
 ```
 
-The smoke test exercises the timer, Focus Plan, notes, player, statistics drawer, and background drawer. It restores the previous local storage after the run.
+The smoke test exercises Focus Intent, timer attribution and recovery, Focus Plan, notes, player, statistics, scenes, accessibility, responsive/Mini layouts, and the maximum retained task/history fixture. It restores the previous local storage after the run.
 Each launched smoke-test app now uses a fresh temporary profile, so the test cannot modify the normal application profile even if it fails midway.
 
 Run both the checks and UI smoke test with:

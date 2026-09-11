@@ -188,7 +188,22 @@
         : hasSessionLedger
         ? "manual"
         : "migrated";
-      sessions.push({ id, day: item.day, focusSeconds: seconds, completedAt, source: sourceType });
+      const requestedTaskId = typeof item.taskId === "string" ? item.taskId.trim() : "";
+      const taskId = requestedTaskId && requestedTaskId.length <= 128 ? requestedTaskId : null;
+      const taskTitle = Array.from(
+        typeof item.taskTitle === "string"
+          ? item.taskTitle.replace(/[\r\n\u2028\u2029]+/g, " ").replace(/\s+/g, " ").trim()
+          : ""
+      ).slice(0, 120).join("");
+      sessions.push({
+        id,
+        day: item.day,
+        focusSeconds: seconds,
+        completedAt,
+        source: sourceType,
+        taskId,
+        taskTitle
+      });
     });
 
     sessions.sort((left, right) =>

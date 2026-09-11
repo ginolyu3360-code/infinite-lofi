@@ -90,10 +90,15 @@ try {
   let nextId = 1;
   const pending = new Map();
   const exceptions = [];
+  const dialogs = [];
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     if (message.method === "Runtime.exceptionThrown") {
       exceptions.push(message.params.exceptionDetails.text);
+    }
+    if (message.method === "Page.javascriptDialogOpening") {
+      dialogs.push(message.params.message);
+      send("Page.handleJavaScriptDialog", { accept: true }).catch(() => {});
     }
     if (!message.id || !pending.has(message.id)) return;
 
@@ -122,6 +127,8 @@ try {
   }
 
   await send("Runtime.enable");
+  await send("Page.enable");
+  await send("Page.enable");
   async function setWindowSize(width, height) {
     await evaluate("window.moveTo(0, 0); true");
     await evaluate(`window.resizeTo(${width}, ${height}); true`);
@@ -192,7 +199,7 @@ try {
     return true;
   })()`);
   await delay(500);
-  await evaluate("window.__smokeStorageBackup = JSON.stringify(Object.entries(localStorage)); true");
+  const initialStorageEntries = await evaluate("Object.entries(localStorage)");
 
   const baseline = await evaluate(`(async () => {
     await document.fonts.ready;
@@ -220,6 +227,9 @@ try {
         'shortBreakMinutesInput', 'longBreakMinutesInput', 'focusSessionsInput',
         'autoStartBreaksInput', 'autoStartFocusInput', 'dailyGoalMinutesInput',
         'timerPlanStatus', 'todayGoalProgress', 'todayGoalBar',
+        'tasksToggleBtn', 'timerIntentSummary', 'timerIntentValue',
+        'tasksDrawer', 'tasksCloseBtn', 'taskAddForm', 'taskTitleInput',
+        'openTasksList', 'completedTasksToggle', 'completedTasksList',
         'statsActiveDaysValue', 'statsStreakValue', 'statsComparisonValue',
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
@@ -300,12 +310,31 @@ try {
     liveStatusPresent: accessibilityTree.nodes.some((node) => node.role?.value === "status")
   };
   await evaluate("document.querySelector('#focusPlanCloseBtn').click(); true");
+  await evaluate("document.querySelector('#tasksToggleBtn').click(); true");
+  const tasksAccessibilityTree = await send("Accessibility.getFullAXTree");
+  accessibilityTreeResult.namedTasksDialog = tasksAccessibilityTree.nodes.some((node) =>
+    node.role?.value === "dialog" && node.name?.value === "Tasks"
+  );
+  await evaluate("document.querySelector('#tasksCloseBtn').click(); true");
 
   const responsiveLayouts = [];
-  for (const [width, height] of [[720, 520], [800, 600], [1024, 677], [1440, 900], [1100, 760]]) {
+  for (const [width, height] of [[720, 520], [800, 600], [899, 700], [901, 700], [1024, 677], [1440, 900], [1100, 760]]) {
     await setWindowSize(width, height);
     responsiveLayouts.push(await waitForLayoutState());
   }
+
+  await setWindowSize(899, 700);
+  const notesBelowBreakpoint = await evaluate(`(() => ({
+    width: innerWidth,
+    toggleVisible: getComputedStyle(document.querySelector('#notesToggleBtn')).display !== 'none',
+    panelPosition: getComputedStyle(document.querySelector('#notesPanel')).position
+  }))()`);
+  await setWindowSize(901, 700);
+  const notesAboveBreakpoint = await evaluate(`(() => ({
+    width: innerWidth,
+    toggleVisible: getComputedStyle(document.querySelector('#notesToggleBtn')).display !== 'none',
+    panelPosition: getComputedStyle(document.querySelector('#notesPanel')).position
+  }))()`);
 
   const expandableRegionResult = await evaluate(`(async () => {
     const queueTrigger = document.querySelector('#playlistToggleBtn');
@@ -336,16 +365,232 @@ try {
   })()`);
   await setWindowSize(1100, 760);
 
+  const taskSetupResult = await evaluate(`(async () => {
+    const drawer = document.querySelector('#tasksDrawer');
+    const trigger = document.querySelector('#tasksToggleBtn');
+    trigger.focus();
+    trigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const focusedOnOpen = document.activeElement?.id === 'tasksCloseBtn';
+    const input = document.querySelector('#taskTitleInput');
+    const form = document.querySelector('#taskAddForm');
+    const beforeComposition = document.querySelectorAll('#openTasksList .task-row').length;
+    input.value = '输入中的任务';
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '输入' }));
+    form.requestSubmit();
+    const compositionDidNotSubmit = document.querySelectorAll('#openTasksList .task-row').length === beforeComposition;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true, cancelable: true }));
+    const typingQuestionMarkStayedLocal = document.querySelector('#shortcutHelpOverlay').classList.contains('hidden');
+    input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '输入' }));
+    for (const title of ['Alpha intention', 'Beta intention']) {
+      input.value = title;
+      form.requestSubmit();
+    }
+    const rows = [...document.querySelectorAll('#openTasksList .task-row')];
+    rows[0].querySelector('[data-task-action="select"]').click();
+    document.querySelector('#openTasksList [data-task-action="select"][aria-pressed="true"]').click();
+    const unselectWorked = JSON.parse(localStorage.getItem('infiniteLofiState')).tasks.selectedTaskId === null;
+    document.querySelector('#openTasksList [data-task-action="select"]').click();
+    const focusable = [...drawer.querySelectorAll('button:not([disabled]), input:not([disabled])')]
+      .filter((element) => element.getClientRects().length > 0);
+    focusable.at(-1)?.focus();
+    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    drawer.dispatchEvent(tabEvent);
+    const tabWrappedToFirst = document.activeElement?.id === 'tasksCloseBtn' && tabEvent.defaultPrevented;
+    document.querySelector('#tasksCloseBtn').click();
+    const headerFocusRestored = document.activeElement === trigger;
+    const intentTrigger = document.querySelector('#timerIntentSummary');
+    intentTrigger.focus();
+    intentTrigger.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const intentFocusRestored = document.activeElement === intentTrigger && !drawer.classList.contains('is-open');
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      focusedOnOpen,
+      compositionDidNotSubmit,
+      typingQuestionMarkStayedLocal,
+      unselectWorked,
+      tabWrappedToFirst,
+      headerFocusRestored,
+      intentFocusRestored,
+      itemCount: state.tasks.items.length,
+      selectedTitle: state.tasks.items.find((task) => task.id === state.tasks.selectedTaskId)?.title,
+      schemaVersion: state.schemaVersion
+    };
+  })()`);
+
+  await evaluate("document.querySelector('#timerToggle').click(); true");
+  await delay(250);
+  const taskPauseResumeResult = await evaluate(`(() => {
+    const before = JSON.parse(localStorage.getItem('infiniteLofiState')).timerRuntime.focusSession;
+    document.querySelector('#timerToggle').click();
+    const paused = JSON.parse(localStorage.getItem('infiniteLofiState')).timerRuntime;
+    document.querySelector('#timerToggle').click();
+    const resumed = JSON.parse(localStorage.getItem('infiniteLofiState')).timerRuntime;
+    return {
+      before,
+      pausedRunning: paused.isRunning,
+      resumedRunning: resumed.isRunning,
+      stableWhilePaused: paused.focusSession?.id === before?.id && paused.focusSession?.taskTitle === before?.taskTitle,
+      stableWhenResumed: resumed.focusSession?.id === before?.id && resumed.focusSession?.taskTitle === before?.taskTitle
+    };
+  })()`);
+
+  const taskMutationResult = await evaluate(`(async () => {
+    document.querySelector('#tasksToggleBtn').click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const rows = [...document.querySelectorAll('#openTasksList .task-row')];
+    const alphaRow = rows.find((row) => row.textContent.includes('Alpha intention'));
+    const betaRow = rows.find((row) => row.textContent.includes('Beta intention'));
+    betaRow.querySelector('[data-task-action="select"]').click();
+    alphaRow.querySelector('[data-task-action="rename"]').click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    let renameInput = document.querySelector('[data-task-rename-input]');
+    renameInput.value = 'Alpha renamed';
+    renameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true }));
+    const imeEnterDidNotCommit = Boolean(document.querySelector('[data-task-rename-input]'));
+    renameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const escapeCanceledBeforeDrawer = document.querySelector('#tasksDrawer').classList.contains('is-open') && !document.querySelector('[data-task-rename-input]');
+    document.querySelector('#openTasksList .task-row [data-task-action="rename"]').click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    renameInput = document.querySelector('[data-task-rename-input]');
+    renameInput.value = 'Alpha renamed';
+    renameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    const betaAfterRename = [...document.querySelectorAll('#openTasksList .task-row')]
+      .find((row) => row.textContent.includes('Beta intention'));
+    betaAfterRename.querySelector('[data-task-action="complete"]').click();
+    document.querySelector('#completedTasksToggle').click();
+    document.querySelector('#completedTasksList [data-task-action="reopen"]').click();
+    const betaReopened = [...document.querySelectorAll('#openTasksList .task-row')]
+      .find((row) => row.textContent.includes('Beta intention'));
+    betaReopened.querySelector('[data-task-action="select"]').click();
+    const alphaAfterRename = [...document.querySelectorAll('#openTasksList .task-row')]
+      .find((row) => row.textContent.includes('Alpha renamed'));
+    alphaAfterRename.querySelector('[data-task-action="delete"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const beta = state.tasks.items.find((task) => task.title === 'Beta intention');
+    const result = {
+      imeEnterDidNotCommit,
+      escapeCanceledBeforeDrawer,
+      alphaDeleted: !state.tasks.items.some((task) => task.title.startsWith('Alpha')),
+      betaReopened: beta?.status === 'open',
+      nextIsBeta: state.tasks.selectedTaskId === beta?.id,
+      frozenTitle: state.timerRuntime.focusSession?.taskTitle,
+      timerStillRunning: state.timerRuntime.isRunning,
+      removalFocusPredictable: document.activeElement?.id === 'taskTitleInput' || Boolean(document.activeElement?.dataset?.taskAction),
+      currentCopy: document.querySelector('#tasksCurrentValue').textContent.trim(),
+      nextCopy: document.querySelector('#tasksNextValue').textContent.trim()
+    };
+    document.querySelector('#tasksCloseBtn').click();
+    return result;
+  })()`);
+
+  await evaluate("remainingSeconds = 1; timerDeadlineMs = Date.now() + 850; saveTimerRuntime(); true");
+  await delay(1_400);
+  const liveFocusCompletionResult = await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      phase: state.timerRuntime.phase,
+      isRunning: state.timerRuntime.isRunning,
+      focusSession: state.timerRuntime.focusSession,
+      matchingSnapshots: state.stats.focusSessions.filter((session) => session.taskTitle === 'Alpha intention'),
+      selectedTitle: state.tasks.items.find((task) => task.id === state.tasks.selectedTaskId)?.title || ''
+    };
+  })()`);
+  await evaluate("remainingSeconds = 1; timerDeadlineMs = Date.now() + 850; saveTimerRuntime(); true");
+  await delay(1_400);
+  const autoStartedFocusResult = await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      phase: state.timerRuntime.phase,
+      isRunning: state.timerRuntime.isRunning,
+      taskTitle: state.timerRuntime.focusSession?.taskTitle,
+      sessionId: state.timerRuntime.focusSession?.id
+    };
+  })()`);
+  const completionDoesNotStopResult = await evaluate(`(async () => {
+    document.querySelector('#tasksToggleBtn').click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const betaRow = [...document.querySelectorAll('#openTasksList .task-row')]
+      .find((row) => row.textContent.includes('Beta intention'));
+    betaRow.querySelector('[data-task-action="complete"]').click();
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const result = {
+      timerRunning: state.timerRuntime.isRunning,
+      currentTitle: state.timerRuntime.focusSession?.taskTitle,
+      nextSelection: state.tasks.selectedTaskId,
+      taskStatus: state.tasks.items.find((task) => task.title === 'Beta intention')?.status
+    };
+    document.querySelector('#completedTasksToggle').click();
+    document.querySelector('#completedTasksList [data-task-action="reopen"]').click();
+    const reopenedBeta = [...document.querySelectorAll('#openTasksList .task-row')]
+      .find((row) => row.textContent.includes('Beta intention'));
+    reopenedBeta.querySelector('[data-task-action="select"]').click();
+    document.querySelector('#tasksCloseBtn').click();
+    document.querySelector('#timerToggle').click();
+    document.querySelector('#timerReset').click();
+    const resetState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    result.resetContext = resetState.timerRuntime.focusSession;
+    result.resetSelection = resetState.tasks.selectedTaskId;
+    result.resetSelectedTitle = resetState.tasks.items.find((task) => task.id === resetState.tasks.selectedTaskId)?.title || '';
+    return result;
+  })()`);
+
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
-  const miniMode = await evaluate(`(() => ({
+  const miniMode420 = await evaluate(`(() => ({
     enabled: document.body.classList.contains('is-mini-mode'),
     width: innerWidth,
     height: innerHeight,
     timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
     fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
-    notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none'
+    notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none',
+    editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none'
   }))()`);
+  await evaluate(`(() => {
+    window.__miniTimerText = document.querySelector('#timerDisplay').textContent;
+    const intention = document.querySelector('#timerIntentValue');
+    window.__miniIntentText = intention.textContent;
+    window.__miniIntentTitle = intention.title;
+    window.__miniIntentLabel = intention.getAttribute('aria-label');
+    document.querySelector('#timerDisplay').textContent = '360:00';
+    intention.textContent = '界'.repeat(120);
+    intention.title = '界'.repeat(120);
+    intention.setAttribute('aria-label', 'Current intention: ' + '界'.repeat(120));
+    return true;
+  })()`);
+  await setWindowSize(360, 200);
+  const miniMode360 = await evaluate(`(() => {
+    const ids = ['timerDisplay', 'timerToggle', 'timerReset', 'playPauseBtn', 'miniModeToggleBtn', 'timerIntentSummary'];
+    const tolerance = 4;
+    const controls = Object.fromEntries(ids.map((id) => {
+      const rect = document.getElementById(id).getBoundingClientRect();
+      return [id, {
+        visible: rect.width > 0 && rect.height > 0,
+        inside: rect.left >= -tolerance && rect.right <= innerWidth + tolerance && rect.top >= -tolerance && rect.bottom <= innerHeight + tolerance
+      }];
+    }));
+    const intention = document.querySelector('#timerIntentValue');
+    return {
+      width: innerWidth,
+      height: innerHeight,
+      timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
+      timer: document.querySelector('#timerDisplay').textContent.trim(),
+      titleAvailable: intention.getAttribute('aria-label')?.includes('界') && intention.title.includes('界'),
+      editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none',
+      controls
+    };
+  })()`);
+  await evaluate(`(() => {
+    document.querySelector('#timerDisplay').textContent = window.__miniTimerText;
+    const intention = document.querySelector('#timerIntentValue');
+    intention.textContent = window.__miniIntentText;
+    intention.title = window.__miniIntentTitle;
+    intention.setAttribute('aria-label', window.__miniIntentLabel);
+    return true;
+  })()`);
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
   const restoredFullMode = await evaluate(`(() => ({
@@ -428,6 +673,7 @@ try {
       schemaVersion: state.schemaVersion,
       timerSettings: state.settings.timer,
       dailyGoalSeconds: state.settings.goals.dailyFocusSeconds,
+      selectedTitle: state.tasks.items.find((task) => task.id === state.tasks.selectedTaskId)?.title || '',
       goalProgressMax: document.querySelector('#todayGoalProgress').getAttribute('aria-valuemax'),
       runtime: state.timerRuntime
     };
@@ -445,10 +691,11 @@ try {
     document.querySelector('#sessionHistoryMinutesInput').value = '35';
     document.querySelector('#sessionHistoryAddBtn').click();
     await new Promise((resolve) => setTimeout(resolve, 100));
-    const firstRow = document.querySelector('#sessionHistoryList .session-history-row');
-    const minutesInput = firstRow?.querySelector('input[type="number"]');
+    const manualRow = [...document.querySelectorAll('#sessionHistoryList .session-history-row')]
+      .find((row) => row.textContent.includes('Manual'));
+    const minutesInput = manualRow?.querySelector('input[type="number"]');
     if (minutesInput) minutesInput.value = '40';
-    firstRow?.querySelector('.stats-export-btn')?.click();
+    manualRow?.querySelector('.stats-export-btn')?.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     const manual = state.stats.focusSessions.find((session) => session.source === 'manual');
@@ -458,6 +705,8 @@ try {
       manualMinutes: manual ? Math.round(manual.focusSeconds / 60) : 0,
       derivedTodayMinutes: Math.round((state.stats.focusRows.find((row) => row.day === day)?.focusSeconds || 0) / 60),
       renderedRows: document.querySelectorAll('#sessionHistoryList .session-history-row').length,
+      taskSnapshotVisible: [...document.querySelectorAll('#sessionHistoryList .session-history-row')]
+        .some((row) => row.textContent.includes('Alpha intention')),
       countLabel: document.querySelector('#sessionHistoryCount').textContent.trim(),
       activeDays: document.querySelector('#statsActiveDaysValue').textContent.trim(),
       comparison: document.querySelector('#statsComparisonValue').textContent.trim()
@@ -514,7 +763,8 @@ try {
         label: document.querySelector('#bgPresetLabel').textContent.trim(),
         saved: readSavedPreset(),
         paletteInk: getComputedStyle(document.body).getPropertyValue('--ink').trim(),
-        timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color
+        timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
+        intentionColor: getComputedStyle(document.querySelector('#timerIntentValue')).color
       };
       if (midnight.enabled && midnight.paletteInk === '#edf6fb' && midnight.timerColor === 'rgb(237, 246, 251)') break;
     }
@@ -525,7 +775,8 @@ try {
       enabled: document.body.classList.contains('theme-moss'),
       midnightRemoved: !document.body.classList.contains('theme-midnight'),
       pressed: document.querySelector('#bgMossBtn').getAttribute('aria-pressed'),
-      saved: readSavedPreset()
+      saved: readSavedPreset(),
+      intentionColor: getComputedStyle(document.querySelector('#timerIntentValue')).color
     };
 
     document.querySelector('#bgWhiteBtn').click();
@@ -538,6 +789,7 @@ try {
         pressed: document.querySelector('#bgWhiteBtn').getAttribute('aria-pressed'),
         saved: readSavedPreset(),
         timerColor: getComputedStyle(document.querySelector('#timerDisplay')).color,
+        intentionColor: getComputedStyle(document.querySelector('#timerIntentValue')).color,
         panelBackground: getComputedStyle(document.querySelector('#timerCard')).backgroundImage
       };
       if (paper.enabled && paper.timerColor === 'rgb(39, 37, 32)' && paper.panelBackground !== 'none') break;
@@ -548,7 +800,8 @@ try {
     const studio = {
       cleanTheme: !document.body.classList.contains('theme-midnight') && !document.body.classList.contains('theme-moss') && !document.body.classList.contains('bg-white-background'),
       pressed: document.querySelector('#bgBlackBtn').getAttribute('aria-pressed'),
-      saved: readSavedPreset()
+      saved: readSavedPreset(),
+      intentionColor: getComputedStyle(document.querySelector('#timerIntentValue')).color
     };
     return { midnight, moss, paper, studio };
   })()`);
@@ -571,8 +824,131 @@ try {
     return result;
   })()`);
 
+  const expiredSeedResult = await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const deadlineMs = Date.now() - 1_000;
+    state.timerRuntime = {
+      phase: 'focus',
+      completedFocusesInCycle: 0,
+      remainingSeconds: 1,
+      deadlineMs,
+      isRunning: true,
+      focusSession: {
+        id: 'focus-smoke-expired',
+        taskId: 'task-deleted-smoke',
+        taskTitle: 'Deleted task snapshot'
+      }
+    };
+    state.stats.focusSessions = state.stats.focusSessions.filter((session) => session.id !== 'focus-smoke-expired');
+    localStorage.setItem('infiniteLofiState', JSON.stringify(state));
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return { deadlineMs };
+  })()`);
+  await delay(1_400);
+  const expiredRestoreOnce = await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const entries = state.stats.focusSessions.filter((session) => session.id === 'focus-smoke-expired');
+    return {
+      count: entries.length,
+      taskId: entries[0]?.taskId,
+      taskTitle: entries[0]?.taskTitle,
+      completedAt: entries[0]?.completedAt,
+      phase: state.timerRuntime.phase,
+      isRunning: state.timerRuntime.isRunning,
+      focusSession: state.timerRuntime.focusSession
+    };
+  })()`);
+  await evaluate("window.__infiniteLofiSkipBeforeUnloadPersistence = true; location.reload(); true");
+  await delay(1_400);
+  const expiredRestoreTwice = await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      count: state.stats.focusSessions.filter((session) => session.id === 'focus-smoke-expired').length,
+      phase: state.timerRuntime.phase,
+      isRunning: state.timerRuntime.isRunning
+    };
+  })()`);
+
   await evaluate(`(() => {
-    const backup = JSON.parse(window.__smokeStorageBackup || '[]');
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const title = '界'.repeat(120);
+    const current = new Date();
+    const day = [current.getFullYear(), String(current.getMonth() + 1).padStart(2, '0'), String(current.getDate()).padStart(2, '0')].join('-');
+    state.tasks = {
+      items: Array.from({ length: 100 }, (_, index) => ({
+        id: 'perf-task-' + index,
+        title,
+        status: 'open',
+        createdAt: 1_800_000_000_000 + index,
+        completedAt: null
+      })),
+      selectedTaskId: null
+    };
+    state.stats.focusSessions = Array.from({ length: 5000 }, (_, index) => ({
+      id: 'perf-session-' + index,
+      day,
+      focusSeconds: 60,
+      completedAt: new Date(1_800_000_000_000 + index).toISOString(),
+      source: 'timer',
+      taskId: 'missing-task-' + index,
+      taskTitle: title
+    }));
+    state.stats.focusRows = [{ day, focusSeconds: 300000 }];
+    state.timerRuntime = {
+      phase: 'focus',
+      completedFocusesInCycle: 0,
+      remainingSeconds: state.settings.timer.focusSeconds,
+      deadlineMs: null,
+      isRunning: false,
+      focusSession: null
+    };
+    localStorage.setItem('infiniteLofiState', JSON.stringify(state));
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return true;
+  })()`);
+  await delay(2_000);
+  const performanceResult = await evaluate(`(async () => {
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    const percentile95 = (values) => [...values].sort((left, right) => left - right)[Math.ceil(values.length * 0.95) - 1];
+    const openDurations = [];
+    const actionDurations = [];
+    const trigger = document.querySelector('#tasksToggleBtn');
+    for (let index = 0; index < 30; index += 1) {
+      const startedAt = performance.now();
+      trigger.click();
+      await nextFrame();
+      openDurations.push(performance.now() - startedAt);
+      document.querySelector('#tasksCloseBtn').click();
+      await nextFrame();
+    }
+    trigger.click();
+    await nextFrame();
+    for (let index = 0; index < 30; index += 1) {
+      const button = document.querySelector('#openTasksList [data-task-action="select"]');
+      const startedAt = performance.now();
+      button.click();
+      await nextFrame();
+      actionDurations.push(performance.now() - startedAt);
+    }
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const result = {
+      fixtureTasks: state.tasks.items.length,
+      fixtureSessions: state.stats.focusSessions.length,
+      repetitions: 30,
+      renderedOpenRows: document.querySelectorAll('#openTasksList .task-row').length,
+      openP95Ms: percentile95(openDurations),
+      actionP95Ms: percentile95(actionDurations),
+      openMaxMs: Math.max(...openDurations),
+      actionMaxMs: Math.max(...actionDurations)
+    };
+    document.querySelector('#tasksCloseBtn').click();
+    return result;
+  })()`);
+
+  await evaluate(`(() => {
+    const backup = ${JSON.stringify(initialStorageEntries)};
     localStorage.clear();
     for (const [key, value] of backup) localStorage.setItem(key, value);
     window.__infiniteLofiSkipBeforeUnloadPersistence = true;
@@ -603,7 +979,7 @@ try {
   if (Object.values(contrastResult).some((ratio) => !Number.isFinite(ratio) || ratio < 4.5)) {
     failures.push("core dark or light theme text contrast fell below WCAG AA");
   }
-  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.liveStatusPresent) {
+  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.liveStatusPresent) {
     failures.push("dialog or live status was missing from the accessibility tree");
   }
   if (!expandableRegionResult.queueFocused || !expandableRegionResult.queueClosed || !expandableRegionResult.queueFocusRestored) {
@@ -615,9 +991,50 @@ try {
   if (responsiveLayouts.some((layout) => layout.timerOverflow > 4 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
-  if (!miniMode.enabled || miniMode.width > 480 || miniMode.height > 280 || miniMode.timerOverflow > 4 || miniMode.fullLabel !== "Full" || !miniMode.notesHidden) {
+  if (
+    notesBelowBreakpoint.width > 900 || !notesBelowBreakpoint.toggleVisible || notesBelowBreakpoint.panelPosition !== "fixed" ||
+    notesAboveBreakpoint.width <= 900 || notesAboveBreakpoint.toggleVisible || notesAboveBreakpoint.panelPosition === "fixed"
+  ) failures.push("900px Notes breakpoint did not switch on both sides");
+  if (
+    !taskSetupResult.focusedOnOpen || !taskSetupResult.compositionDidNotSubmit || !taskSetupResult.typingQuestionMarkStayedLocal ||
+    !taskSetupResult.unselectWorked || !taskSetupResult.tabWrappedToFirst || !taskSetupResult.headerFocusRestored || !taskSetupResult.intentFocusRestored ||
+    taskSetupResult.itemCount !== 2 || taskSetupResult.selectedTitle !== "Alpha intention" || taskSetupResult.schemaVersion !== 5
+  ) failures.push("task creation, IME boundary, selection, or drawer focus management failed");
+  if (
+    taskPauseResumeResult.before?.taskTitle !== "Alpha intention" || taskPauseResumeResult.pausedRunning ||
+    !taskPauseResumeResult.resumedRunning || !taskPauseResumeResult.stableWhilePaused || !taskPauseResumeResult.stableWhenResumed
+  ) failures.push("focus snapshot changed across pause and resume");
+  if (
+    !taskMutationResult.imeEnterDidNotCommit || !taskMutationResult.escapeCanceledBeforeDrawer || !taskMutationResult.alphaDeleted ||
+    !taskMutationResult.betaReopened || !taskMutationResult.nextIsBeta || taskMutationResult.frozenTitle !== "Alpha intention" ||
+    !taskMutationResult.timerStillRunning || !taskMutationResult.removalFocusPredictable || taskMutationResult.currentCopy !== "Alpha intention" || taskMutationResult.nextCopy !== "Beta intention" ||
+    !dialogs.some((message) => message.includes("Recorded names remain"))
+  ) failures.push("task rename, complete, reopen, delete, or frozen/current-next behavior failed");
+  if (
+    liveFocusCompletionResult.phase !== "shortBreak" || !liveFocusCompletionResult.isRunning || liveFocusCompletionResult.focusSession !== null ||
+    liveFocusCompletionResult.matchingSnapshots.length !== 1 ||
+    liveFocusCompletionResult.matchingSnapshots[0]?.id !== taskPauseResumeResult.before?.id ||
+    liveFocusCompletionResult.selectedTitle !== "Beta intention"
+  ) failures.push("live focus completion was not atomic, attributed, or auto-started once");
+  if (
+    autoStartedFocusResult.phase !== "focus" || !autoStartedFocusResult.isRunning ||
+    autoStartedFocusResult.taskTitle !== "Beta intention" || !autoStartedFocusResult.sessionId ||
+    autoStartedFocusResult.sessionId === taskPauseResumeResult.before?.id
+  ) failures.push("automatic next focus did not capture the then-current task selection");
+  if (
+    !completionDoesNotStopResult.timerRunning || completionDoesNotStopResult.currentTitle !== "Beta intention" ||
+    completionDoesNotStopResult.nextSelection !== null || completionDoesNotStopResult.taskStatus !== "completed" ||
+    completionDoesNotStopResult.resetContext !== null || !completionDoesNotStopResult.resetSelection ||
+    completionDoesNotStopResult.resetSelectedTitle !== "Beta intention"
+  ) failures.push("task completion changed the active timer or reset semantics");
+  if (!miniMode420.enabled || miniMode420.width > 480 || miniMode420.height > 280 || miniMode420.timerOverflow > 4 || miniMode420.fullLabel !== "Full" || !miniMode420.notesHidden || !miniMode420.editorHidden) {
     failures.push("Mini Mode layout or window sizing failed");
   }
+  if (
+    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerOverflow > 4 || miniMode360.timer !== "360:00" ||
+    !miniMode360.titleAvailable || !miniMode360.editorHidden ||
+    Object.values(miniMode360.controls).some((control) => !control.visible || !control.inside)
+  ) failures.push("360x200 Mini Mode clipped maximum timer, intention, or primary controls");
   if (restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 || restoredFullMode.miniLabel !== "Mini") {
     failures.push("full-window bounds were not restored after Mini Mode");
   }
@@ -628,23 +1045,25 @@ try {
     !focusPlanResult.drawerInsideViewport ||
     focusPlanResult.timer !== "30:00" ||
     !focusPlanResult.summary.includes("30 / 7 / 20") ||
-    !focusPlanResult.status.includes("Today 0 / 90m") ||
-    focusPlanResult.schemaVersion !== 4 ||
+    !focusPlanResult.status.includes("Today 25 / 90m") ||
+    focusPlanResult.schemaVersion !== 5 ||
     focusPlanResult.timerSettings.shortBreakSeconds !== 420 ||
     focusPlanResult.timerSettings.longBreakSeconds !== 1200 ||
     focusPlanResult.timerSettings.focusSessionsPerLongBreak !== 3 ||
     focusPlanResult.timerSettings.autoStartBreaks !== false ||
     focusPlanResult.dailyGoalSeconds !== 5400 ||
+    focusPlanResult.selectedTitle !== "Beta intention" ||
     focusPlanResult.goalProgressMax !== "90" ||
     focusPlanResult.runtime.completedFocusesInCycle !== 0
   ) failures.push("Focus Plan settings did not apply and persist");
   if (
-    sessionHistoryResult.schemaVersion !== 4 ||
-    sessionHistoryResult.sessionCount !== 1 ||
+    sessionHistoryResult.schemaVersion !== 5 ||
+    sessionHistoryResult.sessionCount !== 2 ||
     sessionHistoryResult.manualMinutes !== 40 ||
-    sessionHistoryResult.derivedTodayMinutes !== 40 ||
-    sessionHistoryResult.renderedRows !== 1 ||
-    !sessionHistoryResult.countLabel.startsWith("1 ") ||
+    sessionHistoryResult.derivedTodayMinutes !== 65 ||
+    sessionHistoryResult.renderedRows !== 2 ||
+    !sessionHistoryResult.taskSnapshotVisible ||
+    !sessionHistoryResult.countLabel.startsWith("2 ") ||
     !sessionHistoryResult.activeDays.startsWith("1 ") ||
     sessionHistoryResult.comparison !== "New"
   ) failures.push("session history editing or trend summaries failed");
@@ -657,19 +1076,23 @@ try {
     curatedScenesResult.midnight.saved !== "midnight" ||
     curatedScenesResult.midnight.paletteInk !== "#edf6fb" ||
     curatedScenesResult.midnight.timerColor !== "rgb(237, 246, 251)" ||
+    curatedScenesResult.midnight.intentionColor !== "rgb(237, 246, 251)" ||
     !curatedScenesResult.moss.enabled ||
     !curatedScenesResult.moss.midnightRemoved ||
     curatedScenesResult.moss.pressed !== "true" ||
     curatedScenesResult.moss.saved !== "moss" ||
+    curatedScenesResult.moss.intentionColor !== "rgb(240, 246, 237)" ||
     !curatedScenesResult.paper.enabled ||
     !curatedScenesResult.paper.mossRemoved ||
     curatedScenesResult.paper.pressed !== "true" ||
     curatedScenesResult.paper.saved !== "paper" ||
     curatedScenesResult.paper.timerColor !== "rgb(39, 37, 32)" ||
+    curatedScenesResult.paper.intentionColor !== "rgb(39, 37, 32)" ||
     curatedScenesResult.paper.panelBackground === "none" ||
     !curatedScenesResult.studio.cleanTheme ||
     curatedScenesResult.studio.pressed !== "true" ||
-    curatedScenesResult.studio.saved !== "quiet-studio"
+    curatedScenesResult.studio.saved !== "quiet-studio" ||
+    curatedScenesResult.studio.intentionColor !== "rgb(244, 240, 232)"
   ) {
     failures.push("curated Scene preset adaptation or persistence failed");
   }
@@ -682,10 +1105,21 @@ try {
     !playerResult.mediaSessionTitle ||
     playerResult.mediaPlaybackState !== 'playing'
   ) failures.push("playlist persistence or native media session failed");
+  if (
+    expiredRestoreOnce.count !== 1 || expiredRestoreOnce.taskId !== "task-deleted-smoke" ||
+    expiredRestoreOnce.taskTitle !== "Deleted task snapshot" ||
+    expiredRestoreOnce.completedAt !== new Date(expiredSeedResult.deadlineMs).toISOString() ||
+    expiredRestoreOnce.phase !== "shortBreak" || expiredRestoreOnce.isRunning || expiredRestoreOnce.focusSession !== null ||
+    expiredRestoreTwice.count !== 1 || expiredRestoreTwice.phase !== "shortBreak" || expiredRestoreTwice.isRunning
+  ) failures.push("expired focus recovery did not attribute and record exactly once");
+  if (
+    performanceResult.fixtureTasks !== 100 || performanceResult.fixtureSessions !== 5000 || performanceResult.repetitions !== 30 ||
+    performanceResult.renderedOpenRows !== 20 || performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100
+  ) failures.push("reference fixture pagination or p95 performance target failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, expandableRegionResult, responsiveNotesResult, miniMode, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, finalState, exceptions };
+  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

@@ -28,6 +28,8 @@ if (!window.InfiniteLofiStorage) {
 }
 if (
   !window.InfiniteLofiTimer ||
+  !window.InfiniteLofiTasks ||
+  !window.InfiniteLofiTasksController ||
   !window.InfiniteLofiNotes ||
   !window.InfiniteLofiNotesController ||
   !window.InfiniteLofiPlayer ||
@@ -35,6 +37,7 @@ if (
   !window.InfiniteLofiPlayerController ||
   !window.InfiniteLofiBackgrounds ||
   !window.InfiniteLofiStats ||
+  !window.InfiniteLofiFocusSession ||
   !window.InfiniteLofiStatsController ||
   !window.InfiniteLofiWeather ||
   !window.InfiniteLofiWeatherController ||
@@ -78,6 +81,8 @@ const {
   resolveEffectiveBackground
 } = window.InfiniteLofiBackgrounds;
 const { createStatsController } = window.InfiniteLofiStatsController;
+const { commitFocusCompletion } = window.InfiniteLofiFocusSession;
+const { createTasksController } = window.InfiniteLofiTasksController;
 const { createWeatherController } = window.InfiniteLofiWeatherController;
 const { normalizeToggleSettings } = window.InfiniteLofiUi;
 const {
@@ -138,6 +143,29 @@ const focusPlanLockHint = document.getElementById("focusPlanLockHint");
 const timerConfigPanel = document.getElementById("timerConfigPanel");
 const timerPlanSummary = document.getElementById("timerPlanSummary");
 const timerPlanStatus = document.getElementById("timerPlanStatus");
+const timerIntentSummary = document.getElementById("timerIntentSummary");
+const timerIntentLabel = document.getElementById("timerIntentLabel");
+const timerIntentValue = document.getElementById("timerIntentValue");
+const tasksToggleBtn = document.getElementById("tasksToggleBtn");
+const tasksDrawer = document.getElementById("tasksDrawer");
+const tasksCloseBtn = document.getElementById("tasksCloseBtn");
+const tasksCurrentLabel = document.getElementById("tasksCurrentLabel");
+const tasksCurrentValue = document.getElementById("tasksCurrentValue");
+const tasksNextLabel = document.getElementById("tasksNextLabel");
+const tasksNextValue = document.getElementById("tasksNextValue");
+const taskAddForm = document.getElementById("taskAddForm");
+const taskTitleInput = document.getElementById("taskTitleInput");
+const taskCapacity = document.getElementById("taskCapacity");
+const openTasksCount = document.getElementById("openTasksCount");
+const openTasksEmpty = document.getElementById("openTasksEmpty");
+const openTasksList = document.getElementById("openTasksList");
+const openTasksPagination = document.getElementById("openTasksPagination");
+const completedTasksToggle = document.getElementById("completedTasksToggle");
+const completedTasksCount = document.getElementById("completedTasksCount");
+const completedTasksBody = document.getElementById("completedTasksBody");
+const completedTasksEmpty = document.getElementById("completedTasksEmpty");
+const completedTasksList = document.getElementById("completedTasksList");
+const completedTasksPagination = document.getElementById("completedTasksPagination");
 const todayFocusStat = document.getElementById("todayFocusStat");
 const todayGoalProgress = document.getElementById("todayGoalProgress");
 const todayGoalBar = document.getElementById("todayGoalBar");
@@ -225,6 +253,7 @@ let dailyFocusGoalSeconds = 0;
 let remainingSeconds = timerSettings.focusSeconds;
 let timerPhase = "focus";
 let completedFocusesInCycle = 0;
+let currentFocusSession = null;
 let miniModeEnabled = false;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
@@ -234,6 +263,9 @@ let currentTrackArtwork = null;
 let backgroundRenderKey = "";
 let backgroundFadeRaf = 0;
 let isRestoringBackup = false;
+let timerGoalSummary = null;
+let completionSaveErrorShown = false;
+let tasksController = null;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -299,7 +331,8 @@ const notesController = createNotesController({
   appStorage,
   noteModel: window.InfiniteLofiNotes,
   sanitizeNoteFiles: sanitizeLoadedNoteFiles,
-  elements: { document, notesInput, noteTabs, notePinBtn }
+  elements: { document, notesInput, noteTabs, notePinBtn },
+  onError: (error) => showStorageFailure(error, "Notes were not saved because local storage is unavailable.")
 });
 const {
   clearNotesWithConfirm,
@@ -351,8 +384,13 @@ const statsController = createStatsController({
   },
   beforeRestore: () => {
     isRestoringBackup = true;
+    tasksController?.cancelPendingEdits();
   },
   announce: announceStatus,
+  onStatsChange: (state) => {
+    refreshTimerGoalSummary(state);
+    renderTimer();
+  },
   focusManager,
   setDisclosureState
 });
@@ -364,13 +402,61 @@ const {
   exportStatsBackup,
   exportStatsCsv,
   loadStatsRange,
-  recordCompletedFocusSession,
   renderStats,
   renderStorageRecoveryNotice,
   restoreStatsBackup,
   setStatsRange,
   toggleStatsDrawer
 } = statsController;
+
+tasksController = createTasksController({
+  appStorage,
+  taskModel: window.InfiniteLofiTasks,
+  elements: {
+    document,
+    drawerBackdrop,
+    timerIntentSummary,
+    timerIntentLabel,
+    timerIntentValue,
+    tasksToggleBtn,
+    tasksDrawer,
+    tasksCloseBtn,
+    tasksCurrentLabel,
+    tasksCurrentValue,
+    tasksNextLabel,
+    tasksNextValue,
+    taskAddForm,
+    taskTitleInput,
+    taskCapacity,
+    openTasksCount,
+    openTasksEmpty,
+    openTasksList,
+    openTasksPagination,
+    completedTasksToggle,
+    completedTasksCount,
+    completedTasksBody,
+    completedTasksEmpty,
+    completedTasksList,
+    completedTasksPagination
+  },
+  focusManager,
+  setDisclosureState,
+  closeConflicts: () => {
+    toggleFocusPlanDrawer(false);
+    toggleStatsPanel(false);
+    toggleBackgroundDrawer(false);
+    toggleNotesPanel(false);
+    toggleShortcutHelp(false);
+    togglePlaylistPanel(false);
+  },
+  announce: announceStatus,
+  onChange: () => renderTimer(),
+  createId: (prefix) => `${prefix}-${crypto.randomUUID()}`
+});
+
+function toggleTasksDrawer(forceOpen) {
+  tasksController?.toggleDrawer(forceOpen);
+}
 
 function isShortcutEnabled(name) {
   return shortcutSettings[name] !== false;
@@ -513,6 +599,9 @@ function applyShowcaseMode() {
   if (focusPlanDrawer && showcaseModeEnabled) {
     toggleFocusPlanDrawer(false);
   }
+  if (tasksDrawer && showcaseModeEnabled) {
+    toggleTasksDrawer(false);
+  }
   if (shortcutHelpOverlay && showcaseModeEnabled) {
     toggleShortcutHelp(false);
   }
@@ -533,9 +622,12 @@ function toggleBackgroundDrawer(forceOpen) {
 
   const nextOpen = typeof forceOpen === "boolean" ? forceOpen : !backgroundDrawer.classList.contains("is-open");
   if (nextOpen) {
+    toggleTasksDrawer(false);
     toggleFocusPlanDrawer(false);
     toggleStatsDrawer(false);
     toggleNotesPanel(false);
+    toggleShortcutHelp(false);
+    togglePlaylistPanel(false);
   }
   backgroundDrawer.classList.toggle("is-open", nextOpen);
   setDisclosureState(bgToggleBtn, nextOpen);
@@ -558,9 +650,12 @@ function toggleFocusPlanDrawer(forceOpen) {
     ? forceOpen
     : !focusPlanDrawer.classList.contains("is-open");
   if (nextOpen) {
+    toggleTasksDrawer(false);
     toggleBackgroundDrawer(false);
     toggleStatsDrawer(false);
     toggleNotesPanel(false);
+    toggleShortcutHelp(false);
+    togglePlaylistPanel(false);
     updateConfigInputs();
   }
   focusPlanDrawer.classList.toggle("is-open", nextOpen);
@@ -581,9 +676,12 @@ function toggleStatsPanel(forceOpen) {
     ? forceOpen
     : !statsDrawer.classList.contains("is-open");
   if (nextOpen) {
+    toggleTasksDrawer(false);
     toggleFocusPlanDrawer(false);
     toggleBackgroundDrawer(false);
     toggleNotesPanel(false);
+    toggleShortcutHelp(false);
+    togglePlaylistPanel(false);
   }
   toggleStatsDrawer(nextOpen);
 }
@@ -795,12 +893,48 @@ function toMinutes(seconds) {
   return Math.max(1, Math.round(seconds / 60));
 }
 
+function createSessionId() {
+  return `focus-${crypto.randomUUID()}`;
+}
 
-function saveTimerSettings() {
-  appStorage.update((state) => {
-    state.settings.timer = { ...timerSettings };
-    state.settings.goals = { dailyFocusSeconds: dailyFocusGoalSeconds };
-  });
+function refreshTimerGoalSummary(state = appStorage.getState(), at = new Date()) {
+  const day = getLocalDayKey(at);
+  timerGoalSummary = {
+    day,
+    value: window.InfiniteLofiStats.summarizeDailyGoal(
+      state.stats.focusRows,
+      day,
+      dailyFocusGoalSeconds
+    )
+  };
+  return timerGoalSummary.value;
+}
+
+function showStorageFailure(error, fallback = "Could not save local data. Your last saved state is unchanged.") {
+  const message = error instanceof Error && error.message
+    ? `${fallback} ${error.message}`
+    : fallback;
+  alert(message);
+  announceStatus(message);
+}
+
+function currentRuntimeSnapshot(overrides = {}) {
+  return createRuntimeSnapshot({
+    phase: overrides.phase ?? timerPhase,
+    completedFocusesInCycle: overrides.completedFocusesInCycle ?? completedFocusesInCycle,
+    remainingSeconds: overrides.remainingSeconds ?? remainingSeconds,
+    deadlineMs: Object.prototype.hasOwnProperty.call(overrides, "deadlineMs")
+      ? overrides.deadlineMs
+      : timerId !== null
+      ? timerDeadlineMs
+      : null,
+    isRunning: Object.prototype.hasOwnProperty.call(overrides, "isRunning")
+      ? overrides.isRunning
+      : timerId !== null && timerDeadlineMs !== null,
+    focusSession: Object.prototype.hasOwnProperty.call(overrides, "focusSession")
+      ? overrides.focusSession
+      : currentFocusSession
+  }, timerSettings);
 }
 
 function loadTimerSettings() {
@@ -812,34 +946,56 @@ function loadTimerSettings() {
 
 function saveTimerRuntime() {
   appStorage.update((state) => {
-    state.timerRuntime = createRuntimeSnapshot({
-      phase: timerPhase,
-      completedFocusesInCycle,
-      remainingSeconds,
-      deadlineMs: timerId !== null ? timerDeadlineMs : null,
-      isRunning: timerId !== null && timerDeadlineMs !== null
-    }, timerSettings);
+    state.timerRuntime = currentRuntimeSnapshot();
   });
 }
 
 function loadTimerRuntime(nowMs = Date.now()) {
+  const savedRuntime = appStorage.getState().timerRuntime;
   const restored = resolveRestoredRuntime(
-    appStorage.getState().timerRuntime,
+    savedRuntime,
     timerSettings,
     nowMs
   );
+
+  if (restored.completedFocusDuringAbsence) {
+    try {
+      const completedAt = new Date(restored.completedFocusAtMs);
+      const snapshot = restored.completedFocusSession || {
+        id: createSessionId(),
+        taskId: null,
+        taskTitle: ""
+      };
+      const committed = commitFocusCompletion(appStorage, {
+        focusSession: snapshot,
+        focusSeconds: timerSettings.focusSeconds,
+        completedAtMs: restored.completedFocusAtMs,
+        createNextRuntime: () => createRuntimeSnapshot({
+          phase: restored.phase,
+          completedFocusesInCycle: restored.completedFocusesInCycle,
+          remainingSeconds: restored.remainingSeconds,
+          deadlineMs: null,
+          isRunning: false,
+          focusSession: null
+        }, timerSettings)
+      });
+      refreshTimerGoalSummary(committed, completedAt);
+    } catch (error) {
+      timerPhase = savedRuntime.phase;
+      completedFocusesInCycle = savedRuntime.completedFocusesInCycle;
+      remainingSeconds = 0;
+      timerDeadlineMs = savedRuntime.deadlineMs;
+      currentFocusSession = savedRuntime.focusSession;
+      timerId = setInterval(tick, 1000);
+      showStorageFailure(error, "The completed focus session could not be saved. It will retry without duplicating history.");
+      return;
+    }
+  }
   timerPhase = restored.phase;
   completedFocusesInCycle = restored.completedFocusesInCycle;
   remainingSeconds = restored.remainingSeconds;
   timerDeadlineMs = restored.deadlineMs;
-
-  if (restored.completedFocusDuringAbsence) {
-    recordCompletedFocusSession(
-      timerSettings.focusSeconds,
-      new Date(restored.completedFocusAtMs)
-    );
-    saveTimerRuntime();
-  }
+  currentFocusSession = restored.focusSession;
   if (restored.isRunning) {
     timerId = setInterval(tick, 250);
     timerToggle.textContent = "Pause";
@@ -888,11 +1044,9 @@ function renderTimer() {
     longBreak: "Long Break"
   }[timerPhase];
   const today = getLocalDayKey(new Date());
-  const goal = window.InfiniteLofiStats.summarizeDailyGoal(
-    appStorage.getState().stats.focusRows,
-    today,
-    dailyFocusGoalSeconds
-  );
+  const goal = timerGoalSummary?.day === today
+    ? timerGoalSummary.value
+    : refreshTimerGoalSummary(undefined, new Date());
   const focusPosition = Math.min(
     completedFocusesInCycle + 1,
     timerSettings.focusSessionsPerLongBreak
@@ -956,10 +1110,12 @@ function toggleNotesPanel(forceOpen) {
     ? forceOpen
     : !document.body.classList.contains("notes-panel-open");
   if (nextOpen) {
+    toggleTasksDrawer(false);
     toggleFocusPlanDrawer(false);
     toggleStatsDrawer(false);
     toggleBackgroundDrawer(false);
     toggleShortcutHelp(false);
+    togglePlaylistPanel(false);
   }
   document.body.classList.toggle("notes-panel-open", nextOpen);
   setDisclosureState(notesToggleBtn, nextOpen);
@@ -994,6 +1150,7 @@ async function toggleMiniMode(forceEnabled) {
     toggleStatsPanel(false);
     toggleBackgroundDrawer(false);
     toggleFocusPlanDrawer(false);
+    toggleTasksDrawer(false);
     toggleShortcutHelp(false);
     toggleNotesPanel(false);
     if (showcaseModeEnabled) toggleShowcaseMode(false);
@@ -1032,19 +1189,26 @@ function titleForTimerPhase(phase) {
 }
 
 function stopTimer() {
-  if (timerId !== null) {
-    syncTimerToClock();
+  if (timerId === null) return true;
+  if (!syncTimerToClock()) return false;
+  if (timerId === null) return true;
+  try {
+    const committed = appStorage.update((state) => {
+      state.timerRuntime = currentRuntimeSnapshot({ deadlineMs: null, isRunning: false });
+    });
     clearInterval(timerId);
     timerId = null;
+    timerDeadlineMs = null;
+    currentFocusSession = committed.timerRuntime.focusSession;
+    timerToggle.textContent = "Start";
+    setTimerInputsLocked(false);
+    if (!lofiPlayer.paused) lofiPlayer.pause();
+    sendTrayStatus();
+    return true;
+  } catch (error) {
+    showStorageFailure(error, "The timer could not be paused because its state was not saved.");
+    return false;
   }
-  timerDeadlineMs = null;
-  timerToggle.textContent = "Start";
-  setTimerInputsLocked(false);
-  if (!lofiPlayer.paused) {
-    lofiPlayer.pause();
-  }
-  sendTrayStatus();
-  saveTimerRuntime();
 }
 
 function notifyPhaseSwitch() {
@@ -1073,18 +1237,70 @@ function notifyPhaseSwitch() {
 }
 
 
-function switchTimerPhase(completedAtMs = Date.now()) {
+function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now()) {
   const transition = advanceTimerPhase(
     { phase: timerPhase, completedFocusesInCycle },
     timerSettings
   );
-  if (transition.completedFocus) {
-    recordCompletedFocusSession(timerSettings.focusSeconds, new Date(completedAtMs));
+  const nextRemainingSeconds = getPhaseDuration(transition.phase, timerSettings);
+  const nextDeadlineMs = transition.shouldAutoStart
+    ? nowMs + nextRemainingSeconds * 1000
+    : null;
+  const nextSessionId = transition.phase === "focus" && transition.shouldAutoStart
+    ? createSessionId()
+    : null;
+  const completedSnapshot = transition.completedFocus
+    ? currentFocusSession || { id: createSessionId(), taskId: null, taskTitle: "" }
+    : null;
+  let committed;
+  try {
+    const createNextRuntime = (state) => {
+      const nextFocusSession = transition.phase === "focus" && transition.shouldAutoStart
+        ? window.InfiniteLofiTasks.snapshotSelectedTask(state.tasks, nextSessionId)
+        : null;
+      return createRuntimeSnapshot({
+        phase: transition.phase,
+        completedFocusesInCycle: transition.completedFocusesInCycle,
+        remainingSeconds: nextRemainingSeconds,
+        deadlineMs: nextDeadlineMs,
+        isRunning: transition.shouldAutoStart,
+        focusSession: nextFocusSession
+      }, timerSettings);
+    };
+    committed = transition.completedFocus
+      ? commitFocusCompletion(appStorage, {
+          focusSession: completedSnapshot,
+          focusSeconds: timerSettings.focusSeconds,
+          completedAtMs,
+          createNextRuntime
+        })
+      : appStorage.update((state) => {
+          state.timerRuntime = createNextRuntime(state);
+        });
+  } catch (error) {
+    if (!completionSaveErrorShown) {
+      completionSaveErrorShown = true;
+      showStorageFailure(error, "The completed timer could not be saved. It will retry without duplicating history.");
+    }
+    return false;
   }
 
-  timerPhase = transition.phase;
-  completedFocusesInCycle = transition.completedFocusesInCycle;
-  remainingSeconds = getPhaseDuration(timerPhase, timerSettings);
+  completionSaveErrorShown = false;
+  timerPhase = committed.timerRuntime.phase;
+  completedFocusesInCycle = committed.timerRuntime.completedFocusesInCycle;
+  remainingSeconds = committed.timerRuntime.remainingSeconds;
+  timerDeadlineMs = committed.timerRuntime.deadlineMs;
+  currentFocusSession = committed.timerRuntime.focusSession;
+  if (!committed.timerRuntime.isRunning && timerId !== null) {
+    clearInterval(timerId);
+    timerId = null;
+    timerToggle.textContent = "Start";
+    setTimerInputsLocked(false);
+    if (!lofiPlayer.paused) lofiPlayer.pause();
+  }
+  refreshTimerGoalSummary(committed, new Date(completedAtMs));
+  renderStats();
+  tasksController?.render(committed);
   renderTimer();
   sendTrayStatus();
   notifyPhaseSwitch();
@@ -1094,12 +1310,12 @@ function switchTimerPhase(completedAtMs = Date.now()) {
       playPauseBtn.textContent = "Play";
     });
   }
-  return transition.shouldAutoStart;
+  return true;
 }
 
 function syncTimerToClock(nowMs = Date.now()) {
   if (timerId === null || timerDeadlineMs === null) {
-    return;
+    return true;
   }
 
   const nextRemainingSeconds = remainingSecondsUntil(timerDeadlineMs, nowMs);
@@ -1108,28 +1324,16 @@ function syncTimerToClock(nowMs = Date.now()) {
     remainingSeconds = 0;
     renderTimer();
     sendTrayStatus();
-    const shouldAutoStart = switchTimerPhase(completedAtMs);
-    if (shouldAutoStart) {
-      timerDeadlineMs = nowMs + remainingSeconds * 1000;
-    } else {
-      clearInterval(timerId);
-      timerId = null;
-      timerDeadlineMs = null;
-      timerToggle.textContent = "Start";
-      setTimerInputsLocked(false);
-      if (!lofiPlayer.paused) lofiPlayer.pause();
-    }
-    sendTrayStatus();
-    saveTimerRuntime();
-    return;
+    return commitTimerPhaseCompletion(completedAtMs, nowMs);
   }
 
   if (nextRemainingSeconds === remainingSeconds) {
-    return;
+    return true;
   }
   remainingSeconds = nextRemainingSeconds;
   renderTimer();
   sendTrayStatus();
+  return true;
 }
 
 function tick() {
@@ -1138,15 +1342,35 @@ function tick() {
 
 function toggleTimer() {
   if (timerId !== null) {
-    stopTimer();
-    announceStatus(`Timer paused at ${formatTime(remainingSeconds)}.`);
+    if (stopTimer()) announceStatus(`Timer paused at ${formatTime(remainingSeconds)}.`);
     return;
   }
 
-  timerToggle.textContent = "Pause";
-  setTimerInputsLocked(true);
-  timerDeadlineMs = Date.now() + remainingSeconds * 1000;
-  timerId = setInterval(tick, 250);
+  const nextDeadlineMs = Date.now() + remainingSeconds * 1000;
+  try {
+    const committed = appStorage.update((state) => {
+      const focusSession = timerPhase === "focus"
+        ? currentFocusSession || window.InfiniteLofiTasks.snapshotSelectedTask(state.tasks, createSessionId())
+        : null;
+      state.timerRuntime = createRuntimeSnapshot({
+        phase: timerPhase,
+        completedFocusesInCycle,
+        remainingSeconds,
+        deadlineMs: nextDeadlineMs,
+        isRunning: true,
+        focusSession
+      }, timerSettings);
+    });
+    timerDeadlineMs = committed.timerRuntime.deadlineMs;
+    currentFocusSession = committed.timerRuntime.focusSession;
+    timerId = setInterval(tick, 250);
+    timerToggle.textContent = "Pause";
+    setTimerInputsLocked(true);
+    tasksController?.render(committed);
+  } catch (error) {
+    showStorageFailure(error, "The timer was not started because its session context could not be saved.");
+    return;
+  }
   if (!lofiPlayer.src) {
     updateTrack();
   }
@@ -1154,18 +1378,39 @@ function toggleTimer() {
     playPauseBtn.textContent = "Play";
   });
   sendTrayStatus();
-  saveTimerRuntime();
   announceStatus(`${titleForTimerPhase(timerPhase)} timer started. ${formatTime(remainingSeconds)} remaining.`);
 }
 
 function resetTimer() {
-  stopTimer();
-  timerPhase = "focus";
-  completedFocusesInCycle = 0;
-  remainingSeconds = timerSettings.focusSeconds;
+  if (!syncTimerToClock()) return;
+  try {
+    const committed = appStorage.update((state) => {
+      state.timerRuntime = createRuntimeSnapshot({
+        phase: "focus",
+        completedFocusesInCycle: 0,
+        remainingSeconds: timerSettings.focusSeconds,
+        deadlineMs: null,
+        isRunning: false,
+        focusSession: null
+      }, timerSettings);
+    });
+    if (timerId !== null) clearInterval(timerId);
+    timerId = null;
+    timerDeadlineMs = null;
+    timerPhase = "focus";
+    completedFocusesInCycle = 0;
+    remainingSeconds = timerSettings.focusSeconds;
+    currentFocusSession = null;
+    timerToggle.textContent = "Start";
+    setTimerInputsLocked(false);
+    if (!lofiPlayer.paused) lofiPlayer.pause();
+    tasksController?.render(committed);
+  } catch (error) {
+    showStorageFailure(error, "The timer was not reset because the new state could not be saved.");
+    return;
+  }
   renderTimer();
   sendTrayStatus();
-  saveTimerRuntime();
   announceStatus(`Timer reset to Focus Session, ${formatTime(remainingSeconds)}.`);
 }
 
@@ -1192,15 +1437,37 @@ function applyFocusPlanSettings() {
   dailyFocusGoalSeconds = normalizeDailyGoalSeconds(
     Number.isFinite(goalMinutes) ? Math.round(goalMinutes) * 60 : dailyFocusGoalSeconds
   );
-  saveTimerSettings();
+  let committed;
+  try {
+    committed = appStorage.update((state) => {
+      state.settings.timer = { ...timerSettings };
+      state.settings.goals = { dailyFocusSeconds: dailyFocusGoalSeconds };
+      state.timerRuntime = createRuntimeSnapshot({
+        phase: "focus",
+        completedFocusesInCycle: 0,
+        remainingSeconds: timerSettings.focusSeconds,
+        deadlineMs: null,
+        isRunning: false,
+        focusSession: null
+      }, timerSettings);
+    });
+  } catch (error) {
+    showStorageFailure(error, "The Focus Plan was not applied because it could not be saved.");
+    loadTimerSettings();
+    updateConfigInputs();
+    return;
+  }
   timerPhase = "focus";
   completedFocusesInCycle = 0;
   remainingSeconds = timerSettings.focusSeconds;
+  currentFocusSession = null;
+  timerDeadlineMs = null;
+  refreshTimerGoalSummary(committed);
+  tasksController?.render(committed);
   updateConfigInputs();
   renderTimer();
   renderStats();
   sendTrayStatus();
-  saveTimerRuntime();
   announceStatus("Focus Plan applied. A new focus cycle is ready.");
   toggleFocusPlanDrawer(false);
 }
@@ -1264,10 +1531,12 @@ function toggleShortcutHelp(forceOpen) {
 
   const nextOpen = typeof forceOpen === "boolean" ? forceOpen : shortcutHelpOverlay.classList.contains("hidden");
   if (nextOpen) {
+    toggleTasksDrawer(false);
     toggleFocusPlanDrawer(false);
     toggleStatsDrawer(false);
     toggleBackgroundDrawer(false);
     toggleNotesPanel(false);
+    togglePlaylistPanel(false);
   }
   shortcutHelpOverlay.classList.toggle("hidden", !nextOpen);
   setDisclosureState(shortcutHelpBtn, nextOpen);
@@ -1285,10 +1554,12 @@ function toggleShortcutHelp(forceOpen) {
 
 
 async function init() {
+  tasksController.bindEvents();
   loadUiSettings();
   loadStatsRange();
   loadTimerSettings();
   loadTimerRuntime();
+  tasksController.render();
   updateConfigInputs();
   setTimerInputsLocked(timerId !== null);
   applyBackground();
@@ -1302,6 +1573,7 @@ async function init() {
   const bs = Number(brightnessSlider ? brightnessSlider.value : 100) / 100;
   if (Number.isFinite(bs)) document.documentElement.style.setProperty("--scene-brightness", String(bs));
   toggleStatsPanel(false);
+  toggleTasksDrawer(false);
   toggleFocusPlanDrawer(false);
   toggleBackgroundDrawer(false);
   toggleShortcutHelp(false);
@@ -1318,6 +1590,7 @@ async function init() {
       focusPlanDrawer,
       focusPlanCloseBtn,
       focusPlanApplyBtn,
+      tasksDrawer,
       focusMinutesInput,
       shortBreakMinutesInput,
       longBreakMinutesInput,
@@ -1381,6 +1654,7 @@ async function init() {
       toggleTimer,
       resetTimer,
       toggleFocusPlanDrawer,
+      toggleTasksDrawer,
       applyFocusPlanSettings,
       normalizeConfigInputDisplay,
       toggleStatsDrawer: toggleStatsPanel,
@@ -1454,6 +1728,7 @@ async function init() {
       statsDrawer,
       backgroundDrawer,
       focusPlanDrawer,
+      tasksDrawer,
       notesPanel,
       notesInput,
       lofiPlayer,
@@ -1463,6 +1738,7 @@ async function init() {
       toggleShortcutHelp,
       toggleShowcaseMode,
       toggleFocusPlanDrawer,
+      toggleTasksDrawer,
       toggleStatsDrawer: toggleStatsPanel,
       toggleBackgroundDrawer,
       toggleNotesPanel,
