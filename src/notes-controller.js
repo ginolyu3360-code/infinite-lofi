@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiNotesController(globalScope) {
+  const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const defaultTranslate = i18n.createI18n("en").t;
   function createNotesController(options) {
     const {
       appStorage,
@@ -6,6 +8,7 @@
       sanitizeNoteFiles,
       elements,
       onError = () => {},
+      t = defaultTranslate,
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
       now = () => Date.now(),
       random = () => Math.random(),
@@ -18,11 +21,11 @@
     let draggedNoteId = "";
     let renamingNoteId = "";
 
-    function createNoteFile(name = "Untitled", content = "") {
+    function createNoteFile(name = t("notes.untitled"), content = "") {
       const timestamp = now();
       return {
         id: `note-${timestamp}-${Math.floor(random() * 10000)}`,
-        name: (name || "Untitled").trim().slice(0, 40) || "Untitled",
+        name: (name || t("notes.untitled")).trim().slice(0, 40) || t("notes.untitled"),
         content: content || "",
         pinned: false,
         updatedAt: timestamp
@@ -32,7 +35,7 @@
     function restoreCommittedNotes() {
       const storedNotes = appStorage.getState().notes;
       const loaded = sanitizeNoteFiles(storedNotes.files);
-      noteFiles = loaded.length > 0 ? noteModel.sortPinnedFirst(loaded) : [createNoteFile("Note 1", "")];
+      noteFiles = loaded.length > 0 ? noteModel.sortPinnedFirst(loaded) : [createNoteFile(t("notes.defaultName", { number: 1 }), "")];
       activeNoteId = noteModel.resolveActiveId(noteFiles, storedNotes.activeId || "");
       const active = getActiveNoteFile();
       elements.notesInput.value = active?.content || "";
@@ -60,7 +63,7 @@
     function updatePinButton() {
       if (!elements.notePinBtn) return;
       const active = getActiveNoteFile();
-      elements.notePinBtn.textContent = active?.pinned ? "Unpin" : "Pin";
+      elements.notePinBtn.textContent = t(active?.pinned ? "notes.unpin" : "notes.pin");
     }
 
     function finalizeRename(noteId, rawName) {
@@ -146,7 +149,7 @@
 
         const pin = elements.document.createElement("span");
         pin.className = "note-tab-pin";
-        pin.textContent = file.pinned ? "PIN" : "";
+        pin.textContent = file.pinned ? t("notes.pinned") : "";
         tab.appendChild(nameNode);
         tab.appendChild(pin);
 
@@ -154,7 +157,7 @@
           tab.addEventListener("click", () => setActiveNoteFile(file.id));
           tab.addEventListener("dblclick", () => beginRename(file.id));
         }
-        tab.title = isRenaming ? `Rename note ${file.name}` : `Open note ${file.name}`;
+        tab.title = t(isRenaming ? "notes.renameTitle" : "notes.openTitle", { name: file.name });
         tab.addEventListener("dragstart", (event) => {
           draggedNoteId = file.id;
           tab.classList.add("is-dragging");
@@ -192,14 +195,14 @@
     function loadNotes() {
       const storedNotes = appStorage.getState().notes;
       const loaded = sanitizeNoteFiles(storedNotes.files);
-      noteFiles = loaded.length > 0 ? loaded : [createNoteFile("Note 1", "")];
+      noteFiles = loaded.length > 0 ? loaded : [createNoteFile(t("notes.defaultName", { number: 1 }), "")];
       noteFiles = noteModel.sortPinnedFirst(noteFiles);
       activeNoteId = noteModel.resolveActiveId(noteFiles, storedNotes.activeId || "");
       setActiveNoteFile(activeNoteId);
     }
 
     function createNewNoteFile() {
-      const file = createNoteFile(`Note ${noteFiles.length + 1}`, "");
+      const file = createNoteFile(t("notes.defaultName", { number: noteFiles.length + 1 }), "");
       noteFiles.push(file);
       noteFiles = noteModel.sortPinnedFirst(noteFiles);
       if (setActiveNoteFile(file.id)) beginRename(file.id);
@@ -215,7 +218,7 @@
     }
 
     function clearNotesWithConfirm() {
-      if (!confirmAction("Clear all notes?")) return;
+      if (!confirmAction(t("notes.clearConfirm"))) return;
       elements.notesInput.value = "";
       if (saveTimer) {
         clearTimeout(saveTimer);
@@ -235,7 +238,7 @@
         return;
       }
       const active = getActiveNoteFile();
-      if (!active || !confirmAction(`Delete note \"${active.name}\"?`)) return;
+      if (!active || !confirmAction(t("notes.deleteConfirm", { name: active.name }))) return;
       noteFiles = noteFiles.filter((file) => file.id !== active.id);
       setActiveNoteFile(noteFiles[0].id);
     }
@@ -269,6 +272,7 @@
       createNewNoteFile,
       deleteActiveNoteFile,
       loadNotes,
+      refreshLanguage: renderTabs,
       saveNotesNow,
       saveNotesSoon,
       toggleActiveNotePin

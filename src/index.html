@@ -15,13 +15,13 @@
   <body class="font-display">
     <section id="storageRecoveryNotice" class="hidden" role="alert" aria-live="assertive">
       <div>
-        <strong>Local data needed recovery</strong>
-        <p id="storageRecoveryMessage">The unreadable original was preserved before a safe state was created.</p>
+        <strong data-i18n="app.recoveryTitle">Local data needed recovery</strong>
+        <p id="storageRecoveryMessage" data-i18n="app.recoveryMessage">The unreadable original was preserved before a safe state was created.</p>
       </div>
       <div class="storage-recovery-actions">
-        <button id="storageRecoveryDownloadBtn" type="button">Download Original</button>
-        <button id="storageRecoveryRestoreBtn" type="button">Restore Backup</button>
-        <button id="storageRecoveryDismissBtn" type="button">Dismiss</button>
+        <button id="storageRecoveryDownloadBtn" type="button" data-i18n="app.downloadOriginal">Download Original</button>
+        <button id="storageRecoveryRestoreBtn" type="button" data-i18n="app.restoreBackup">Restore Backup</button>
+        <button id="storageRecoveryDismissBtn" type="button" data-i18n="common.dismiss">Dismiss</button>
       </div>
     </section>
     <div id="appShell" class="app-shell relative h-screen w-screen overflow-hidden">
@@ -50,11 +50,11 @@
           <div id="statusWeather" class="text-[0.62rem] font-mono text-zinc-300/60">Loading…</div>
         </div>
         <div class="header-actions">
-          <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes" aria-expanded="false" aria-controls="notesPanel">Notes</button>
-          <button id="tasksToggleBtn" class="header-action-btn" type="button" title="Choose the next focus intention" aria-label="Open tasks" aria-expanded="false" aria-controls="tasksDrawer">Tasks</button>
-          <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal">Plan</button>
-          <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts" aria-expanded="false" aria-controls="shortcutHelpOverlay">Keys ?</button>
-          <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode">Mini</button>
+          <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes" aria-expanded="false" aria-controls="notesPanel" data-i18n="nav.notes" data-i18n-title="nav.openNotes" data-i18n-aria-label="nav.openNotes">Notes</button>
+          <button id="tasksToggleBtn" class="header-action-btn" type="button" title="Open tasks" aria-label="Open tasks" aria-expanded="false" aria-controls="tasksDrawer" data-i18n="nav.tasks" data-i18n-title="nav.openTasks" data-i18n-aria-label="nav.openTasks">Tasks</button>
+          <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal" data-i18n="nav.plan" data-i18n-title="nav.openPlan">Plan</button>
+          <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts" aria-expanded="false" aria-controls="shortcutHelpOverlay" data-i18n="nav.keys" data-i18n-title="nav.keysTitle" data-i18n-aria-label="nav.openKeys">Keys ?</button>
+          <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode" data-i18n="nav.mini" data-i18n-title="nav.enterMini" data-i18n-aria-label="nav.enterMini">Mini</button>
         </div>
       </header>
 
@@ -62,39 +62,40 @@
         <section id="notesPanel" class="glass-panel" aria-labelledby="notesPanelTitle">
           <div class="panel-title-row">
             <div>
-              <p class="panel-eyebrow">Workspace</p>
-              <h2 id="notesPanelTitle" class="panel-title">Notes</h2>
+              <p class="panel-eyebrow" data-i18n="notes.workspace">Workspace</p>
+              <h2 id="notesPanelTitle" class="panel-title" data-i18n="notes.title">Notes</h2>
             </div>
-            <button id="notesCloseBtn" class="window-btn panel-close-btn" type="button" title="Close notes" aria-label="Close notes">×</button>
+            <button id="notesCloseBtn" class="window-btn panel-close-btn" type="button" title="Close notes" aria-label="Close notes" data-i18n-title="notes.close" data-i18n-aria-label="notes.close">×</button>
           </div>
           <div class="notes-actions">
-            <button id="noteNewBtn" class="control-btn" title="New Note" aria-label="New Note">New</button>
-            <button id="notePinBtn" class="control-btn" title="Pin / Unpin Note" aria-label="Pin or unpin Note">Pin</button>
-            <button id="noteDeleteBtn" class="control-btn danger-subtle" title="Delete Note" aria-label="Delete Note">Delete</button>
+            <button id="noteNewBtn" class="control-btn" title="New Note" aria-label="New Note" data-i18n="notes.new" data-i18n-title="notes.new" data-i18n-aria-label="notes.new">New</button>
+            <button id="notePinBtn" class="control-btn" title="Pin / Unpin Note" aria-label="Pin or unpin Note" data-i18n="notes.pin" data-i18n-title="notes.pinAction" data-i18n-aria-label="notes.pinAction">Pin</button>
+            <button id="noteDeleteBtn" class="control-btn danger-subtle" title="Delete Note" aria-label="Delete Note" data-i18n="notes.delete" data-i18n-title="notes.delete" data-i18n-aria-label="notes.delete">Delete</button>
           </div>
-          <div id="noteTabs" aria-label="Note tabs"></div>
+          <div id="noteTabs" aria-label="Note tabs" data-i18n-aria-label="notes.tabs"></div>
           <textarea
             id="notesInput"
             class="mt-3 min-h-0 flex-1 resize-none rounded-2xl border border-white/10 bg-black/15 p-4 font-mono text-sm leading-6 text-zinc-100 placeholder:text-zinc-300/45 outline-none"
             placeholder="Capture ideas, tasks, and small sparks..."
+            data-i18n-placeholder="notes.placeholder"
           ></textarea>
         </section>
 
         <section id="mainRightColumn">
           <div id="timerArea">
             <div id="timerCard" class="glass-panel">
-              <button id="showcaseToggleBtn" class="window-btn absolute right-4 top-4" title="Enter showcase mode" aria-label="Enter showcase mode">Show</button>
+              <button id="showcaseToggleBtn" class="window-btn absolute right-4 top-4" title="Enter showcase mode" aria-label="Enter showcase mode" data-i18n="timer.show" data-i18n-title="timer.showTitle" data-i18n-aria-label="timer.showTitle">Show</button>
               <div id="timerContent" class="timer-content">
-                <p class="timer-kicker">Infinite Focus</p>
+                <p class="timer-kicker" data-i18n="timer.infiniteFocus">Infinite Focus</p>
                 <p id="timerPhaseLabel" class="timer-phase">
-                  Focus Session
+                  <span data-i18n="timer.focus">Focus Session</span>
                 </p>
                 <p id="timerPlanStatus" class="timer-plan-status" aria-live="polite">
                   Focus 1 of 4 · Goal off
                 </p>
                 <button id="timerIntentSummary" class="timer-intent-summary" type="button" aria-controls="tasksDrawer" aria-expanded="false">
-                  <span id="timerIntentLabel">Next intention</span>
-                  <strong id="timerIntentValue">Unassigned</strong>
+                  <span id="timerIntentLabel" data-i18n="timer.nextIntention">Next intention</span>
+                  <strong id="timerIntentValue" data-i18n="common.unassigned">Unassigned</strong>
                 </button>
                 <h1
                   id="timerDisplay"
@@ -103,8 +104,8 @@
                   25:00
                 </h1>
                 <div id="timerActions" class="timer-actions">
-                  <button id="timerToggle" class="control-btn primary-control" title="Start or pause timer">Start</button>
-                  <button id="timerReset" class="control-btn" title="Reset timer">Reset</button>
+                  <button id="timerToggle" class="control-btn primary-control" title="Start or pause timer" data-i18n="timer.start" data-i18n-title="timer.startPauseTitle">Start</button>
+                  <button id="timerReset" class="control-btn" title="Reset timer" data-i18n="timer.reset" data-i18n-title="timer.resetTitle">Reset</button>
                 </div>
 
                 <div id="timerConfigPanel">
@@ -117,24 +118,24 @@
           <footer id="playerPanel" class="glass-panel">
             <div class="player-header">
               <div class="track-copy">
-                <p class="panel-eyebrow">Now Playing</p>
+                <p class="panel-eyebrow" data-i18n="player.nowPlaying">Now Playing</p>
                 <p id="trackLabel">Track 01</p>
               </div>
               <div class="player-utility-actions">
-                <button id="playlistToggleBtn" class="control-btn" type="button" title="Show or hide playlist" aria-expanded="false" aria-controls="playlistPanel">Queue</button>
-                <button id="statsToggleBtn" class="control-btn" type="button" title="Show or hide stats" aria-expanded="false" aria-controls="statsDrawer">Stats</button>
-                <button id="bgToggleBtn" class="control-btn" type="button" title="Open background options" aria-expanded="false" aria-controls="backgroundDrawer">Scene</button>
+                <button id="playlistToggleBtn" class="control-btn" type="button" title="Show or hide playlist" aria-expanded="false" aria-controls="playlistPanel" data-i18n="player.queue" data-i18n-title="player.queue">Queue</button>
+                <button id="statsToggleBtn" class="control-btn" type="button" title="Show or hide stats" aria-expanded="false" aria-controls="statsDrawer" data-i18n="player.stats" data-i18n-title="player.stats">Stats</button>
+                <button id="bgToggleBtn" class="control-btn" type="button" title="Open background options" aria-expanded="false" aria-controls="backgroundDrawer" data-i18n="player.scene" data-i18n-title="player.scene">Scene</button>
               </div>
             </div>
 
             <div class="player-transport">
-              <button id="prevTrackBtn" class="transport-btn" title="Previous track" aria-label="Previous track">‹</button>
-              <button id="playPauseBtn" class="transport-btn transport-primary" title="Play or pause music">Play</button>
-              <button id="nextTrackBtn" class="transport-btn" title="Next track" aria-label="Next track">›</button>
+              <button id="prevTrackBtn" class="transport-btn" title="Previous track" aria-label="Previous track" data-i18n-title="player.previousTrack" data-i18n-aria-label="player.previousTrack">‹</button>
+              <button id="playPauseBtn" class="transport-btn transport-primary" title="Play or pause music" data-i18n="player.play" data-i18n-title="player.playPauseTitle">Play</button>
+              <button id="nextTrackBtn" class="transport-btn" title="Next track" aria-label="Next track" data-i18n-title="player.nextTrack" data-i18n-aria-label="player.nextTrack">›</button>
             </div>
 
             <div class="player-progress">
-              <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="progress-slider" aria-label="Playback progress" title="Seek within the current track" />
+              <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="progress-slider" aria-label="Playback progress" title="Seek within the current track" data-i18n-aria-label="player.progress" data-i18n-title="player.seekTitle" />
               <div class="mt-1 flex items-center justify-between">
                 <span id="currentTimeLabel" class="media-time">00:00</span>
                 <span id="durationLabel" class="media-time">00:00</span>
@@ -143,26 +144,26 @@
 
             <div class="player-aux-controls">
               <label>
-                <span class="media-time">Vol</span>
-                <input id="volumeSlider" type="range" min="0" max="100" value="68" class="aux-slider" aria-label="Volume" title="Adjust music volume" />
+                <span class="media-time" data-i18n="player.volume">Vol</span>
+                <input id="volumeSlider" type="range" min="0" max="100" value="68" class="aux-slider" aria-label="Volume" title="Adjust music volume" data-i18n-aria-label="player.volumeLabel" data-i18n-title="player.volumeTitle" />
               </label>
               <label>
-                <span class="media-time">Light</span>
-                <input id="brightnessSlider" type="range" min="40" max="130" value="100" class="aux-slider" aria-label="Brightness" title="Adjust background brightness" />
+                <span class="media-time" data-i18n="player.light">Light</span>
+                <input id="brightnessSlider" type="range" min="40" max="130" value="100" class="aux-slider" aria-label="Brightness" title="Adjust background brightness" data-i18n-aria-label="player.brightness" data-i18n-title="player.brightnessTitle" />
               </label>
             </div>
 
             <div id="playlistPanel" class="mt-4 hidden rounded-2xl border border-white/15 bg-black/20 p-3" aria-hidden="true">
               <div class="playlist-toolbar">
                 <div class="playlist-folder-actions">
-                  <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load or reconnect a local music folder">Load Folder</button>
-                  <button id="rescanMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Check the current folder for restored or new tracks" hidden>Rescan</button>
-                  <button id="useDefaultTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Return to the bundled offline playlist" hidden>Use Defaults</button>
-                  <button id="removeMissingTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Remove unavailable tracks from the saved queue" hidden>Clear Missing</button>
+                  <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load or reconnect a local music folder" data-i18n="player.loadFolder" data-i18n-title="player.loadFolder">Load Folder</button>
+                  <button id="rescanMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Check the current folder for restored or new tracks" hidden data-i18n="player.rescan" data-i18n-title="player.rescan">Rescan</button>
+                  <button id="useDefaultTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Return to the bundled offline playlist" hidden data-i18n="player.useDefaults" data-i18n-title="player.useDefaults">Use Defaults</button>
+                  <button id="removeMissingTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Remove unavailable tracks from the saved queue" hidden data-i18n="player.clearMissing" data-i18n-title="player.clearMissing">Clear Missing</button>
                 </div>
-                <span id="musicFolderDisplay" class="playlist-folder-label">Default</span>
+                <span id="musicFolderDisplay" class="playlist-folder-label" data-i18n="common.default">Default</span>
               </div>
-              <p id="playlistStatus" class="playlist-status" role="status" aria-live="polite">Using the bundled offline playlist.</p>
+              <p id="playlistStatus" class="playlist-status" role="status" aria-live="polite" data-i18n="player.bundledStatus">Using the bundled offline playlist.</p>
               <div id="playlistItems" class="playlist-container grid grid-cols-1 gap-2 md:grid-cols-3"></div>
             </div>
           </footer>
@@ -173,50 +174,50 @@
         <section id="focusPlanPanel" class="glass-panel drawer-panel" aria-labelledby="focusPlanTitle">
           <div class="drawer-header">
             <div>
-              <p class="panel-eyebrow">Routine</p>
-              <h2 id="focusPlanTitle" class="panel-title">Focus Plan</h2>
+              <p class="panel-eyebrow" data-i18n="plan.eyebrow">Routine</p>
+              <h2 id="focusPlanTitle" class="panel-title" data-i18n="plan.title">Focus Plan</h2>
             </div>
-            <button id="focusPlanCloseBtn" class="window-btn" type="button" title="Close Focus Plan" aria-label="Close Focus Plan">×</button>
+            <button id="focusPlanCloseBtn" class="window-btn" type="button" title="Close Focus Plan" aria-label="Close Focus Plan" data-i18n-title="plan.close" data-i18n-aria-label="plan.close">×</button>
           </div>
-          <p class="panel-description">Set the rhythm for one focus cycle. A long break follows the configured number of completed focus sessions.</p>
+          <p class="panel-description" data-i18n="plan.description">Set the rhythm for one focus cycle. A long break follows the configured number of completed focus sessions.</p>
 
           <div class="focus-plan-grid">
             <label class="focus-plan-field">
-              <span>Focus minutes</span>
+              <span data-i18n="plan.focusMinutes">Focus minutes</span>
               <input id="focusMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="25" />
             </label>
             <label class="focus-plan-field">
-              <span>Short break</span>
+              <span data-i18n="plan.shortBreak">Short break</span>
               <input id="shortBreakMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="5" />
             </label>
             <label class="focus-plan-field">
-              <span>Long break</span>
+              <span data-i18n="plan.longBreak">Long break</span>
               <input id="longBreakMinutesInput" class="timer-config-input" type="number" min="1" max="360" value="15" />
             </label>
             <label class="focus-plan-field">
-              <span>Focuses per cycle</span>
+              <span data-i18n="plan.focusesPerCycle">Focuses per cycle</span>
               <input id="focusSessionsInput" class="timer-config-input" type="number" min="1" max="12" value="4" />
             </label>
             <label class="focus-plan-field focus-plan-field-wide">
-              <span>Daily goal minutes <small>0 turns it off · try 120</small></span>
+              <span><span data-i18n="plan.dailyGoal">Daily goal minutes</span> <small data-i18n="plan.dailyGoalHint">0 turns it off · try 120</small></span>
               <input id="dailyGoalMinutesInput" class="timer-config-input" type="number" min="0" max="720" value="0" />
             </label>
           </div>
 
           <div class="focus-plan-toggles">
             <label class="focus-plan-toggle">
-              <span><strong>Auto-start breaks</strong><small>Begin short and long breaks automatically.</small></span>
+              <span><strong data-i18n="plan.autoBreaks">Auto-start breaks</strong><small data-i18n="plan.autoBreaksHint">Begin short and long breaks automatically.</small></span>
               <input id="autoStartBreaksInput" type="checkbox" checked />
             </label>
             <label class="focus-plan-toggle">
-              <span><strong>Auto-start focus</strong><small>Begin the next focus after a break automatically.</small></span>
+              <span><strong data-i18n="plan.autoFocus">Auto-start focus</strong><small data-i18n="plan.autoFocusHint">Begin the next focus after a break automatically.</small></span>
               <input id="autoStartFocusInput" type="checkbox" checked />
             </label>
           </div>
 
           <div class="focus-plan-actions">
-            <p id="focusPlanLockHint">Changes start a fresh focus cycle.</p>
-            <button id="focusPlanApplyBtn" class="control-btn primary-control" type="button">Apply Plan</button>
+            <p id="focusPlanLockHint" data-i18n="plan.readyHint">Changes start a fresh focus cycle.</p>
+            <button id="focusPlanApplyBtn" class="control-btn primary-control" type="button" data-i18n="plan.apply">Apply Plan</button>
           </div>
         </section>
       </aside>
@@ -225,50 +226,50 @@
         <section id="tasksPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
             <div>
-              <p class="panel-eyebrow">Focus Intent</p>
-              <h2 id="tasksTitle" class="panel-title">Tasks</h2>
+              <p class="panel-eyebrow" data-i18n="tasks.eyebrow">Focus Intent</p>
+              <h2 id="tasksTitle" class="panel-title" data-i18n="tasks.title">Tasks</h2>
             </div>
-            <button id="tasksCloseBtn" class="window-btn" type="button" title="Close Tasks" aria-label="Close Tasks">×</button>
+            <button id="tasksCloseBtn" class="window-btn" type="button" title="Close Tasks" aria-label="Close Tasks" data-i18n-title="tasks.close" data-i18n-aria-label="tasks.close">×</button>
           </div>
-          <p class="panel-description">Choose an optional intention for the next focus session. Notes remain your free-form workspace.</p>
+          <p class="panel-description" data-i18n="tasks.description">Choose an optional intention for the next focus session. Notes remain your free-form workspace.</p>
 
           <div class="task-intent-grid">
             <div class="task-intent-card">
-              <span id="tasksCurrentLabel">Current session</span>
-              <strong id="tasksCurrentValue">Unassigned</strong>
+              <span id="tasksCurrentLabel" data-i18n="tasks.currentSession">Current session</span>
+              <strong id="tasksCurrentValue" data-i18n="common.unassigned">Unassigned</strong>
             </div>
             <div class="task-intent-card">
-              <span id="tasksNextLabel">Next session</span>
-              <strong id="tasksNextValue">Unassigned</strong>
+              <span id="tasksNextLabel" data-i18n="tasks.nextSession">Next session</span>
+              <strong id="tasksNextValue" data-i18n="common.unassigned">Unassigned</strong>
             </div>
           </div>
 
           <form id="taskAddForm" class="task-add-form">
-            <label for="taskTitleInput">New task</label>
+            <label for="taskTitleInput" data-i18n="tasks.newTask">New task</label>
             <div>
-              <input id="taskTitleInput" class="task-title-input" type="text" autocomplete="off" placeholder="Short title" aria-describedby="taskCapacity" />
-              <button id="taskAddBtn" class="control-btn primary-control" type="submit">Add</button>
+              <input id="taskTitleInput" class="task-title-input" type="text" autocomplete="off" placeholder="Short title" aria-describedby="taskCapacity" data-i18n-placeholder="tasks.shortTitle" />
+              <button id="taskAddBtn" class="control-btn primary-control" type="submit" data-i18n="common.add">Add</button>
             </div>
             <span id="taskCapacity">0 / 100 tasks</span>
           </form>
 
           <section class="task-section" aria-labelledby="openTasksHeading">
             <div class="task-section-heading">
-              <h3 id="openTasksHeading">Open</h3>
+              <h3 id="openTasksHeading" data-i18n="tasks.open">Open</h3>
               <span id="openTasksCount">0 open</span>
             </div>
-            <p id="openTasksEmpty" class="task-empty">No open tasks. You can still focus unassigned.</p>
+            <p id="openTasksEmpty" class="task-empty" data-i18n="tasks.noOpen">No open tasks. You can still focus unassigned.</p>
             <ul id="openTasksList" class="task-list"></ul>
             <nav id="openTasksPagination" class="task-pagination" aria-label="Open tasks pages"></nav>
           </section>
 
           <section class="task-section task-completed-section" aria-labelledby="completedTasksToggle">
             <button id="completedTasksToggle" class="task-completed-toggle" type="button" aria-expanded="false" aria-controls="completedTasksBody">
-              <span>Completed</span>
+              <span data-i18n="tasks.completed">Completed</span>
               <span id="completedTasksCount">0 completed</span>
             </button>
             <div id="completedTasksBody" class="hidden">
-              <p id="completedTasksEmpty" class="task-empty">No completed tasks.</p>
+              <p id="completedTasksEmpty" class="task-empty" data-i18n="tasks.noCompleted">No completed tasks.</p>
               <ul id="completedTasksList" class="task-list"></ul>
               <nav id="completedTasksPagination" class="task-pagination" aria-label="Completed tasks pages"></nav>
             </div>
@@ -280,23 +281,23 @@
         <section id="statsPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
             <div>
-              <p class="panel-eyebrow">Review</p>
+              <p class="panel-eyebrow" data-i18n="stats.review">Review</p>
               <h2 id="statsHeadingLabel" class="panel-title">Focus Stats (This Week)</h2>
             </div>
-            <button id="statsCloseBtn" class="window-btn" title="Close Stats" aria-label="Close Stats">×</button>
+            <button id="statsCloseBtn" class="window-btn" title="Close Stats" aria-label="Close Stats" data-i18n-title="stats.close" data-i18n-aria-label="stats.close">×</button>
           </div>
           <div class="stats-toolbar">
-            <div class="segmented-control" role="group" aria-label="Statistics range">
-              <button id="statsRangeTodayBtn" class="stats-range-btn" type="button" title="Show today stats" aria-pressed="false">Today</button>
-              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" type="button" title="Show this week stats" aria-pressed="true">Week</button>
-              <button id="statsRangeMonthBtn" class="stats-range-btn" type="button" title="Show this month stats" aria-pressed="false">Month</button>
+            <div class="segmented-control" role="group" aria-label="Statistics range" data-i18n-aria-label="stats.range">
+              <button id="statsRangeTodayBtn" class="stats-range-btn" type="button" title="Show today stats" aria-pressed="false" data-i18n="stats.today">Today</button>
+              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" type="button" title="Show this week stats" aria-pressed="true" data-i18n="stats.week">Week</button>
+              <button id="statsRangeMonthBtn" class="stats-range-btn" type="button" title="Show this month stats" aria-pressed="false" data-i18n="stats.month">Month</button>
             </div>
             <div class="stats-file-actions">
-              <button id="exportStatsBtn" class="stats-export-btn" title="Export stats as CSV">CSV</button>
-              <button id="backupStatsBtn" class="stats-export-btn" title="Export a full backup">Backup</button>
-              <button id="restoreBackupBtn" class="stats-export-btn" title="Restore and validate a backup">Restore</button>
+              <button id="exportStatsBtn" class="stats-export-btn" title="Export stats as CSV" data-i18n="stats.csv">CSV</button>
+              <button id="backupStatsBtn" class="stats-export-btn" title="Export a full backup" data-i18n="stats.backup">Backup</button>
+              <button id="restoreBackupBtn" class="stats-export-btn" title="Restore and validate a backup" data-i18n="stats.restore">Restore</button>
               <input id="backupFileInput" class="hidden" type="file" accept="application/json,.json" />
-              <button id="clearStatsBtn" class="stats-danger-btn" title="Clear all stats">Clear</button>
+              <button id="clearStatsBtn" class="stats-danger-btn" title="Clear all stats" data-i18n="stats.clear">Clear</button>
             </div>
           </div>
           <p id="todayFocusStat" class="today-focus-stat">Today 0m · Daily goal off</p>
@@ -305,11 +306,11 @@
           </div>
           <section class="weather-settings" aria-labelledby="weatherSettingsTitle">
             <div class="weather-settings-row">
-              <label id="weatherSettingsTitle" for="weatherModeSelect">Weather</label>
-              <select id="weatherModeSelect" class="weather-settings-input" title="Choose weather privacy mode">
-                <option value="off">Off</option>
-                <option value="auto">Automatic (IP)</option>
-                <option value="city">Choose City</option>
+              <label id="weatherSettingsTitle" for="weatherModeSelect" data-i18n="weather.title">Weather</label>
+              <select id="weatherModeSelect" class="weather-settings-input" title="Choose weather privacy mode" data-i18n-title="weather.modeTitle">
+                <option value="off" data-i18n="weather.offOption">Off</option>
+                <option value="auto" data-i18n="weather.autoOption">Automatic (IP)</option>
+                <option value="city" data-i18n="weather.cityOption">Choose City</option>
               </select>
               <input
                 id="weatherCityInput"
@@ -320,8 +321,10 @@
                 placeholder="City name"
                 aria-label="Weather city"
                 disabled
+                data-i18n-placeholder="weather.cityPlaceholder"
+                data-i18n-aria-label="weather.cityLabel"
               />
-              <button id="weatherApplyBtn" class="control-btn" type="button">Apply</button>
+              <button id="weatherApplyBtn" class="control-btn" type="button" data-i18n="common.apply">Apply</button>
             </div>
             <p id="weatherPrivacyHint" class="weather-privacy-hint">
               Weather is off. No weather or location requests are made.
@@ -329,58 +332,58 @@
           </section>
           <div class="stats-metrics">
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Total</span>
+              <span class="stats-metric-label" data-i18n="stats.total">Total</span>
               <span id="statsTotalValue" class="stats-metric-value">0h 0m</span>
             </div>
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Avg / Day</span>
+              <span class="stats-metric-label" data-i18n="stats.average">Avg / Day</span>
               <span id="statsAverageValue" class="stats-metric-value">0m</span>
             </div>
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Peak</span>
+              <span class="stats-metric-label" data-i18n="stats.peak">Peak</span>
               <span id="statsPeakValue" class="stats-metric-value">0m</span>
             </div>
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Active Days</span>
+              <span class="stats-metric-label" data-i18n="stats.activeDays">Active Days</span>
               <span id="statsActiveDaysValue" class="stats-metric-value">0 / 7</span>
             </div>
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Current Streak</span>
+              <span class="stats-metric-label" data-i18n="stats.streak">Current Streak</span>
               <span id="statsStreakValue" class="stats-metric-value">0d</span>
             </div>
             <div class="stats-metric-card">
-              <span class="stats-metric-label">Vs Previous</span>
+              <span class="stats-metric-label" data-i18n="stats.vsPrevious">Vs Previous</span>
               <span id="statsComparisonValue" class="stats-metric-value">0%</span>
             </div>
           </div>
-          <div class="stats-chart-scroll" role="region" tabindex="0" aria-label="Scrollable focus chart">
+          <div class="stats-chart-scroll" role="region" tabindex="0" aria-label="Scrollable focus chart" data-i18n-aria-label="stats.chart">
             <div class="stats-chart-wrap">
               <div id="statsTooltip" class="stats-tooltip hidden" role="tooltip"></div>
-              <div id="statsBars" role="list" aria-label="Focus minutes by day"></div>
+              <div id="statsBars" role="list" aria-label="Focus minutes by day" data-i18n-aria-label="stats.minutesByDay"></div>
             </div>
           </div>
           <section class="session-history" aria-labelledby="sessionHistoryTitle">
             <div class="session-history-heading">
               <div>
-                <p class="panel-eyebrow">Ledger</p>
-                <h3 id="sessionHistoryTitle">Recent Focus Sessions</h3>
+                <p class="panel-eyebrow" data-i18n="stats.ledger">Ledger</p>
+                <h3 id="sessionHistoryTitle" data-i18n="stats.recentSessions">Recent Focus Sessions</h3>
               </div>
               <span id="sessionHistoryCount">0 saved</span>
             </div>
             <div class="session-history-add">
               <label>
-                <span>Date</span>
+                <span data-i18n="stats.date">Date</span>
                 <input id="sessionHistoryDateInput" class="session-history-input" type="date" />
               </label>
               <label>
-                <span>Minutes</span>
+                <span data-i18n="stats.minutes">Minutes</span>
                 <input id="sessionHistoryMinutesInput" class="session-history-input" type="number" min="1" max="720" value="25" />
               </label>
-              <button id="sessionHistoryAddBtn" class="control-btn" type="button">Add Session</button>
+              <button id="sessionHistoryAddBtn" class="control-btn" type="button" data-i18n="stats.addSession">Add Session</button>
             </div>
-            <p id="sessionHistoryEmpty" class="session-history-empty">No focus sessions yet.</p>
+            <p id="sessionHistoryEmpty" class="session-history-empty" data-i18n="stats.noSessions">No focus sessions yet.</p>
             <div id="sessionHistoryList" class="session-history-list"></div>
-            <p class="session-history-note">Showing the 12 most recent entries. Imported daily totals remain editable as one entry per day.</p>
+            <p class="session-history-note" data-i18n="stats.historyNote">Showing the 12 most recent entries. Imported daily totals remain editable as one entry per day.</p>
           </section>
         </section>
       </aside>
@@ -389,31 +392,31 @@
         <section id="backgroundPanel" class="glass-panel drawer-panel">
           <div class="drawer-header">
             <div>
-              <p class="panel-eyebrow">Atmosphere</p>
-              <h2 id="backgroundPanelTitle" class="panel-title">Scene</h2>
+              <p class="panel-eyebrow" data-i18n="scene.atmosphere">Atmosphere</p>
+              <h2 id="backgroundPanelTitle" class="panel-title" data-i18n="scene.title">Scene</h2>
             </div>
-            <button id="backgroundCloseBtn" class="window-btn" title="Close Background" aria-label="Close Background">×</button>
+            <button id="backgroundCloseBtn" class="window-btn" title="Close Background" aria-label="Close Background" data-i18n-title="scene.close" data-i18n-aria-label="scene.close">×</button>
           </div>
-          <p class="panel-description">Choose a curated atmosphere, the current track cover, or your own local media.</p>
+          <p class="panel-description" data-i18n="scene.description">Choose a curated atmosphere, the current track cover, or your own local media.</p>
 
           <div class="scene-section" aria-labelledby="scenePresetsTitle">
-            <h3 id="scenePresetsTitle" class="scene-section-title">Curated presets</h3>
+            <h3 id="scenePresetsTitle" class="scene-section-title" data-i18n="scene.presets">Curated presets</h3>
             <div class="scene-preset-grid">
-              <button id="bgBlackBtn" class="scene-preset-card" type="button" data-preset="quiet-studio" aria-pressed="true" title="Use the Quiet Studio preset"><span class="scene-swatch scene-swatch-studio" aria-hidden="true"></span><strong>Quiet Studio</strong><small>Warm charcoal</small></button>
-              <button id="bgMidnightBtn" class="scene-preset-card" type="button" data-preset="midnight" aria-pressed="false" title="Use the Midnight preset"><span class="scene-swatch scene-swatch-midnight" aria-hidden="true"></span><strong>Midnight</strong><small>Deep blue</small></button>
-              <button id="bgMossBtn" class="scene-preset-card" type="button" data-preset="moss" aria-pressed="false" title="Use the Moss preset"><span class="scene-swatch scene-swatch-moss" aria-hidden="true"></span><strong>Moss</strong><small>Forest green</small></button>
-              <button id="bgWhiteBtn" class="scene-preset-card" type="button" data-preset="paper" aria-pressed="false" title="Use the Paper preset"><span class="scene-swatch scene-swatch-paper" aria-hidden="true"></span><strong>Paper</strong><small>Warm light</small></button>
+              <button id="bgBlackBtn" class="scene-preset-card" type="button" data-preset="quiet-studio" aria-pressed="true" title="Use the Quiet Studio preset" data-i18n-title="scene.quietStudio"><span class="scene-swatch scene-swatch-studio" aria-hidden="true"></span><strong data-i18n="scene.quietStudio">Quiet Studio</strong><small data-i18n="scene.warmCharcoal">Warm charcoal</small></button>
+              <button id="bgMidnightBtn" class="scene-preset-card" type="button" data-preset="midnight" aria-pressed="false" title="Use the Midnight preset" data-i18n-title="scene.midnight"><span class="scene-swatch scene-swatch-midnight" aria-hidden="true"></span><strong data-i18n="scene.midnight">Midnight</strong><small data-i18n="scene.deepBlue">Deep blue</small></button>
+              <button id="bgMossBtn" class="scene-preset-card" type="button" data-preset="moss" aria-pressed="false" title="Use the Moss preset" data-i18n-title="scene.moss"><span class="scene-swatch scene-swatch-moss" aria-hidden="true"></span><strong data-i18n="scene.moss">Moss</strong><small data-i18n="scene.forestGreen">Forest green</small></button>
+              <button id="bgWhiteBtn" class="scene-preset-card" type="button" data-preset="paper" aria-pressed="false" title="Use the Paper preset" data-i18n-title="scene.paper"><span class="scene-swatch scene-swatch-paper" aria-hidden="true"></span><strong data-i18n="scene.paper">Paper</strong><small data-i18n="scene.warmLight">Warm light</small></button>
             </div>
           </div>
 
           <div class="scene-section" aria-labelledby="sceneMediaTitle">
-            <h3 id="sceneMediaTitle" class="scene-section-title">Local media</h3>
+            <h3 id="sceneMediaTitle" class="scene-section-title" data-i18n="scene.localMedia">Local media</h3>
             <div class="bg-option-row">
-              <button id="bgVideoBtn" class="control-btn" title="Import a video background">Video</button>
-              <button id="bgCoverBtn" class="control-btn" title="Use the current track cover as the background">Track Cover</button>
-              <button id="bgWallpaperBtn" class="control-btn" title="Use the desktop wallpaper">Wallpaper</button>
-              <button id="bgImageBtn" class="control-btn" title="Import a background image">Import Image</button>
-              <button id="bgResetBtn" class="control-btn" title="Reset background settings">Reset</button>
+              <button id="bgVideoBtn" class="control-btn" title="Import a video background" data-i18n="scene.video">Video</button>
+              <button id="bgCoverBtn" class="control-btn" title="Use the current track cover as the background" data-i18n="scene.trackCover">Track Cover</button>
+              <button id="bgWallpaperBtn" class="control-btn" title="Use the desktop wallpaper" data-i18n="scene.wallpaper">Wallpaper</button>
+              <button id="bgImageBtn" class="control-btn" title="Import a background image" data-i18n="scene.importImage">Import Image</button>
+              <button id="bgResetBtn" class="control-btn" title="Reset background settings" data-i18n="timer.reset">Reset</button>
             </div>
           </div>
 
@@ -422,9 +425,9 @@
           </div>
 
           <div class="scene-meta">
-            <div>Preset: <span id="bgPresetLabel">Quiet Studio</span></div>
-            <div class="mt-1">Source: <span id="bgModeLabel">Built-in</span></div>
-            <div class="mt-1 break-all">Media: <span id="bgPathLabel">None</span></div>
+            <div><span data-i18n="scene.preset">Preset:</span> <span id="bgPresetLabel">Quiet Studio</span></div>
+            <div class="mt-1"><span data-i18n="scene.source">Source:</span> <span id="bgModeLabel">Built-in</span></div>
+            <div class="mt-1 break-all"><span data-i18n="scene.media">Media:</span> <span id="bgPathLabel">None</span></div>
           </div>
         </section>
       </aside>
@@ -434,38 +437,54 @@
       <div id="shortcutHelpOverlay" class="hidden" aria-hidden="true" inert>
         <section id="shortcutHelpPanel" role="dialog" aria-modal="true" aria-labelledby="shortcutHelpTitle">
           <div class="flex items-center justify-between gap-3">
-            <h2 id="shortcutHelpTitle" class="font-mono text-xs uppercase tracking-[0.25em] text-zinc-100/90">Keyboard Shortcuts</h2>
-            <button id="shortcutHelpCloseBtn" class="window-btn" title="Close" aria-label="Close help">x</button>
+            <h2 id="shortcutHelpTitle" class="font-mono text-xs uppercase tracking-[0.25em] text-zinc-100/90" data-i18n="keys.title">Keyboard Shortcuts</h2>
+            <button id="shortcutHelpCloseBtn" class="window-btn" title="Close" aria-label="Close help" data-i18n-title="common.close" data-i18n-aria-label="common.close">x</button>
           </div>
-          <p class="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-300/70">Open this anytime from Keys ? in the top bar, or press Shift + /. Use the checkboxes to enable or disable each shortcut.</p>
+          <p class="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-zinc-300/70" data-i18n="keys.description">Open this anytime from Keys ? in the top bar, or press Shift + /. Use the checkboxes to enable or disable each shortcut.</p>
 
-          <h3 class="shortcut-group-title">Timer</h3>
-          <div class="shortcut-row"><span class="shortcut-label">Start / Pause Timer</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Enter</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="timerToggle" checked aria-label="Toggle Start Pause Timer shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Reset Timer</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Backspace</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="timerReset" checked aria-label="Toggle Reset Timer shortcut" /></div>
+          <div class="language-setting-row">
+            <label for="displayLanguageSelect">
+              <strong data-i18n="keys.language">Display language</strong>
+              <small data-i18n="keys.languageHint">Changes apply immediately and are saved on this device.</small>
+            </label>
+            <select id="displayLanguageSelect" class="language-select">
+              <option value="zh-CN">简体中文</option>
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="fr">Français</option>
+              <option value="ko">한국어</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
 
-          <h3 class="shortcut-group-title">Player</h3>
-          <div class="shortcut-row"><span class="shortcut-label">Play / Pause</span><span class="shortcut-keys"><span class="shortcut-key">P</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="playPause" checked aria-label="Toggle Play Pause shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Next Track</span><span class="shortcut-keys"><span class="shortcut-key">N</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="nextTrack" checked aria-label="Toggle Next Track shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Previous Track</span><span class="shortcut-keys"><span class="shortcut-key">B</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="prevTrack" checked aria-label="Toggle Previous Track shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Seek -5s</span><span class="shortcut-keys"><span class="shortcut-key">Left</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="seekBack" checked aria-label="Toggle Seek Back shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Seek +5s</span><span class="shortcut-keys"><span class="shortcut-key">Right</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="seekForward" checked aria-label="Toggle Seek Forward shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Volume +5%</span><span class="shortcut-keys"><span class="shortcut-key">Up</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="volumeUp" checked aria-label="Toggle Volume Up shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Volume -5%</span><span class="shortcut-keys"><span class="shortcut-key">Down</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="volumeDown" checked aria-label="Toggle Volume Down shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Load Local Folder</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">O</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="loadFolder" checked aria-label="Toggle Load Folder shortcut" /></div>
+          <h3 class="shortcut-group-title" data-i18n="keys.timer">Timer</h3>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.startPause">Start / Pause Timer</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Enter</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="timerToggle" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.resetTimer">Reset Timer</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Backspace</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="timerReset" checked /></div>
 
-          <h3 class="shortcut-group-title">Panels & Stats</h3>
-          <div class="shortcut-row"><span class="shortcut-label">Toggle Shortcut Help</span><span class="shortcut-keys"><span class="shortcut-key">?</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="helpToggle" checked aria-label="Toggle Shortcut Help shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Toggle Playlist</span><span class="shortcut-keys"><span class="shortcut-key">L</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="togglePlaylist" checked aria-label="Toggle Playlist shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Toggle Stats Drawer</span><span class="shortcut-keys"><span class="shortcut-key">S</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="toggleStats" checked aria-label="Toggle Stats shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Stats Range: Today</span><span class="shortcut-keys"><span class="shortcut-key">1</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsToday" checked aria-label="Toggle Stats Today shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Stats Range: Week</span><span class="shortcut-keys"><span class="shortcut-key">2</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsWeek" checked aria-label="Toggle Stats Week shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Stats Range: Month</span><span class="shortcut-keys"><span class="shortcut-key">3</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsMonth" checked aria-label="Toggle Stats Month shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Close Panels / Help</span><span class="shortcut-keys"><span class="shortcut-key">Esc</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="closePanels" checked aria-label="Toggle Escape close shortcut" /></div>
+          <h3 class="shortcut-group-title" data-i18n="keys.player">Player</h3>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.playPause">Play / Pause</span><span class="shortcut-keys"><span class="shortcut-key">P</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="playPause" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.nextTrack">Next Track</span><span class="shortcut-keys"><span class="shortcut-key">N</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="nextTrack" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.previousTrack">Previous Track</span><span class="shortcut-keys"><span class="shortcut-key">B</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="prevTrack" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.seekBack">Seek -5s</span><span class="shortcut-keys"><span class="shortcut-key">Left</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="seekBack" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.seekForward">Seek +5s</span><span class="shortcut-keys"><span class="shortcut-key">Right</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="seekForward" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.volumeUp">Volume +5%</span><span class="shortcut-keys"><span class="shortcut-key">Up</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="volumeUp" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.volumeDown">Volume -5%</span><span class="shortcut-keys"><span class="shortcut-key">Down</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="volumeDown" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.loadFolder">Load Local Folder</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">O</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="loadFolder" checked /></div>
 
-          <h3 class="shortcut-group-title">Notes</h3>
-          <div class="shortcut-row"><span class="shortcut-label">Focus Notes Input</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Shift</span><span class="shortcut-key">N</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesFocus" checked aria-label="Toggle Notes Focus shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Save Notes Now</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">S</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesSave" checked aria-label="Toggle Notes Save shortcut" /></div>
-          <div class="shortcut-row"><span class="shortcut-label">Clear Notes</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Shift</span><span class="shortcut-key">Backspace</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesClear" checked aria-label="Toggle Notes Clear shortcut" /></div>
+          <h3 class="shortcut-group-title" data-i18n="keys.panels">Panels & Stats</h3>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.toggleHelp">Toggle Shortcut Help</span><span class="shortcut-keys"><span class="shortcut-key">?</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="helpToggle" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.togglePlaylist">Toggle Playlist</span><span class="shortcut-keys"><span class="shortcut-key">L</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="togglePlaylist" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.toggleStats">Toggle Stats Drawer</span><span class="shortcut-keys"><span class="shortcut-key">S</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="toggleStats" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsToday">Stats Range: Today</span><span class="shortcut-keys"><span class="shortcut-key">1</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsToday" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsWeek">Stats Range: Week</span><span class="shortcut-keys"><span class="shortcut-key">2</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsWeek" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsMonth">Stats Range: Month</span><span class="shortcut-keys"><span class="shortcut-key">3</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsMonth" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.closePanels">Close Panels / Help</span><span class="shortcut-keys"><span class="shortcut-key">Esc</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="closePanels" checked /></div>
+
+          <h3 class="shortcut-group-title" data-i18n="keys.notes">Notes</h3>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.focusNotes">Focus Notes Input</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Shift</span><span class="shortcut-key">N</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesFocus" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.saveNotes">Save Notes Now</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">S</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesSave" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.clearNotes">Clear Notes</span><span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Shift</span><span class="shortcut-key">Backspace</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="notesClear" checked /></div>
         </section>
       </div>
 
@@ -475,6 +494,7 @@
     </div>
 
     <script src="./core.js"></script>
+    <script src="./i18n.js"></script>
     <script src="./tasks.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>

@@ -6,9 +6,11 @@ const {
   CURRENT_SCHEMA_VERSION,
   RECOVERY_KEY,
   STORAGE_KEY,
+  createDefaultState,
   createRepository,
   importBackup,
-  migrateStoredState
+  migrateStoredState,
+  normalizeState
 } = require("../src/storage");
 const { commitFocusCompletion } = require("../src/focus-session");
 
@@ -168,6 +170,7 @@ test("exports and restores a complete versioned backup", () => {
   const storage = createMemoryStorage();
   const repository = createRepository(storage, () => 3000);
   repository.update((state) => {
+    state.settings.ui.language = "ja";
     state.settings.goals.dailyFocusSeconds = 5400;
     state.stats.focusSessions = [{
       id: "focus-1",
@@ -191,8 +194,18 @@ test("exports and restores a complete versioned backup", () => {
   assert.equal(restored.player.folderPath, "/Music/Focus");
   assert.equal(restored.notes.files[0].content, "Keep me");
   assert.equal(restored.settings.goals.dailyFocusSeconds, 5400);
+  assert.equal(restored.settings.ui.language, "ja");
   assert.equal(restored.stats.focusSessions[0].id, "focus-1");
   assert.deepEqual(restored.stats.focusRows, [{ day: "2026-09-07", focusSeconds: 1800 }]);
+});
+
+test("normalizes unsupported display languages without changing schema v5", () => {
+  const state = createDefaultState(4100);
+  state.settings.ui.language = "fr-CA";
+  assert.equal(normalizeState(state, 4101).settings.ui.language, "fr");
+  state.settings.ui.language = "de";
+  assert.equal(normalizeState(state, 4102).settings.ui.language, "en");
+  assert.equal(normalizeState(state, 4102).schemaVersion, 5);
 });
 
 test("imports old backups and rejects unrelated or newer files", () => {
@@ -351,7 +364,7 @@ test("restores documented settings and active state after repository recreation"
   assert.equal(relaunched.settings.timer.longBreakSeconds, 1200);
   assert.equal(relaunched.settings.timer.autoStartBreaks, false);
   assert.equal(relaunched.settings.goals.dailyFocusSeconds, 7200);
-  assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2 });
+  assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2, language: "en" });
   assert.deepEqual(relaunched.player.queue.map((track) => track.key), ["local:b.wav", "local:a.wav"]);
   assert.equal(relaunched.player.activeTrackKey, "local:b.wav");
   assert.equal(relaunched.timerRuntime.isRunning, true);

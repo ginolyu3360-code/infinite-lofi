@@ -26,6 +26,9 @@ if (!window.InfiniteLofiCore) {
 if (!window.InfiniteLofiStorage) {
   throw new Error("Infinite Lo-Fi storage helpers failed to load");
 }
+if (!window.InfiniteLofiI18n) {
+  throw new Error("Infinite Lo-Fi language helpers failed to load");
+}
 if (
   !window.InfiniteLofiTimer ||
   !window.InfiniteLofiTasks ||
@@ -62,6 +65,8 @@ const {
 } = window.InfiniteLofiCore;
 
 const appStorage = window.InfiniteLofiStorage.createRepository(window.localStorage);
+const i18n = window.InfiniteLofiI18n.createI18n(appStorage.getState().settings.ui?.language || "en");
+const t = (key, params) => i18n.t(key, params);
 const {
   advanceTimerPhase,
   createRuntimeSnapshot,
@@ -236,6 +241,7 @@ const showcaseToggleBtn = document.getElementById("showcaseToggleBtn");
 const shortcutHelpOverlay = document.getElementById("shortcutHelpOverlay");
 const shortcutHelpPanel = document.getElementById("shortcutHelpPanel");
 const shortcutHelpCloseBtn = document.getElementById("shortcutHelpCloseBtn");
+const displayLanguageSelect = document.getElementById("displayLanguageSelect");
 const storageRecoveryNotice = document.getElementById("storageRecoveryNotice");
 const storageRecoveryMessage = document.getElementById("storageRecoveryMessage");
 const storageRecoveryDownloadBtn = document.getElementById("storageRecoveryDownloadBtn");
@@ -266,6 +272,7 @@ let isRestoringBackup = false;
 let timerGoalSummary = null;
 let completionSaveErrorShown = false;
 let tasksController = null;
+let weatherController = null;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -305,13 +312,15 @@ const playerController = createPlayerController({
   },
   onTrackChange: mediaSessionController.updateMetadata,
   announce: announceStatus,
-  setDisclosureState
+  setDisclosureState,
+  t
 });
 const {
   loadMusicFolder,
   persistState: persistPlayerState,
   prevTrack,
   removeMissingTracks,
+  refreshLanguage: refreshPlayerLanguage,
   rescanMusicFolder,
   restorePersistedPlayer,
   switchTrack,
@@ -332,13 +341,15 @@ const notesController = createNotesController({
   noteModel: window.InfiniteLofiNotes,
   sanitizeNoteFiles: sanitizeLoadedNoteFiles,
   elements: { document, notesInput, noteTabs, notePinBtn },
-  onError: (error) => showStorageFailure(error, "Notes were not saved because local storage is unavailable.")
+  onError: (error) => showStorageFailure(error, t("storage.notesError")),
+  t
 });
 const {
   clearNotesWithConfirm,
   createNewNoteFile,
   deleteActiveNoteFile,
   loadNotes,
+  refreshLanguage: refreshNotesLanguage,
   saveNotesNow,
   saveNotesSoon,
   toggleActiveNotePin
@@ -392,7 +403,9 @@ const statsController = createStatsController({
     renderTimer();
   },
   focusManager,
-  setDisclosureState
+  setDisclosureState,
+  t,
+  getLocale: () => i18n.getLocale()
 });
 const {
   clearStats,
@@ -451,7 +464,8 @@ tasksController = createTasksController({
   },
   announce: announceStatus,
   onChange: () => renderTimer(),
-  createId: (prefix) => `${prefix}-${crypto.randomUUID()}`
+  createId: (prefix) => `${prefix}-${crypto.randomUUID()}`,
+  t
 });
 
 function toggleTasksDrawer(forceOpen) {
@@ -465,6 +479,9 @@ function isShortcutEnabled(name) {
 // persisted UI settings helper
 function loadUiSettings() {
   const stored = appStorage.getState().settings.ui || {};
+  i18n.setLanguage(stored.language || "en");
+  i18n.applyDocument(document);
+  if (displayLanguageSelect) displayLanguageSelect.value = i18n.getLanguage();
   shortcutSettings = normalizeToggleSettings(stored.shortcuts, DEFAULT_SHORTCUT_SETTINGS);
   backgroundSettings = normalizeBackgroundSettings(stored.background);
   weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings(stored.weather);
@@ -498,17 +515,77 @@ function saveUiSettings() {
     shortcuts: shortcutSettings,
     background: backgroundSettings,
     weather: weatherSettings,
-    showcaseMode: showcaseModeEnabled
+    showcaseMode: showcaseModeEnabled,
+    language: i18n.getLanguage()
   };
   appStorage.update((state) => {
     state.settings.ui = payload;
   });
 }
 
+function refreshShortcutLabels() {
+  document.querySelectorAll('.shortcut-setting input[type="checkbox"]').forEach((checkbox) => {
+    const label = checkbox.closest(".shortcut-setting")?.querySelector(".shortcut-label")?.textContent?.trim();
+    if (label) checkbox.setAttribute("aria-label", t("keys.toggleAria", { label }));
+  });
+}
+
+function refreshLocalizedUi() {
+  i18n.applyDocument(document);
+  if (displayLanguageSelect) displayLanguageSelect.value = i18n.getLanguage();
+  refreshShortcutLabels();
+  refreshNotesLanguage?.();
+  refreshPlayerLanguage?.();
+  tasksController?.render();
+  renderStats();
+  weatherController?.refreshLanguage?.();
+  updateConfigInputs();
+  setTimerInputsLocked(timerId !== null);
+  timerToggle.textContent = t(timerId !== null ? "timer.pause" : "timer.start");
+  statsToggleBtn.textContent = t(statsDrawer.classList.contains("is-open") ? "player.hideStats" : "player.stats");
+  renderTimer();
+  renderBackgroundUi();
+  applyShowcaseMode();
+  miniModeToggleBtn.textContent = t(miniModeEnabled ? "nav.full" : "nav.mini");
+  miniModeToggleBtn.title = t(miniModeEnabled ? "nav.returnFull" : "nav.enterMini");
+  miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
+  applyHoverHints(document, HTMLElement);
+  sendTrayStatus();
+}
+
+function setDisplayLanguage(rawLanguage) {
+  const previousLanguage = i18n.getLanguage();
+  const nextLanguage = window.InfiniteLofiI18n.normalizeLanguage(rawLanguage, previousLanguage);
+  if (nextLanguage === previousLanguage) return true;
+  try {
+    appStorage.update((state) => {
+      state.settings.ui = { ...state.settings.ui, language: nextLanguage };
+    });
+  } catch (error) {
+    if (displayLanguageSelect) displayLanguageSelect.value = previousLanguage;
+    showStorageFailure(error, t("language.saveError"));
+    return false;
+  }
+  i18n.setLanguage(nextLanguage);
+  refreshLocalizedUi();
+  return true;
+}
+
+function translatedPresetName(preset) {
+  if (!preset) return t("scene.customMedia");
+  const key = {
+    "quiet-studio": "scene.quietStudio",
+    midnight: "scene.midnight",
+    moss: "scene.moss",
+    paper: "scene.paper"
+  }[preset.id];
+  return key ? t(key) : preset.label;
+}
+
 function renderBackgroundUi() {
   const preset = getCuratedPreset(backgroundSettings.presetId);
   if (bgPresetLabel) {
-    bgPresetLabel.textContent = preset?.label || "Custom Media";
+    bgPresetLabel.textContent = translatedPresetName(preset);
   }
   for (const button of [bgBlackBtn, bgMidnightBtn, bgMossBtn, bgWhiteBtn]) {
     if (button) {
@@ -518,24 +595,24 @@ function renderBackgroundUi() {
   if (bgModeLabel) {
     bgModeLabel.textContent =
       backgroundSettings.mode === "image"
-        ? "Image"
+        ? t("scene.image")
         : backgroundSettings.mode === "white" || backgroundSettings.mode === "black"
-        ? "Built-in"
+        ? t("scene.builtIn")
         : backgroundSettings.mode === "video"
-        ? "Video"
+        ? t("scene.video")
         : backgroundSettings.mode === "cover"
-        ? "Track Cover"
-        : "Built-in";
+        ? t("scene.trackCover")
+        : t("scene.builtIn");
   }
   if (bgPathLabel) {
     if (backgroundSettings.mode === "image") {
-      bgPathLabel.textContent = backgroundSettings.customImageName || backgroundSettings.customImageUrl || "Imported Image";
+      bgPathLabel.textContent = backgroundSettings.customImageName || backgroundSettings.customImageUrl || t("scene.importedImage");
     } else if (backgroundSettings.mode === "video") {
-      bgPathLabel.textContent = backgroundSettings.customVideoName || backgroundSettings.customVideoUrl || "Built-in Video";
+      bgPathLabel.textContent = backgroundSettings.customVideoName || backgroundSettings.customVideoUrl || t("scene.builtInVideo");
     } else if (backgroundSettings.mode === "cover") {
-      bgPathLabel.textContent = currentTrackArtwork?.name || "No cover for current track";
+      bgPathLabel.textContent = currentTrackArtwork?.name || t("scene.noTrackCover");
     } else {
-      bgPathLabel.textContent = "None";
+      bgPathLabel.textContent = t("common.none");
     }
   }
   if (bgPreviewSurface) {
@@ -581,13 +658,13 @@ function getEffectiveBackground() {
 function applyShowcaseMode() {
   document.body.classList.toggle("is-showcase-mode", showcaseModeEnabled);
   if (showcaseToggleBtn) {
-    showcaseToggleBtn.textContent = "Show";
-    showcaseToggleBtn.title = "Enter showcase mode";
+    showcaseToggleBtn.textContent = t("timer.show");
+    showcaseToggleBtn.title = t("timer.showTitle");
   }
   if (timerCard) {
     timerCard.classList.toggle("is-showcase-exit-target", showcaseModeEnabled);
-    timerCard.setAttribute("aria-label", showcaseModeEnabled ? "Click to exit showcase mode" : "Timer card");
-    timerCard.title = showcaseModeEnabled ? "Click anywhere on this card to exit showcase mode" : "";
+    timerCard.setAttribute("aria-label", t(showcaseModeEnabled ? "timer.exitShowcase" : "timer.card"));
+    timerCard.title = showcaseModeEnabled ? t("timer.exitShowcaseTitle") : "";
     timerCard.style.cursor = showcaseModeEnabled ? "pointer" : "default";
   }
   if (backgroundDrawer && showcaseModeEnabled) {
@@ -706,19 +783,21 @@ function setBackgroundPreset(presetId) {
   renderBackgroundUi();
   applyBackground();
   saveUiSettings();
-  announceStatus(`${getCuratedPreset(backgroundSettings.presetId)?.label || "Scene"} preset selected.`);
+  const preset = getCuratedPreset(backgroundSettings.presetId);
+  const name = preset ? translatedPresetName(preset) : t("scene.title");
+  announceStatus(t("scene.selected", { name }));
 }
 
 async function useDesktopWallpaperBackground() {
   if (!window.desktopApp || typeof window.desktopApp.getWallpaperBackground !== "function") {
-    alert("Wallpaper background is not supported.");
+    alert(t("scene.wallpaperUnsupported"));
     return;
   }
 
   try {
     const result = await window.desktopApp.getWallpaperBackground();
     if (!result || !result.fileUrl) {
-      alert("Could not read the current desktop wallpaper.");
+      alert(t("scene.wallpaperUnreadable"));
       return;
     }
 
@@ -735,7 +814,7 @@ async function useDesktopWallpaperBackground() {
 
 async function importBackgroundImage() {
   if (!window.desktopApp || typeof window.desktopApp.selectBackgroundImage !== "function") {
-    alert("Background image selection is not supported.");
+    alert(t("scene.imageUnsupported"));
     return;
   }
 
@@ -758,7 +837,7 @@ async function importBackgroundImage() {
 
 async function importBackgroundVideo() {
   if (!window.desktopApp || typeof window.desktopApp.selectBackgroundVideo !== "function") {
-    alert("Background video selection is not supported.");
+    alert(t("scene.videoUnsupported"));
     return;
   }
 
@@ -910,7 +989,7 @@ function refreshTimerGoalSummary(state = appStorage.getState(), at = new Date())
   return timerGoalSummary.value;
 }
 
-function showStorageFailure(error, fallback = "Could not save local data. Your last saved state is unchanged.") {
+function showStorageFailure(error, fallback = t("storage.genericError")) {
   const message = error instanceof Error && error.message
     ? `${fallback} ${error.message}`
     : fallback;
@@ -987,7 +1066,7 @@ function loadTimerRuntime(nowMs = Date.now()) {
       timerDeadlineMs = savedRuntime.deadlineMs;
       currentFocusSession = savedRuntime.focusSession;
       timerId = setInterval(tick, 1000);
-      showStorageFailure(error, "The completed focus session could not be saved. It will retry without duplicating history.");
+      showStorageFailure(error, t("storage.restoredCompletionError"));
       return;
     }
   }
@@ -998,7 +1077,7 @@ function loadTimerRuntime(nowMs = Date.now()) {
   currentFocusSession = restored.focusSession;
   if (restored.isRunning) {
     timerId = setInterval(tick, 250);
-    timerToggle.textContent = "Pause";
+    timerToggle.textContent = t("timer.pause");
     setTimerInputsLocked(true);
   }
 }
@@ -1013,7 +1092,12 @@ function updateConfigInputs() {
   dailyGoalMinutesInput.value = dailyFocusGoalSeconds > 0
     ? String(toMinutes(dailyFocusGoalSeconds))
     : "0";
-  timerPlanSummary.textContent = `${toMinutes(timerSettings.focusSeconds)} / ${toMinutes(timerSettings.shortBreakSeconds)} / ${toMinutes(timerSettings.longBreakSeconds)} min · long every ${timerSettings.focusSessionsPerLongBreak}`;
+  timerPlanSummary.textContent = t("timer.planSummary", {
+    focus: toMinutes(timerSettings.focusSeconds),
+    short: toMinutes(timerSettings.shortBreakSeconds),
+    long: toMinutes(timerSettings.longBreakSeconds),
+    count: timerSettings.focusSessionsPerLongBreak
+  });
 }
 
 function setTimerInputsLocked(locked) {
@@ -1031,18 +1115,12 @@ function setTimerInputsLocked(locked) {
   });
   timerConfigPanel.classList.toggle("is-locked", locked);
   focusPlanDrawer.classList.toggle("is-locked", locked);
-  focusPlanLockHint.textContent = locked
-    ? "Pause the timer before changing this plan."
-    : "Changes start a fresh focus cycle.";
+  focusPlanLockHint.textContent = t(locked ? "plan.lockedHint" : "plan.readyHint");
 }
 
 function renderTimer() {
   timerDisplay.textContent = formatTime(remainingSeconds);
-  timerPhaseLabel.textContent = {
-    focus: "Focus Session",
-    shortBreak: "Short Break",
-    longBreak: "Long Break"
-  }[timerPhase];
+  timerPhaseLabel.textContent = titleForTimerPhase(timerPhase);
   const today = getLocalDayKey(new Date());
   const goal = timerGoalSummary?.day === today
     ? timerGoalSummary.value
@@ -1052,11 +1130,11 @@ function renderTimer() {
     timerSettings.focusSessionsPerLongBreak
   );
   const cycleText = timerPhase === "longBreak"
-    ? "Cycle complete"
-    : `Focus ${focusPosition} of ${timerSettings.focusSessionsPerLongBreak}`;
+    ? t("timer.cycleComplete")
+    : t("timer.focusPosition", { current: focusPosition, total: timerSettings.focusSessionsPerLongBreak });
   const goalText = goal.isEnabled
-    ? `Today ${Math.round(goal.focusSeconds / 60)} / ${Math.round(goal.goalSeconds / 60)}m`
-    : "Goal off";
+    ? t("timer.todayGoal", { current: Math.round(goal.focusSeconds / 60), goal: Math.round(goal.goalSeconds / 60) })
+    : t("timer.goalOff");
   timerPlanStatus.textContent = `${cycleText} · ${goalText}`;
   // ensure font recalculation when timer text changes
   requestAnimationFrame(() => {
@@ -1157,10 +1235,10 @@ async function toggleMiniMode(forceEnabled) {
   }
   miniModeEnabled = await window.desktopWindow.setMiniMode(nextEnabled);
   document.body.classList.toggle("is-mini-mode", miniModeEnabled);
-  miniModeToggleBtn.textContent = miniModeEnabled ? "Full" : "Mini";
-  miniModeToggleBtn.title = miniModeEnabled ? "Return to full view" : "Enter Mini Mode";
+  miniModeToggleBtn.textContent = t(miniModeEnabled ? "nav.full" : "nav.mini");
+  miniModeToggleBtn.title = t(miniModeEnabled ? "nav.returnFull" : "nav.enterMini");
   miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
-  announceStatus(miniModeEnabled ? "Mini Mode enabled" : "Full view restored");
+  announceStatus(t(miniModeEnabled ? "timer.miniEnabled" : "timer.fullRestored"));
   requestAnimationFrame(adjustTimerFont);
 }
 
@@ -1171,21 +1249,25 @@ function sendTrayStatus() {
 
   window.desktopApp.sendTrayStatus({
     timerText: formatTime(remainingSeconds),
-    phaseText: {
-      focus: "Focus Session",
-      shortBreak: "Short Break",
-      longBreak: "Long Break"
-    }[timerPhase],
-    isRunning: timerId !== null
+    phaseText: titleForTimerPhase(timerPhase),
+    isRunning: timerId !== null,
+    labels: {
+      startTimer: t("tray.startTimer"),
+      pauseTimer: t("tray.pauseTimer"),
+      resetTimer: t("tray.resetTimer"),
+      showWindow: t("tray.showWindow"),
+      hideWindow: t("tray.hideWindow"),
+      quit: t("tray.quit")
+    }
   });
 }
 
 function titleForTimerPhase(phase) {
   return {
-    focus: "Focus Session",
-    shortBreak: "Short Break",
-    longBreak: "Long Break"
-  }[phase] || "Timer";
+    focus: t("timer.focus"),
+    shortBreak: t("timer.shortBreak"),
+    longBreak: t("timer.longBreak")
+  }[phase] || t("timer.infiniteFocus");
 }
 
 function stopTimer() {
@@ -1200,28 +1282,20 @@ function stopTimer() {
     timerId = null;
     timerDeadlineMs = null;
     currentFocusSession = committed.timerRuntime.focusSession;
-    timerToggle.textContent = "Start";
+    timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
     if (!lofiPlayer.paused) lofiPlayer.pause();
     sendTrayStatus();
     return true;
   } catch (error) {
-    showStorageFailure(error, "The timer could not be paused because its state was not saved.");
+    showStorageFailure(error, t("storage.timerPauseError"));
     return false;
   }
 }
 
 function notifyPhaseSwitch() {
-  const title = timerPhase === "focus"
-    ? "Focus Time"
-    : timerPhase === "longBreak"
-    ? "Long Break"
-    : "Short Break";
-  const body = timerPhase === "focus"
-    ? "Back to deep focus."
-    : timerPhase === "longBreak"
-    ? "Cycle complete. Take a longer reset."
-    : "Take a short reset break.";
+  const title = t(timerPhase === "focus" ? "timer.focusTime" : timerPhase === "longBreak" ? "timer.longBreak" : "timer.shortBreak");
+  const body = t(timerPhase === "focus" ? "timer.focusNotification" : timerPhase === "longBreak" ? "timer.longBreakNotification" : "timer.shortBreakNotification");
 
   if (typeof Notification !== "undefined") {
     if (Notification.permission === "granted") {
@@ -1280,7 +1354,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   } catch (error) {
     if (!completionSaveErrorShown) {
       completionSaveErrorShown = true;
-      showStorageFailure(error, "The completed timer could not be saved. It will retry without duplicating history.");
+      showStorageFailure(error, t("storage.completionError"));
     }
     return false;
   }
@@ -1294,7 +1368,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   if (!committed.timerRuntime.isRunning && timerId !== null) {
     clearInterval(timerId);
     timerId = null;
-    timerToggle.textContent = "Start";
+    timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
     if (!lofiPlayer.paused) lofiPlayer.pause();
   }
@@ -1304,10 +1378,10 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   renderTimer();
   sendTrayStatus();
   notifyPhaseSwitch();
-  announceStatus(`${titleForTimerPhase(timerPhase)} started. ${formatTime(remainingSeconds)} remaining.`);
+  announceStatus(t("timer.phaseStartedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
   if (timerId !== null && lofiPlayer.paused) {
     lofiPlayer.play().catch(() => {
-      playPauseBtn.textContent = "Play";
+      playPauseBtn.textContent = t("player.play");
     });
   }
   return true;
@@ -1342,7 +1416,7 @@ function tick() {
 
 function toggleTimer() {
   if (timerId !== null) {
-    if (stopTimer()) announceStatus(`Timer paused at ${formatTime(remainingSeconds)}.`);
+    if (stopTimer()) announceStatus(t("timer.pausedAnnouncement", { time: formatTime(remainingSeconds) }));
     return;
   }
 
@@ -1364,21 +1438,21 @@ function toggleTimer() {
     timerDeadlineMs = committed.timerRuntime.deadlineMs;
     currentFocusSession = committed.timerRuntime.focusSession;
     timerId = setInterval(tick, 250);
-    timerToggle.textContent = "Pause";
+    timerToggle.textContent = t("timer.pause");
     setTimerInputsLocked(true);
     tasksController?.render(committed);
   } catch (error) {
-    showStorageFailure(error, "The timer was not started because its session context could not be saved.");
+    showStorageFailure(error, t("storage.timerStartError"));
     return;
   }
   if (!lofiPlayer.src) {
     updateTrack();
   }
   lofiPlayer.play().catch(() => {
-    playPauseBtn.textContent = "Play";
+    playPauseBtn.textContent = t("player.play");
   });
   sendTrayStatus();
-  announceStatus(`${titleForTimerPhase(timerPhase)} timer started. ${formatTime(remainingSeconds)} remaining.`);
+  announceStatus(t("timer.startedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
 }
 
 function resetTimer() {
@@ -1401,17 +1475,17 @@ function resetTimer() {
     completedFocusesInCycle = 0;
     remainingSeconds = timerSettings.focusSeconds;
     currentFocusSession = null;
-    timerToggle.textContent = "Start";
+    timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
     if (!lofiPlayer.paused) lofiPlayer.pause();
     tasksController?.render(committed);
   } catch (error) {
-    showStorageFailure(error, "The timer was not reset because the new state could not be saved.");
+    showStorageFailure(error, t("storage.timerResetError"));
     return;
   }
   renderTimer();
   sendTrayStatus();
-  announceStatus(`Timer reset to Focus Session, ${formatTime(remainingSeconds)}.`);
+  announceStatus(t("timer.resetAnnouncement", { time: formatTime(remainingSeconds) }));
 }
 
 function applyFocusPlanSettings() {
@@ -1452,7 +1526,7 @@ function applyFocusPlanSettings() {
       }, timerSettings);
     });
   } catch (error) {
-    showStorageFailure(error, "The Focus Plan was not applied because it could not be saved.");
+    showStorageFailure(error, t("storage.planError"));
     loadTimerSettings();
     updateConfigInputs();
     return;
@@ -1468,7 +1542,7 @@ function applyFocusPlanSettings() {
   renderTimer();
   renderStats();
   sendTrayStatus();
-  announceStatus("Focus Plan applied. A new focus cycle is ready.");
+  announceStatus(t("plan.applied"));
   toggleFocusPlanDrawer(false);
 }
 
@@ -1501,6 +1575,7 @@ function bindWindowControls() {
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
   notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
   drawerBackdrop?.addEventListener("click", () => toggleNotesPanel(false));
+  displayLanguageSelect?.addEventListener("change", () => setDisplayLanguage(displayLanguageSelect.value));
   window.addEventListener("resize", () => requestAnimationFrame(() => {
     adjustTimerFont();
     syncNotesPanelAccessibility();
@@ -1716,8 +1791,10 @@ async function init() {
         persistPlayerState();
       }
     },
-    formatTime
+    formatTime,
+    t
   });
+  refreshShortcutLabels();
   renderStorageRecoveryNotice();
   bindKeyboardShortcutEvents({
     window,
@@ -1760,7 +1837,7 @@ async function init() {
     clamp
   });
   applyHoverHints(document, HTMLElement);
-  createWeatherController({
+  weatherController = createWeatherController({
     storage: window.localStorage,
     statusTime,
     statusDate,
@@ -1771,11 +1848,14 @@ async function init() {
     privacyHint: weatherPrivacyHint,
     weather: window.InfiniteLofiWeather,
     initialSettings: weatherSettings,
+    t,
+    getLocale: () => i18n.getLocale(),
     onSettingsChange: (settings) => {
       weatherSettings = settings;
       saveUiSettings();
     }
-  }).init();
+  });
+  weatherController.init();
   sendTrayStatus();
 }
 

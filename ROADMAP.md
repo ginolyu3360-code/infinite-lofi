@@ -295,6 +295,18 @@ Extend the existing state; do not replace unrelated settings, notes, player iden
 
 Local verification note: native full-window checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and the display's largest available 1440 × 797 viewport. This machine could not provide a native 1440 × 900 viewport, so that exact height remains explicitly unverified. With 100 maximum-title tasks and 5,000 maximum-title sessions over 30 repetitions, the final pre-PR local rerun measured development p95 at 17.4 ms for drawer open and 38.0 ms for a visible selection update; packaged smoke measured 17.1 ms and 37.9 ms respectively.
 
+### Post-4A — Display language settings
+
+Status: implemented and locally verified on 2026-09-12 in [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18); merge and exact-main CI evidence are recorded after delivery.
+
+- [x] Add a native-name language selector inside Keys for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish.
+- [x] Apply language changes immediately across static and dynamic UI, dates, weather, notifications, accessibility labels, and tray controls without resetting active timer, task, note, player, or panel state.
+- [x] Persist `settings.ui.language` additively within schema v5, preserve it in full backups, normalize regional aliases, and safely retain the previous language when storage writes fail.
+- [x] Keep language names stable and recognizable in their own scripts regardless of the currently selected interface language.
+- [x] Cover the language catalog, normalization, interpolation, document language, persistence, all seven live switches, restart restore, focus retention, development Electron, and Universal packaged Electron.
+
+This maintenance feature does not implement or change Phase 4B, 4C1, or 4C2.
+
 ### Phase 4B — Focus Review
 
 Goal: explain recorded time with modest, transparent summaries. This is a narrower replacement for the original Focus Insights proposal, not an intelligence or productivity-scoring feature.

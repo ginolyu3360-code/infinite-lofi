@@ -7,9 +7,13 @@
     typeof module !== "undefined" && module.exports
       ? require("./tasks")
       : globalScope.InfiniteLofiTasks;
+  const i18n =
+    typeof module !== "undefined" && module.exports
+      ? require("./i18n")
+      : globalScope.InfiniteLofiI18n;
 
-  if (!core || !tasks) {
-    throw new Error("Infinite Lo-Fi core and task helpers are required by storage");
+  if (!core || !tasks || !i18n) {
+    throw new Error("Infinite Lo-Fi core, task, and language helpers are required by storage");
   }
 
   const CURRENT_SCHEMA_VERSION = 5;
@@ -142,7 +146,7 @@
         goals: {
           dailyFocusSeconds: 0
         },
-        ui: {},
+        ui: { language: "en" },
         statsRange: "week"
       },
       notes: {
@@ -267,7 +271,10 @@
         goals: {
           dailyFocusSeconds: core.normalizeDailyGoalSeconds(goalSettings.dailyFocusSeconds)
         },
-        ui: isObject(settings.ui) ? clone(settings.ui) : {},
+        ui: {
+          ...(isObject(settings.ui) ? clone(settings.ui) : {}),
+          language: i18n.normalizeLanguage(settings.ui?.language, defaults.settings.ui.language)
+        },
         statsRange: ["today", "week", "month"].includes(settings.statsRange)
           ? settings.statsRange
           : defaults.settings.statsRange

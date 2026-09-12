@@ -1,6 +1,6 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-11
+Updated: 2026-09-12
 
 ## Start of the next session
 
@@ -16,6 +16,15 @@ Updated: 2026-09-11
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B, 4C1, and 4C2 are not implemented.
+- Post-4A display-language settings are implemented on [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). It adds seven immediate interface languages in Keys while keeping schema v5 and package version 1.3.0. The feature PR is still pending merge at the time of this entry; exact final CI and merge evidence must replace this sentence after delivery.
+
+## Display language behavior
+
+- Keys contains a keyboard-accessible selector with native language names for 简体中文, 繁體中文, English, 日本語, Français, 한국어, and Español.
+- Switching updates static copy plus current timer/task/player/statistics/weather state, dates, tooltips, screen-reader labels, notifications, and tray-menu commands without restarting or resetting application state.
+- The selected value is written to `settings.ui.language`, normalized to one of the seven supported codes, included in schema-v5 backups, and restored on relaunch. Unsupported values fall back to English.
+- A failed language write leaves both persisted state and the displayed language unchanged and surfaces the existing storage failure path.
+- Language labels remain native rather than translating the language names, so users can always recover a familiar choice.
 
 ## Phase 4A delivered behavior
 
@@ -32,6 +41,7 @@ Updated: 2026-09-11
 ## Local verification completed
 
 - `npm run check`: passed with 70 unit/controller tests, syntax checks, and a minified stylesheet rebuild.
+- The display-language feature passes `npm run check` with 75 tests, isolated development Electron smoke, Universal packaging, `x86_64 arm64` architecture inspection, and isolated packaged-app smoke. Both smoke paths switched all seven languages, retained focus and the open Keys dialog, persisted Spanish across reload, restored English, and reported no renderer exceptions.
 - Development Electron smoke: passed with a fresh temporary profile and no renderer exceptions.
 - Universal packaging: passed; `dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi` is a Mach-O Universal binary containing `x86_64` and `arm64`.
 - Packaged-app Electron smoke: passed with a fresh temporary profile and no renderer exceptions.

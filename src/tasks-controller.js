@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiTasksController(globalScope) {
+  const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const defaultTranslate = i18n.createI18n("en").t;
   function createTasksController(options) {
     const {
       appStorage,
@@ -9,6 +11,7 @@
       closeConflicts = () => {},
       announce = () => {},
       onChange = () => {},
+      t = defaultTranslate,
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
       alert: showAlert = globalScope.alert.bind(globalScope),
       now = () => Date.now(),
@@ -38,7 +41,7 @@
         if (successMessage) announce(successMessage);
         return committed;
       } catch (error) {
-        reportError(error, "Could not save this task change.");
+        reportError(error, t("tasks.saveError"));
         render();
         return null;
       }
@@ -55,7 +58,7 @@
     function setIntentCopy(labelElement, valueElement, label, title) {
       if (labelElement) labelElement.textContent = label;
       if (!valueElement) return;
-      const visibleTitle = title || "Unassigned";
+      const visibleTitle = title || t("common.unassigned");
       valueElement.textContent = visibleTitle;
       valueElement.title = visibleTitle;
       valueElement.setAttribute("aria-label", `${label}: ${visibleTitle}`);
@@ -64,12 +67,12 @@
     function renderIntent(state) {
       const { current, selected } = getIntentState(state);
       if (current) {
-        setIntentCopy(elements.timerIntentLabel, elements.timerIntentValue, "Current intention", current.taskTitle);
+        setIntentCopy(elements.timerIntentLabel, elements.timerIntentValue, t("timer.currentIntention"), current.taskTitle);
       } else {
-        setIntentCopy(elements.timerIntentLabel, elements.timerIntentValue, "Next intention", selected?.title);
+        setIntentCopy(elements.timerIntentLabel, elements.timerIntentValue, t("timer.nextIntention"), selected?.title);
       }
-      setIntentCopy(elements.tasksCurrentLabel, elements.tasksCurrentValue, "Current session", current?.taskTitle);
-      setIntentCopy(elements.tasksNextLabel, elements.tasksNextValue, "Next session", selected?.title);
+      setIntentCopy(elements.tasksCurrentLabel, elements.tasksCurrentValue, t("tasks.currentSession"), current?.taskTitle);
+      setIntentCopy(elements.tasksNextLabel, elements.tasksNextValue, t("tasks.nextSession"), selected?.title);
     }
 
     function focusAfterRender(selector) {
@@ -90,9 +93,9 @@
       const previous = elements.document.createElement("button");
       previous.type = "button";
       previous.className = "task-page-btn";
-      previous.textContent = "Previous";
+      previous.textContent = t("common.previous");
       previous.disabled = pageData.page <= 1;
-      previous.setAttribute("aria-label", `Previous ${section} tasks page`);
+      previous.setAttribute("aria-label", t("tasks.previousPage", { section: t(`tasks.section${section === "open" ? "Open" : "Completed"}`) }));
       previous.addEventListener("click", () => {
         if (section === "open") openPage -= 1;
         else completedPage -= 1;
@@ -101,16 +104,16 @@
       });
       const count = elements.document.createElement("span");
       count.className = "task-page-count";
-      count.textContent = `Page ${pageData.page} of ${pageData.pageCount}`;
+      count.textContent = t("tasks.page", { page: pageData.page, pages: pageData.pageCount });
       count.setAttribute("aria-live", "polite");
       const next = elements.document.createElement("button");
       next.type = "button";
       next.className = "task-page-btn";
-      next.textContent = "Next";
+      next.textContent = t("common.next");
       next.disabled = pageData.page >= pageData.pageCount;
       next.dataset.taskPageSection = section;
       next.dataset.taskPageDirection = "next";
-      next.setAttribute("aria-label", `Next ${section} tasks page`);
+      next.setAttribute("aria-label", t("tasks.nextPage", { section: t(`tasks.section${section === "open" ? "Open" : "Completed"}`) }));
       next.addEventListener("click", () => {
         if (section === "open") openPage += 1;
         else completedPage += 1;
@@ -125,7 +128,7 @@
     function finishRename(taskId, rawTitle) {
       const committed = commit(
         (tasks) => taskModel.renameTask(tasks, taskId, rawTitle),
-        "Task renamed. The current and recorded session names were not changed."
+        t("tasks.renamed")
       );
       if (!committed) return false;
       editingTaskId = null;
@@ -147,7 +150,7 @@
       button.textContent = label;
       button.dataset.taskAction = action;
       button.dataset.taskId = task.id;
-      button.setAttribute("aria-label", `${label} task ${task.title}`);
+      button.setAttribute("aria-label", t("tasks.actionLabel", { action: label, title: task.title }));
       return button;
     }
 
@@ -164,7 +167,7 @@
         input.className = "task-rename-input";
         input.value = task.title;
         input.dataset.taskRenameInput = task.id;
-        input.setAttribute("aria-label", `Rename task ${task.title}`);
+        input.setAttribute("aria-label", t("tasks.renameLabel", { title: task.title }));
         input.addEventListener("input", () => {
           input.value = taskModel.truncateCodePoints(input.value);
         });
@@ -201,43 +204,43 @@
       actions.className = "task-row-actions";
       if (task.status === "open") {
         const isSelected = state.tasks.selectedTaskId === task.id;
-        const select = makeActionButton(task, "select", isSelected ? "Selected" : "Select");
+        const select = makeActionButton(task, "select", t(isSelected ? "tasks.selected" : "tasks.select"));
         select.setAttribute("aria-pressed", String(isSelected));
         select.addEventListener("click", () => {
           commit(
             (tasks) => taskModel.selectTask(tasks, task.id),
-            isSelected ? "Next session is now unassigned." : `${task.title} selected for the next focus session.`
+            isSelected ? t("tasks.unselected") : t("tasks.selectedAnnouncement", { title: task.title })
           );
           focusAfterRender(`[data-task-action="select"][data-task-id="${CSS.escape(task.id)}"]`);
         });
-        const rename = makeActionButton(task, "rename", "Rename");
+        const rename = makeActionButton(task, "rename", t("tasks.rename"));
         rename.addEventListener("click", () => beginRename(task.id));
-        const complete = makeActionButton(task, "complete", "Complete");
+        const complete = makeActionButton(task, "complete", t("tasks.complete"));
         complete.addEventListener("click", () => {
           const committed = commit(
             (tasks) => taskModel.setTaskStatus(tasks, task.id, "completed", now()),
-            `${task.title} completed. The timer was not changed.`
+            t("tasks.completedAnnouncement", { title: task.title })
           );
           if (committed) focusAfterRender('[data-task-action="select"], #taskTitleInput');
         });
         actions.append(select, rename, complete);
       } else {
-        const reopen = makeActionButton(task, "reopen", "Reopen");
+        const reopen = makeActionButton(task, "reopen", t("tasks.reopen"));
         reopen.addEventListener("click", () => {
           const committed = commit(
             (tasks) => taskModel.setTaskStatus(tasks, task.id, "open", now()),
-            `${task.title} reopened.`
+            t("tasks.reopenedAnnouncement", { title: task.title })
           );
           if (committed) focusAfterRender(`[data-task-action="select"][data-task-id="${CSS.escape(task.id)}"]`);
         });
         actions.appendChild(reopen);
       }
-      const remove = makeActionButton(task, "delete", "Delete", "task-action-btn task-delete-btn");
+      const remove = makeActionButton(task, "delete", t("common.delete"), "task-action-btn task-delete-btn");
       remove.addEventListener("click", () => {
-        if (!confirmAction(`Delete "${task.title}"? Recorded names remain in session history, including an in-progress session. This cannot be undone.`)) return;
+        if (!confirmAction(t("tasks.deleteConfirm", { title: task.title }))) return;
         const committed = commit(
           (tasks) => taskModel.deleteTask(tasks, task.id),
-          `${task.title} deleted. Recorded session names were kept.`
+          t("tasks.deletedAnnouncement", { title: task.title })
         );
         if (committed) focusAfterRender('[data-task-action], #taskTitleInput');
       });
@@ -261,9 +264,9 @@
       const completedData = taskModel.paginateTasks(lists.completed, completedPage);
       openPage = openData.page;
       completedPage = completedData.page;
-      elements.taskCapacity.textContent = `${state.tasks.items.length} / ${taskModel.MAX_TASKS} tasks`;
-      elements.openTasksCount.textContent = `${openData.total} open`;
-      elements.completedTasksCount.textContent = `${completedData.total} completed`;
+      elements.taskCapacity.textContent = t("tasks.capacity", { count: state.tasks.items.length, max: taskModel.MAX_TASKS });
+      elements.openTasksCount.textContent = t("tasks.openCount", { count: openData.total });
+      elements.completedTasksCount.textContent = t("tasks.completedCount", { count: completedData.total });
       elements.completedTasksToggle.setAttribute("aria-expanded", String(completedExpanded));
       elements.completedTasksBody.classList.toggle("hidden", !completedExpanded);
       renderTaskList(elements.openTasksList, openData, state, elements.openTasksEmpty);
@@ -278,7 +281,7 @@
       const rawTitle = elements.taskTitleInput.value;
       const committed = commit(
         (tasks) => taskModel.addTask(tasks, rawTitle, { id: createId("task"), now: now() }),
-        "Task added."
+        t("tasks.added")
       );
       if (!committed) return;
       elements.taskTitleInput.value = "";

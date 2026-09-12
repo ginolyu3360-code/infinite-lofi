@@ -210,6 +210,7 @@
 
   function bindUiEvents(options) {
     const { window: targetWindow, document, elements: e, actions: a, formatTime } = options;
+    const t = options.t || ((key) => ({ "player.play": "Play", "player.pause": "Pause" })[key] || key);
     const on = (element, eventName, handler, listenerOptions) => {
       if (element) element.addEventListener(eventName, handler, listenerOptions);
     };
@@ -339,10 +340,10 @@
     });
     on(e.lofiPlayer, "ended", a.switchTrack);
     on(e.lofiPlayer, "pause", () => {
-      e.playPauseBtn.textContent = "Play";
+      e.playPauseBtn.textContent = t("player.play");
     });
     on(e.lofiPlayer, "play", () => {
-      e.playPauseBtn.textContent = "Pause";
+      e.playPauseBtn.textContent = t("player.pause");
     });
   }
 
