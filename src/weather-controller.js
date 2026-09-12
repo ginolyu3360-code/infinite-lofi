@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiWeatherController(globalScope) {
+  const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const defaultTranslate = i18n.createI18n("en").t;
   function createWeatherController(options) {
     const {
       storage,
@@ -12,6 +14,8 @@
       weather,
       initialSettings,
       onSettingsChange = () => {},
+      t = defaultTranslate,
+      getLocale = () => "en",
       fetch: fetchImpl = globalScope.fetch.bind(globalScope),
       DOMParser: DOMParserType = globalScope.DOMParser,
       cacheKey = "infiniteLofiWeatherCache",
@@ -69,7 +73,7 @@
       const temperature = Number(forecast?.current?.temperature_2m);
       const code = Number(forecast?.current?.weather_code);
       if (!Number.isFinite(temperature)) throw new Error("invalid weather payload");
-      return `${placeLabel}: ${weather.weatherCodeToText(code)} ${Math.round(temperature)}°C`;
+      return `${placeLabel}: ${t(`weather.${weather.weatherCodeToKey(code)}`)} ${Math.round(temperature)}°C`;
     }
 
     async function fetchViaAutomaticLocation() {
@@ -85,7 +89,7 @@
 
     async function fetchViaCity() {
       if (!settings.city) throw new Error("city is required");
-      const search = await fetchJsonWithTimeout(weather.buildGeocodingUrl(settings.city), 7000);
+      const search = await fetchJsonWithTimeout(weather.buildGeocodingUrl(settings.city, getLocale()), 7000);
       const match = Array.isArray(search?.results) ? search.results[0] : null;
       const latitude = Number(match?.latitude);
       const longitude = Number(match?.longitude);
@@ -101,8 +105,20 @@
     function formatDisplay(text, updatedAt) {
       const safeText = sanitize(text);
       if (!safeText) return "";
-      const age = weather.formatUpdatedAgo(updatedAt);
-      return age ? `${safeText} · ${age}更新` : safeText;
+      const age = formatAge(updatedAt);
+      return age ? `${safeText} · ${t("weather.updated", { age })}` : safeText;
+    }
+
+    function formatAge(updatedAt, now = Date.now()) {
+      if (!Number.isFinite(updatedAt) || updatedAt <= 0) return "";
+      const minutes = Math.floor(Math.max(0, now - updatedAt) / 60000);
+      if (minutes < 1) return t("weather.justNow");
+      if (minutes < 60) return t("weather.minutesAgo", { count: minutes });
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return t("weather.hoursAgo", { count: hours });
+      const days = Math.floor(hours / 24);
+      if (days < 7) return t("weather.daysAgo", { count: days });
+      return new Date(updatedAt).toLocaleDateString(getLocale(), { month: "2-digit", day: "2-digit" });
     }
 
     function readCachedWeather() {
@@ -131,23 +147,23 @@
       if (statusTime) {
         statusTime.textContent = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
       }
-      if (statusDate) statusDate.textContent = now.toLocaleDateString();
+      if (statusDate) statusDate.textContent = now.toLocaleDateString(getLocale());
     }
 
     async function fetchWeatherText() {
       cancelActiveRequest();
       const generation = ++requestGeneration;
       if (settings.mode === "off") {
-        if (statusWeather) statusWeather.textContent = "Weather off";
+        if (statusWeather) statusWeather.textContent = t("weather.off");
         return;
       }
       if (settings.mode === "city" && !settings.city) {
-        if (statusWeather) statusWeather.textContent = "Enter a city";
+        if (statusWeather) statusWeather.textContent = t("weather.enterCity");
         return;
       }
 
       const provider = settings.mode === "city" ? fetchViaCity : fetchViaAutomaticLocation;
-      if (statusWeather) statusWeather.textContent = "Loading weather…";
+      if (statusWeather) statusWeather.textContent = t("weather.loading");
       for (const delayMs of retryDelaysMs) {
         if (delayMs > 0) await wait(delayMs);
         if (generation !== requestGeneration) return;
@@ -168,7 +184,7 @@
       if (cached && statusWeather) {
         statusWeather.textContent = formatDisplay(cached.text, cached.updatedAt);
       } else if (statusWeather) {
-        statusWeather.textContent = "Weather unavailable";
+        statusWeather.textContent = t("weather.unavailable");
       }
     }
 
@@ -182,10 +198,10 @@
       if (privacyHint) {
         privacyHint.textContent =
           settings.mode === "auto"
-            ? "Automatic mode sends your IP address to ipapi.co, then coordinates to Open-Meteo."
+            ? t("weather.autoPrivacy")
             : settings.mode === "city"
-            ? "City mode sends only the city name and resulting coordinates to Open-Meteo."
-            : "Weather is off. No weather or location requests are made.";
+            ? t("weather.cityPrivacy")
+            : t("weather.offPrivacy");
       }
     }
 
@@ -223,12 +239,20 @@
       setInterval(fetchWeatherText, refreshIntervalMs);
     }
 
+    function refreshLanguage() {
+      updateClockDisplay();
+      renderSettings();
+      refreshWeatherHintFromCache();
+      fetchWeatherText();
+    }
+
     return {
       applySettings,
       fetchWeatherText,
       getSettings: () => ({ ...settings }),
       init,
       readCachedWeather,
+      refreshLanguage,
       updateClockDisplay
     };
   }

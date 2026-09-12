@@ -21,7 +21,15 @@ let grantedMusicFolders = new Set();
 let trayStatus = {
   timerText: "25:00",
   phaseText: "Focus Session",
-  isRunning: false
+  isRunning: false,
+  labels: {
+    startTimer: "Start Timer",
+    pauseTimer: "Pause Timer",
+    resetTimer: "Reset Timer",
+    showWindow: "Show Window",
+    hideWindow: "Hide Window",
+    quit: "Quit"
+  }
 };
 
 function sendCommandToRenderer(command) {
@@ -60,8 +68,8 @@ function refreshTrayMenu() {
     return;
   }
 
-  const runLabel = trayStatus.isRunning ? "Pause Timer" : "Start Timer";
-  const visibilityLabel = mainWindow && mainWindow.isVisible() ? "Hide Window" : "Show Window";
+  const runLabel = trayStatus.isRunning ? trayStatus.labels.pauseTimer : trayStatus.labels.startTimer;
+  const visibilityLabel = mainWindow && mainWindow.isVisible() ? trayStatus.labels.hideWindow : trayStatus.labels.showWindow;
   const menu = Menu.buildFromTemplate([
     { label: `Pomodoro ${trayStatus.timerText}`, enabled: false },
     { label: trayStatus.phaseText, enabled: false },
@@ -71,7 +79,7 @@ function refreshTrayMenu() {
       click: () => sendCommandToRenderer("toggle-timer")
     },
     {
-      label: "Reset Timer",
+      label: trayStatus.labels.resetTimer,
       click: () => sendCommandToRenderer("reset-timer")
     },
     {
@@ -86,7 +94,7 @@ function refreshTrayMenu() {
     },
     { type: "separator" },
     {
-      label: "Quit",
+      label: trayStatus.labels.quit,
       click: () => app.quit()
     }
   ]);
@@ -190,10 +198,15 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
 });
 
 ipcMain.on("app:trayStatus", (_event, status) => {
+  const incomingLabels = status?.labels && typeof status.labels === "object" ? status.labels : {};
+  const readLabel = (name) => typeof incomingLabels[name] === "string" && incomingLabels[name].trim()
+    ? incomingLabels[name].trim().slice(0, 80)
+    : trayStatus.labels[name];
   trayStatus = {
     timerText: typeof status?.timerText === "string" ? status.timerText : trayStatus.timerText,
     phaseText: typeof status?.phaseText === "string" ? status.phaseText : trayStatus.phaseText,
-    isRunning: Boolean(status?.isRunning)
+    isRunning: Boolean(status?.isRunning),
+    labels: Object.fromEntries(Object.keys(trayStatus.labels).map((name) => [name, readLabel(name)]))
   };
   refreshTrayMenu();
 });

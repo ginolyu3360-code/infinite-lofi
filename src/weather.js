@@ -19,24 +19,29 @@
     return `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code&timezone=auto`;
   }
 
-  function buildGeocodingUrl(city) {
+  function buildGeocodingUrl(city, language = "en") {
     const normalized = normalizeWeatherSettings({ mode: "city", city }).city;
     if (!normalized) {
       throw new TypeError("A city is required");
     }
-    return `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(normalized)}&count=1&language=en&format=json`;
+    const normalizedLanguage = typeof language === "string" && language ? language.split("-")[0] : "en";
+    return `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(normalized)}&count=1&language=${encodeURIComponent(normalizedLanguage)}&format=json`;
+  }
+
+  function weatherCodeToKey(code) {
+    if (code === 0) return "clear";
+    if ([1, 2].includes(code)) return "partlyCloudy";
+    if (code === 3) return "cloudy";
+    if ([45, 48].includes(code)) return "fog";
+    if ([51, 53, 55, 56, 57].includes(code)) return "drizzle";
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "rain";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "snow";
+    if ([95, 96, 99].includes(code)) return "thunderstorm";
+    return "unknown";
   }
 
   function weatherCodeToText(code) {
-    if (code === 0) return "Clear";
-    if ([1, 2].includes(code)) return "Partly Cloudy";
-    if (code === 3) return "Cloudy";
-    if ([45, 48].includes(code)) return "Fog";
-    if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
-    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
-    if ([95, 96, 99].includes(code)) return "Thunderstorm";
-    return "Unknown";
+    return ({ clear: "Clear", partlyCloudy: "Partly Cloudy", cloudy: "Cloudy", fog: "Fog", drizzle: "Drizzle", rain: "Rain", snow: "Snow", thunderstorm: "Thunderstorm", unknown: "Unknown" })[weatherCodeToKey(code)];
   }
 
   function sanitizeWeatherText(rawText, htmlToText) {
@@ -91,6 +96,7 @@
     formatUpdatedAgo,
     normalizeWeatherSettings,
     sanitizeWeatherText,
+    weatherCodeToKey,
     weatherCodeToText
   };
 

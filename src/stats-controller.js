@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiStatsController(globalScope) {
+  const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const defaultTranslate = i18n.createI18n("en").t;
   function createStatsController(options) {
     const {
       appStorage,
@@ -12,7 +14,9 @@
       focusManager = null,
       setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       confirm: confirmAction = globalScope.confirm.bind(globalScope),
-      alert: showAlert = globalScope.alert.bind(globalScope)
+      alert: showAlert = globalScope.alert.bind(globalScope),
+      t = defaultTranslate,
+      getLocale = () => "en"
     } = options;
     let rangeMode = "week";
     const visibleHistoryLimit = 12;
@@ -33,7 +37,9 @@
       const safeMinutes = Math.max(0, Math.round(totalMinutes));
       const hours = Math.floor(safeMinutes / 60);
       const minutes = safeMinutes % 60;
-      return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+      return hours > 0
+        ? t("stats.hourMinute", { hours, minutes })
+        : t("stats.minutesShort", { minutes });
     }
 
     function toggleStatsDrawer(forceOpen) {
@@ -41,7 +47,7 @@
         ? forceOpen
         : !elements.statsDrawer.classList.contains("is-open");
       elements.statsDrawer.classList.toggle("is-open", nextOpen);
-      elements.statsToggleBtn.textContent = nextOpen ? "Hide Stats" : "Stats";
+      elements.statsToggleBtn.textContent = t(nextOpen ? "player.hideStats" : "player.stats");
       setDisclosureState(elements.statsToggleBtn, nextOpen);
       if (nextOpen) {
         focusManager?.open(elements.statsDrawer, {
@@ -61,7 +67,7 @@
 
     function showTooltip(event, barWrap) {
       const full = barWrap.dataset.fullLabel || barWrap.dataset.label || "";
-      elements.statsTooltip.textContent = `${full} · ${barWrap.dataset.minutes || "0"}m`;
+      elements.statsTooltip.textContent = `${full} · ${t("stats.minuteShort", { minutes: barWrap.dataset.minutes || "0" })}`;
       elements.statsTooltip.classList.remove("hidden");
       moveTooltip(event);
     }
@@ -88,23 +94,23 @@
 
     function updateFocusSession(id, day, minutes) {
       try {
-        if (day > core.getLocalDayKey(new Date())) throw new Error("Session date cannot be in the future.");
+        if (day > core.getLocalDayKey(new Date())) throw new Error(t("stats.futureDate"));
         persistSessions((sessions) => statsModel.upsertFocusSession(sessions, {
           id,
           day,
           focusSeconds: Math.round(Number(minutes) * 60)
         }));
-        announce(`Focus session updated for ${day}, ${Math.round(Number(minutes))} minutes.`);
+        announce(t("stats.updated", { day, minutes: Math.round(Number(minutes)) }));
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not update this session.");
       }
     }
 
     function deleteFocusSession(id) {
-      if (!confirmAction("Delete this focus session? This cannot be undone.")) return;
+      if (!confirmAction(t("stats.deleteConfirm"))) return;
       try {
         persistSessions((sessions) => statsModel.removeFocusSession(sessions, id));
-        announce("Focus session deleted.");
+        announce(t("stats.deleted"));
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not delete this session.");
       }
@@ -114,7 +120,7 @@
       if (!elements.sessionHistoryList) return;
       const normalized = core.normalizeFocusSessions(sessions, []);
       const recent = normalized.slice(-visibleHistoryLimit).reverse();
-      elements.sessionHistoryCount.textContent = `${normalized.length} saved`;
+      elements.sessionHistoryCount.textContent = t("stats.savedCount", { count: normalized.length });
       elements.sessionHistoryEmpty.classList.toggle("hidden", normalized.length > 0);
       elements.sessionHistoryList.innerHTML = "";
 
@@ -128,7 +134,7 @@
         dateInput.className = "session-history-input";
         dateInput.value = session.day;
         dateInput.max = core.getLocalDayKey(new Date());
-        dateInput.setAttribute("aria-label", "Focus session date");
+        dateInput.setAttribute("aria-label", t("stats.sessionDate"));
 
         const minutesInput = elements.document.createElement("input");
         minutesInput.type = "number";
@@ -136,21 +142,21 @@
         minutesInput.min = "1";
         minutesInput.max = "720";
         minutesInput.value = String(Math.max(1, Math.round(session.focusSeconds / 60)));
-        minutesInput.setAttribute("aria-label", "Focus session minutes");
+        minutesInput.setAttribute("aria-label", t("stats.sessionMinutes"));
 
         const source = elements.document.createElement("span");
         source.className = "session-history-source";
         source.textContent = session.source === "migrated"
-          ? "Imported daily total"
+          ? t("stats.imported")
           : session.source === "timer"
-          ? "Timer"
-          : "Manual";
+          ? t("stats.timer")
+          : t("stats.manual");
         if (session.taskTitle) {
           source.textContent += ` · ${session.taskTitle}`;
           source.title = session.taskTitle;
-          source.setAttribute("aria-label", `${source.textContent}. Saved task-title snapshot.`);
+          source.setAttribute("aria-label", t("stats.snapshotLabel", { text: source.textContent }));
         } else {
-          source.textContent += " · Unassigned";
+          source.textContent += ` · ${t("common.unassigned")}`;
         }
 
         const actions = elements.document.createElement("div");
@@ -158,16 +164,16 @@
         const saveButton = elements.document.createElement("button");
         saveButton.type = "button";
         saveButton.className = "stats-export-btn";
-        saveButton.textContent = "Save";
-        saveButton.setAttribute("aria-label", `Save focus session for ${session.day}`);
+        saveButton.textContent = t("common.save");
+        saveButton.setAttribute("aria-label", t("stats.saveSession", { day: session.day }));
         saveButton.addEventListener("click", () =>
           updateFocusSession(session.id, dateInput.value, minutesInput.value)
         );
         const deleteButton = elements.document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "stats-danger-btn";
-        deleteButton.textContent = "Delete";
-        deleteButton.setAttribute("aria-label", `Delete focus session for ${session.day}`);
+        deleteButton.textContent = t("common.delete");
+        deleteButton.setAttribute("aria-label", t("stats.deleteSession", { day: session.day }));
         deleteButton.addEventListener("click", () => deleteFocusSession(session.id));
         actions.append(saveButton, deleteButton);
         row.append(dateInput, minutesInput, source, actions);
@@ -181,14 +187,14 @@
       const now = new Date();
       const id = `focus-manual-${now.getTime()}-${appStorage.getState().stats.focusSessions.length}`;
       try {
-        if (day > core.getLocalDayKey(now)) throw new Error("Session date cannot be in the future.");
+        if (day > core.getLocalDayKey(now)) throw new Error(t("stats.futureDate"));
         persistSessions((sessions) => statsModel.upsertFocusSession(sessions, {
           id,
           day,
           focusSeconds: Math.round(Number(minutes) * 60),
           source: "manual"
         }));
-        announce(`Focus session added for ${day}, ${Math.round(Number(minutes))} minutes.`);
+        announce(t("stats.added", { day, minutes: Math.round(Number(minutes)) }));
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not add this session.");
       }
@@ -197,7 +203,8 @@
     function renderStats() {
       const state = appStorage.getState();
       const rows = state.stats.focusRows;
-      const days = statsModel.buildRangeDays(new Date(), rangeMode);
+      const days = statsModel.buildRangeDays(new Date(), rangeMode, getLocale());
+      if (rangeMode === "today" && days[0]) days[0].label = t("stats.today");
       const summary = statsModel.summarizeFocusRows(rows, days);
       const trends = statsModel.summarizeFocusTrends(
         rows,
@@ -214,8 +221,8 @@
       const todayMinutes = Math.round(goal.focusSeconds / 60);
       const goalMinutes = Math.round(goal.goalSeconds / 60);
       elements.todayFocusStat.textContent = goal.isEnabled
-        ? `Today ${todayMinutes} / ${goalMinutes}m${goal.isComplete ? " · Goal complete" : ""}`
-        : `Today ${todayMinutes}m · Daily goal off`;
+        ? t("stats.todayProgress", { current: todayMinutes, goal: goalMinutes, complete: goal.isComplete ? t("stats.goalComplete") : "" })
+        : t("stats.todayOff", { current: todayMinutes });
       if (elements.todayGoalProgress) {
         elements.todayGoalProgress.setAttribute("aria-valuemin", "0");
         elements.todayGoalProgress.setAttribute("aria-valuenow", String(todayMinutes));
@@ -226,8 +233,8 @@
         elements.todayGoalProgress.setAttribute(
           "aria-label",
           goal.isEnabled
-            ? `${todayMinutes} of ${goalMinutes} focus minutes completed today`
-            : `${todayMinutes} focus minutes completed today; daily goal is off`
+            ? t("stats.goalAria", { current: todayMinutes, goal: goalMinutes })
+            : t("stats.goalOffAria", { current: todayMinutes })
         );
       }
       if (elements.todayGoalBar) {
@@ -235,22 +242,22 @@
         elements.todayGoalBar.classList.toggle("is-complete", goal.isComplete);
       }
       elements.statsHeadingLabel.textContent = {
-        today: "Focus Stats (Today)",
-        week: "Focus Stats (This Week)",
-        month: "Focus Stats (This Month)"
+        today: t("stats.headingToday"),
+        week: t("stats.headingWeek"),
+        month: t("stats.headingMonth")
       }[rangeMode];
       elements.statsTotalValue.textContent = formatShortDuration(summary.totalMinutes);
-      elements.statsAverageValue.textContent = `${summary.averageMinutes}m`;
-      elements.statsPeakValue.textContent = `${summary.peakMinutes}m`;
+      elements.statsAverageValue.textContent = t("stats.minuteShort", { minutes: summary.averageMinutes });
+      elements.statsPeakValue.textContent = t("stats.minuteShort", { minutes: summary.peakMinutes });
       elements.statsActiveDaysValue.textContent = `${trends.activeDays} / ${days.length}`;
       elements.statsActiveDaysValue.title = state.settings.goals?.dailyFocusSeconds > 0
-        ? `${trends.goalDays} day${trends.goalDays === 1 ? "" : "s"} reached the daily goal in this range`
-        : "Days with recorded focus in this range";
-      elements.statsStreakValue.textContent = `${trends.streakDays}d`;
+        ? t("stats.dayGoalTitle", { count: trends.goalDays })
+        : t("stats.activeTitle");
+      elements.statsStreakValue.textContent = t("stats.daysShort", { days: trends.streakDays });
       elements.statsComparisonValue.textContent = trends.comparisonPercent === null
-        ? "New"
+        ? t("stats.new")
         : `${trends.comparisonPercent > 0 ? "+" : ""}${trends.comparisonPercent}%`;
-      elements.statsComparisonValue.title = `${formatShortDuration(trends.previousTotalMinutes)} in the previous matching period`;
+      elements.statsComparisonValue.title = t("stats.previousTitle", { duration: formatShortDuration(trends.previousTotalMinutes) });
       elements.statsBars.classList.toggle("is-month-range", rangeMode === "month");
       elements.statsBars.style.gridTemplateColumns = rangeMode === "month"
         ? `repeat(${days.length}, minmax(2.45rem, 1fr))`
@@ -282,11 +289,11 @@
           fullLabel: day.fullLabel || "",
           minutes: String(minutes)
         });
-        barWrap.setAttribute("aria-label", `${day.label} ${minutes} minutes`);
+        barWrap.setAttribute("aria-label", t("stats.barAria", { day: day.label, minutes }));
         barWrap.addEventListener("mouseenter", (event) => showTooltip(event, barWrap));
         barWrap.addEventListener("mousemove", moveTooltip);
         barWrap.addEventListener("mouseleave", hideTooltip);
-        fill.title = `${minutes} min`;
+        fill.title = t("stats.minuteShort", { minutes });
         barWrap.append(stripe, fill, label);
         elements.statsBars.appendChild(barWrap);
       });
@@ -325,7 +332,7 @@
     }
 
     function exportStatsCsv() {
-      const days = statsModel.buildRangeDays(new Date(), rangeMode);
+      const days = statsModel.buildRangeDays(new Date(), rangeMode, getLocale());
       download(
         statsModel.buildDailyCsv(appStorage.getState().stats.focusRows, days),
         `infinite-lofi-focus-stats-${core.getLocalDayKey(new Date())}.csv`,
@@ -346,7 +353,7 @@
       const recovery = appStorage.getRecoveryNotice();
       elements.storageRecoveryNotice.classList.toggle("hidden", !recovery);
       if (recovery) {
-        elements.storageRecoveryMessage.textContent = `${recovery.message} The original value was preserved before a safe state was created.`;
+        elements.storageRecoveryMessage.textContent = `${recovery.message} ${t("app.recoveryMessage")}`;
       }
     }
 
@@ -367,14 +374,14 @@
       try {
         const rawBackup = await file.text();
         const restored = globalScope.InfiniteLofiStorage.importBackup(rawBackup);
-        if (!confirmAction(`Restore this backup (${restored.notes.files.length} notes, ${restored.tasks.items.length} tasks, ${restored.stats.focusSessions.length} focus sessions)? Current local data will be replaced.`)) return;
+        if (!confirmAction(t("stats.restoreConfirm", { notes: restored.notes.files.length, tasks: restored.tasks.items.length, sessions: restored.stats.focusSessions.length }))) return;
         beforeRestore();
         appStorage.importBackup(rawBackup);
         appStorage.dismissRecoveryNotice();
-        showAlert("Backup restored successfully. Infinite Lo-Fi will reload now.");
+        showAlert(t("stats.restoreSuccess"));
         globalScope.location.reload();
       } catch (error) {
-        showAlert(`Could not restore backup: ${error instanceof Error ? error.message : "Unknown backup error"}`);
+        showAlert(t("stats.restoreError", { error: error instanceof Error ? error.message : t("stats.unknownBackupError") }));
       }
     }
 
@@ -384,7 +391,7 @@
     }
 
     function clearStats() {
-      if (!confirmAction("Clear all focus stats? This cannot be undone.")) return;
+      if (!confirmAction(t("stats.clearConfirm"))) return;
       try {
         const committed = appStorage.update((state) => {
           state.stats.focusSessions = [];
@@ -392,7 +399,7 @@
         });
         onStatsChange(committed);
         renderStats();
-        announce("All focus statistics cleared.");
+        announce(t("stats.cleared"));
       } catch (error) {
         showAlert(error instanceof Error ? error.message : "Could not clear focus statistics.");
       }

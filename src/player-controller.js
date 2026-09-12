@@ -1,4 +1,6 @@
 (function exposeInfiniteLofiPlayerController(globalScope) {
+  const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const defaultTranslate = i18n.createI18n("en").t;
   function createPlayerController(options) {
     const {
       appStorage,
@@ -9,6 +11,7 @@
       onArtworkChange = () => {},
       onTrackChange = () => {},
       announce = () => {},
+      t = defaultTranslate,
       setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       alert: showAlert = globalScope.alert?.bind(globalScope) || (() => {}),
       logger = globalScope.console
@@ -44,24 +47,24 @@
     function updateFolderStatus() {
       const missingCount = getMissingCount();
       const playableCount = playlist.filter(playerModel.isTrackPlayable).length;
-      const folderName = localMusicFolder?.split(/[\\/]/).pop() || "Default";
-      let status = `${folderName} · ${playableCount} track${playableCount === 1 ? "" : "s"}`;
-      if (isScanning) status = `${folderName} · Scanning…`;
-      else if (folderUnavailable) status = `${folderName} · Reconnect needed`;
-      else if (missingCount > 0) status += ` · ${missingCount} missing`;
+      const folderName = localMusicFolder?.split(/[\\/]/).pop() || t("common.default");
+      let status = t("player.folderTracks", { folder: folderName, count: playableCount });
+      if (isScanning) status = t("player.scanning", { folder: folderName });
+      else if (folderUnavailable) status = t("player.reconnectNeeded", { folder: folderName });
+      else if (missingCount > 0) status += ` · ${t("player.missingCount", { count: missingCount })}`;
       elements.musicFolderDisplay.textContent = status;
-      elements.musicFolderDisplay.title = localMusicFolder || "Bundled Infinite Lo-Fi tracks";
+      elements.musicFolderDisplay.title = localMusicFolder || t("player.bundledTitle");
       if (elements.playlistStatus) {
         elements.playlistStatus.textContent = folderUnavailable
-          ? "The saved folder cannot be read. Choose Reconnect Folder to locate it again."
+          ? t("player.folderUnavailable")
           : missingCount > 0
-          ? `${missingCount} saved track${missingCount === 1 ? " is" : "s are"} unavailable. Restore the file and rescan, or remove missing entries.`
+          ? t(missingCount === 1 ? "player.savedMissingOne" : "player.savedMissing", { count: missingCount })
           : localMusicFolder
-          ? "Queue order and the current track are saved automatically."
-          : "Using the bundled offline playlist.";
+          ? t("player.localStatus")
+          : t("player.bundledStatus");
       }
       if (elements.loadMusicFolderBtn) {
-        elements.loadMusicFolderBtn.textContent = folderUnavailable ? "Reconnect Folder" : "Load Folder";
+        elements.loadMusicFolderBtn.textContent = t(folderUnavailable ? "player.reconnectFolder" : "player.loadFolder");
       }
       if (elements.rescanMusicFolderBtn) elements.rescanMusicFolderBtn.hidden = !localMusicFolder;
       if (elements.removeMissingTracksBtn) elements.removeMissingTracksBtn.hidden = missingCount === 0;
@@ -90,16 +93,16 @@
         if (track.isMissing === true) {
           const status = elements.document.createElement("span");
           status.className = "playlist-item-status";
-          status.textContent = "Missing";
+          status.textContent = t("player.missing");
           itemButton.appendChild(status);
         }
 
         itemButton.title = track.isMissing === true
-          ? `${track.label} is unavailable. Restore it and choose Rescan.`
-          : `Play ${track.label}`;
+          ? t("player.trackUnavailableTitle", { title: track.label })
+          : t("player.playTrackTitle", { title: track.label });
         itemButton.addEventListener("click", () => {
           if (track.isMissing === true) {
-            showAlert("This track is missing. Restore the file and choose Rescan, or remove missing entries.");
+            showAlert(t("player.trackMissingAlert"));
             return;
           }
           playSelectedTrack(index);
@@ -134,11 +137,11 @@
     function updateTrack() {
       const track = getActiveTrack();
       if (!playerModel.isTrackPlayable(track)) {
-        elements.trackLabel.textContent = playlist.length > 0 ? "No playable tracks" : "Playlist is empty";
+        elements.trackLabel.textContent = t(playlist.length > 0 ? "player.noPlayable" : "player.empty");
         elements.lofiPlayer.pause();
         elements.lofiPlayer.removeAttribute("src");
         elements.lofiPlayer.load?.();
-        elements.playPauseBtn.textContent = "Play";
+        elements.playPauseBtn.textContent = t("player.play");
         onArtworkChange(null);
         onTrackChange(null);
         renderPlaylist();
@@ -148,11 +151,11 @@
       elements.lofiPlayer.src = track.srcUrl || track.src;
       onArtworkChange(
         track.artworkUrl
-          ? { url: track.artworkUrl, name: track.artworkName || `${track.label} Cover` }
+          ? { url: track.artworkUrl, name: track.artworkName || t("player.cover", { title: track.label }) }
           : null
       );
       onTrackChange(track);
-      announce(`Now playing ${track.label}.`);
+      announce(t("player.nowPlayingAnnouncement", { title: track.label }));
       renderPlaylist();
     }
 
@@ -189,7 +192,7 @@
         persistState();
         if (shouldResume && playerModel.isTrackPlayable(getActiveTrack())) {
           elements.lofiPlayer.play().catch(() => {
-            elements.playPauseBtn.textContent = "Play";
+            elements.playPauseBtn.textContent = t("player.play");
           });
         }
         return true;
@@ -227,14 +230,14 @@
 
     async function loadMusicFolder() {
       if (!desktopApp || typeof desktopApp.selectMusicFolder !== "function") {
-        showAlert("Music folder selection is not supported.");
+        showAlert(t("player.folderUnsupported"));
         return;
       }
       try {
         const result = await desktopApp.selectMusicFolder();
         if (!result) return;
         if (!Array.isArray(result.tracks) || result.tracks.length === 0) {
-          showAlert("No music files were found in the selected folder.");
+          showAlert(t("player.noMusicFiles"));
           return;
         }
         const shouldReconnect = folderUnavailable && Boolean(localMusicFolder);
@@ -245,7 +248,7 @@
         persistState();
       } catch (error) {
         logger.error("Error loading music folder:", error);
-        elements.musicFolderDisplay.textContent = "Folder unreadable · Try another";
+        elements.musicFolderDisplay.textContent = t("player.folderUnreadable");
       }
     }
 
@@ -292,7 +295,7 @@
       updateTrack();
       persistState();
       elements.lofiPlayer.play().catch(() => {
-        elements.playPauseBtn.textContent = "Play";
+        elements.playPauseBtn.textContent = t("player.play");
       });
     }
 
@@ -301,15 +304,15 @@
       if (!elements.lofiPlayer.src) return;
       if (elements.lofiPlayer.paused) {
         elements.lofiPlayer.play().then(() => {
-          elements.playPauseBtn.textContent = "Pause";
-          announce("Music playback started.");
+          elements.playPauseBtn.textContent = t("player.pause");
+          announce(t("player.started"));
         }).catch(() => {
-          elements.playPauseBtn.textContent = "Play";
+          elements.playPauseBtn.textContent = t("player.play");
         });
       } else {
         elements.lofiPlayer.pause();
-        elements.playPauseBtn.textContent = "Play";
-        announce("Music playback paused.");
+        elements.playPauseBtn.textContent = t("player.play");
+        announce(t("player.paused"));
       }
     }
 
@@ -321,7 +324,7 @@
       updateTrack();
       persistState();
       if (shouldResume) elements.lofiPlayer.play().catch(() => {
-        elements.playPauseBtn.textContent = "Play";
+        elements.playPauseBtn.textContent = t("player.play");
       });
     }
 
@@ -353,11 +356,17 @@
       elements.lofiPlayer.volume = Number.isFinite(normalized) ? normalized : 0.68;
     }
 
+    function refreshLanguage() {
+      elements.playPauseBtn.textContent = t(elements.lofiPlayer.paused ? "player.play" : "player.pause");
+      renderPlaylist();
+    }
+
     return {
       loadMusicFolder,
       persistState,
       prevTrack,
       removeMissingTracks,
+      refreshLanguage,
       rescanMusicFolder,
       restorePersistedPlayer,
       switchTrack,

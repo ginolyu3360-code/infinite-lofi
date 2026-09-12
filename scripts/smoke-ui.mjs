@@ -235,7 +235,7 @@ try {
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
-        'useDefaultTracksBtn', 'a11yStatus'
+        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -261,6 +261,57 @@ try {
       closedFromButton: overlay.classList.contains('hidden'),
       hiddenFromAccessibilityTree: overlay.getAttribute('aria-hidden') === 'true' && overlay.inert,
       focusRestored: document.activeElement === trigger
+    };
+  })()`);
+
+  const languageSwitchResult = await evaluate(`(() => {
+    const expected = {
+      'zh-CN': '显示语言',
+      'zh-TW': '顯示語言',
+      en: 'Display language',
+      ja: '表示言語',
+      fr: 'Langue d’affichage',
+      ko: '표시 언어',
+      es: 'Idioma de la interfaz'
+    };
+    document.querySelector('#shortcutHelpBtn').click();
+    const select = document.querySelector('#displayLanguageSelect');
+    select.focus();
+    const results = [];
+    for (const [code, label] of Object.entries(expected)) {
+      select.value = code;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      results.push({
+        code,
+        htmlLanguage: document.documentElement.lang,
+        savedLanguage: state.settings.ui.language,
+        languageLabel: document.querySelector('[data-i18n="keys.language"]').textContent.trim(),
+        expectedLabel: label,
+        optionCount: select.options.length,
+        selectorFocused: document.activeElement === select,
+        panelOpen: !document.querySelector('#shortcutHelpOverlay').classList.contains('hidden')
+      });
+    }
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return results;
+  })()`);
+  await delay(900);
+  const languagePersistenceResult = await evaluate(`(() => {
+    const select = document.querySelector('#displayLanguageSelect');
+    const before = {
+      selected: select.value,
+      htmlLanguage: document.documentElement.lang,
+      headerTasks: document.querySelector('#tasksToggleBtn').textContent.trim(),
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.language
+    };
+    select.value = 'en';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    return {
+      before,
+      restored: select.value,
+      restoredLabel: document.querySelector('[data-i18n="keys.language"]').textContent.trim()
     };
   })()`);
 
@@ -982,6 +1033,20 @@ try {
     !shortcutHelpResult.hiddenFromAccessibilityTree ||
     !shortcutHelpResult.focusRestored
   ) failures.push("shortcut help focus management failed");
+  if (
+    languageSwitchResult.length !== 7 ||
+    languageSwitchResult.some((item) =>
+      item.htmlLanguage !== item.code || item.savedLanguage !== item.code ||
+      item.languageLabel !== item.expectedLabel || item.optionCount !== 7 ||
+      !item.selectorFocused || !item.panelOpen
+    ) ||
+    languagePersistenceResult.before.selected !== "es" ||
+    languagePersistenceResult.before.htmlLanguage !== "es" ||
+    languagePersistenceResult.before.saved !== "es" ||
+    languagePersistenceResult.before.headerTasks !== "Tareas" ||
+    languagePersistenceResult.restored !== "en" ||
+    languagePersistenceResult.restoredLabel !== "Display language"
+  ) failures.push("display language switching or persistence failed");
   if (!reducedMotionResult.matches || reducedMotionResult.backgroundTransitionMs > 0.1 || reducedMotionResult.drawerTransitionMs > 0.1) {
     failures.push("reduced-motion preference did not suppress transitions");
   }
@@ -1129,7 +1194,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");
