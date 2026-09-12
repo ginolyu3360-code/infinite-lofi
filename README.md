@@ -25,6 +25,7 @@
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
 - 系统原生窗口按钮、标准 macOS 关闭/退出行为与托盘菜单
 - 顶栏快捷键入口，也可按 `Shift + /`（即 `?`）打开快捷键面板
+- 快捷键面板内可即时切换简体中文、繁體中文、English、日本語、Français、한국어 与 Español；选择会随完整备份保存
 - 面板与响应式 Notes 的焦点进入、Tab 圈定、Escape 关闭和焦点返回，以及计时器、播放器与历史操作的读屏播报
 - 所有内置场景的核心文字通过 WCAG AA 对比度检查，并遵循系统“减少动态效果”设置
 - 实时时钟、可关闭或指定城市的天气，以及支持逐次记录编辑与有限趋势的统计面板
@@ -65,6 +66,7 @@ src/
   ├─ index.html         # 应用界面
   ├─ renderer.js        # DOM 编排与交互逻辑
   ├─ core.js            # 可独立测试的纯逻辑
+  ├─ i18n.js            # 七语言词典、语言规范化与界面翻译
   ├─ security.js        # 主进程导航白名单逻辑
   ├─ storage.js         # 版本化存储、旧数据迁移与备份校验
   ├─ timer.js           # 计时器恢复状态模型
@@ -152,6 +154,7 @@ electron-builder 的关键配置（来自 package.json）：
 - Phase 3D Accessibility 已完成：弹层与响应式 Notes/Queue 具备可预测的键盘焦点，重要状态会经实时区域播报，核心深浅主题文字有 AA 对比度回归检查，减少动态效果也有真实 Electron 验证。
 - Phase 3E Curated Scenes 已完成：新增 Quiet Studio、Midnight、Moss 与 Paper，旧的黑/白/自定义媒体设置会自动映射，保存的本地图片和视频路径不会因切换预设而删除。
 - Phase 4A Focus Intent 已完成于源码：schema v5 保存标题任务、下一轮选择和当前轮冻结快照；完成记账与下一计时状态原子写入，任务改名、完成或删除不会重写进行中或历史快照。Phase 4B、4C1、4C2 尚未实施。
+- 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -202,6 +205,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Four built-in scene presets—Quiet Studio, Midnight, Moss, and Paper—plus wallpaper, image, video, and track-cover sources
 - Native OS window controls, standard macOS close/quit behavior, and a tray menu
 - Visible keyboard-shortcut entry point; `Shift + /` (`?`) also opens the shortcut panel
+- Immediate display-language switching in the shortcut panel for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish, persisted in full backups
 - Predictable dialog, responsive Notes, and Queue focus behavior with live screen-reader announcements
 - WCAG AA checks for core text colors across every built-in scene and verified reduced-motion behavior
 - Live clock, opt-in automatic or city-based weather, and a focus stats panel with editable session history and bounded trends

@@ -1,5 +1,31 @@
 # Verification Log
 
+## 2026-09-12 — Seven-language display settings
+
+### Implemented
+
+- Added a display-language selector inside Keys for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish. Language names remain in their native scripts.
+- Added `src/i18n.js` as the shared catalog, interpolation, alias normalization, locale, and DOM-translation layer. Static and dynamic timer, task, Notes, player, statistics, weather, scene, accessibility, notification, and tray copy refresh immediately.
+- Stored the normalized choice as additive `settings.ui.language` data under existing schema v5. Full backup export/import retains it; older states receive the English default; unsupported locale variants safely normalize or fall back.
+- Language changes save before presentation. A storage failure restores the previous selector value and display language without publishing an unsaved repository state.
+- Kept Phase 4A task/timer semantics, package version 1.3.0, and the boundaries excluding Phase 4B, 4C1, and 4C2.
+
+### Local verification
+
+- `npm run check`: passed with 75 tests, syntax checks for the new language module and all existing runtime modules, and a minified stylesheet rebuild.
+- New unit coverage verifies the exact seven-language catalog, complete key sets, regional aliases, safe fallback, interpolation, document `lang`, immediate DOM translation, native language names, schema-v5 normalization, and backup round-trip.
+- Isolated development Electron smoke passed with no renderer exceptions. It switched all seven languages in one open Keys dialog, retained selector focus, verified translated labels and document language, persisted Spanish across a reload, then restored English before running the full Phase 4A regression suite.
+- Universal packaging passed with electron-builder 26.15.3. `lipo` reported `x86_64 arm64`, and `app.asar` contains the language, HTML, and renderer modules.
+- Isolated Universal packaged-app smoke passed the same language and regression path with no renderer exceptions. The packaged performance fixture measured p95 at 17.7 ms for drawer opening and 37.9 ms for task selection updates.
+- Existing layout, 900 px Notes breakpoint, 420 × 250 and 360 × 200 Mini Mode, IME, focus trapping/restoration, accessibility tree, WCAG AA scene contrast, reduced motion, atomic completion, expiry recovery, and backup/history checks remained green.
+- All Electron runs used disposable temporary profiles; normal application data was not read or modified.
+
+### Delivery state and limits
+
+- Feature work is in [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). Final PR CI, squash merge, and exact-merge `main` CI are pending and must be recorded after completion.
+- The current display again exposed at most about 1440 × 799/794 rather than an exact 1440 × 900 renderer viewport; exact 1440 × 900 remains unverified.
+- The Universal app remains intentionally unsigned and not notarized. No version tag or GitHub Release was created.
+
 ## 2026-09-11 — Phase 4A Focus Intent implementation and delivery
 
 ### Baseline revalidation
