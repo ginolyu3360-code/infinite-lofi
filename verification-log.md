@@ -16,7 +16,7 @@
 - New unit coverage verifies the exact seven-language catalog, complete key sets, regional aliases, safe fallback, interpolation, document `lang`, immediate DOM translation, native language names, schema-v5 normalization, and backup round-trip.
 - Isolated development Electron smoke passed with no renderer exceptions. It switched all seven languages in one open Keys dialog, retained selector focus, verified translated labels and document language, persisted Spanish across a reload, then restored English before running the full Phase 4A regression suite.
 - Universal packaging passed with electron-builder 26.15.3. `lipo` reported `x86_64 arm64`, and `app.asar` contains the language, HTML, and renderer modules.
-- Isolated Universal packaged-app smoke passed the same language and regression path with no renderer exceptions. The packaged performance fixture measured p95 at 17.7 ms for drawer opening and 37.9 ms for task selection updates.
+- Isolated Universal packaged-app smoke passed the same language and regression path with no renderer exceptions. The final packaged performance fixture measured p95 at 16.9 ms for drawer opening and 37.1 ms for task selection updates.
 - Existing layout, 900 px Notes breakpoint, 420 × 250 and 360 × 200 Mini Mode, IME, focus trapping/restoration, accessibility tree, WCAG AA scene contrast, reduced motion, atomic completion, expiry recovery, and backup/history checks remained green.
 - All Electron runs used disposable temporary profiles; normal application data was not read or modified.
 
