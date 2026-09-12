@@ -297,7 +297,7 @@ Local verification note: native full-window checks passed at 720 × 520, 800 × 
 
 ### Post-4A — Display language settings
 
-Status: implemented and locally verified on 2026-09-12 in [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18); merge and exact-main CI evidence are recorded after delivery.
+Status: completed through [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18) on 2026-09-12. Final feature head `0d4b972` passed CI run `34701126047`, was squash-merged as `5008651`, and the exact merge commit passed `main` CI run `34701318256`.
 
 - [x] Add a native-name language selector inside Keys for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish.
 - [x] Apply language changes immediately across static and dynamic UI, dates, weather, notifications, accessibility labels, and tray controls without resetting active timer, task, note, player, or panel state.

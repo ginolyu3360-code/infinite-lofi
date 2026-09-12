@@ -17,6 +17,12 @@
 - Isolated development Electron smoke passed with no renderer exceptions. It switched all seven languages in one open Keys dialog, retained selector focus, verified translated labels and document language, persisted Spanish across a reload, then restored English before running the full Phase 4A regression suite.
 - Universal packaging passed with electron-builder 26.15.3. `lipo` reported `x86_64 arm64`, and `app.asar` contains the language, HTML, and renderer modules.
 - Isolated Universal packaged-app smoke passed the same language and regression path with no renderer exceptions. The final packaged performance fixture measured p95 at 16.9 ms for drawer opening and 37.1 ms for task selection updates.
+
+### Delivery evidence
+
+- Final feature head `0d4b9723841d235375b60509f782cc967bfffcff` passed [PR CI run 34701126047](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701126047), including checks, development Electron smoke, Universal packaging, and packaged-app smoke.
+- [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18) was squash-merged as `500865184756a7288fa7baee31dcb040259a31b5`. Exact-head [main CI run 34701318256](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701318256) passed the same complete workflow.
+- Package version remains 1.3.0. No version tag, GitHub Release, signing, notarization, Phase 4B, Phase 4C1, or Phase 4C2 work was performed.
 - Existing layout, 900 px Notes breakpoint, 420 × 250 and 360 × 200 Mini Mode, IME, focus trapping/restoration, accessibility tree, WCAG AA scene contrast, reduced motion, atomic completion, expiry recovery, and backup/history checks remained green.
 - All Electron runs used disposable temporary profiles; normal application data was not read or modified.
 
