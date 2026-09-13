@@ -124,3 +124,14 @@ test("keeps an unavailable folder queue visible and reconnects it by relative tr
   assert.deepEqual(getState().player.queue.map((track) => track.key), ["local:two.mp3"]);
   assert.equal(elements.removeMissingTracksBtn.hidden, true);
 });
+
+test("playlist persistence preserves ambient player preferences", () => {
+  const { controller, getState } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: "",
+    ambience: { soundId: "brown-noise", volume: 0 }
+  });
+  controller.persistState();
+  assert.deepEqual(getState().player.ambience, { soundId: "brown-noise", volume: 0 });
+});

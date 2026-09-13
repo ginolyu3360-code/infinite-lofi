@@ -37,6 +37,7 @@
       const activeTrack = getActiveTrack();
       appStorage.update((state) => {
         state.player = {
+          ...state.player,
           folderPath: localMusicFolder || "",
           queue: playerModel.createQueueSnapshot(playlist),
           activeTrackKey: playerModel.getTrackKey(activeTrack)
@@ -316,6 +317,30 @@
       }
     }
 
+    function play() {
+      if (!elements.lofiPlayer.src) updateTrack();
+      if (!elements.lofiPlayer.src) return Promise.resolve(false);
+      return elements.lofiPlayer.play().then(() => {
+        elements.playPauseBtn.textContent = t("player.pause");
+        return true;
+      }).catch(() => {
+        elements.playPauseBtn.textContent = t("player.play");
+        return false;
+      });
+    }
+
+    function pause() {
+      elements.lofiPlayer.pause();
+      elements.playPauseBtn.textContent = t("player.play");
+    }
+
+    function stop() {
+      pause();
+      if (Number.isFinite(Number(elements.lofiPlayer.duration)) && Number(elements.lofiPlayer.duration) > 0) {
+        elements.lofiPlayer.currentTime = 0;
+      }
+    }
+
     function moveToAdjacentTrack(direction) {
       const shouldResume = !elements.lofiPlayer.paused || elements.lofiPlayer.ended;
       const nextIndex = playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, direction);
@@ -363,13 +388,16 @@
 
     return {
       loadMusicFolder,
+      pause,
       persistState,
+      play,
       prevTrack,
       removeMissingTracks,
       refreshLanguage,
       rescanMusicFolder,
       restorePersistedPlayer,
       switchTrack,
+      stop,
       togglePlayback,
       togglePlaylistPanel,
       updateTrack,

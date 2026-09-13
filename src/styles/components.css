@@ -1659,6 +1659,74 @@ body.has-visual-background .glass-panel {
   text-transform: uppercase;
 }
 
+.scene-section-copy,
+.ambience-status,
+.ambience-license {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 500 0.66rem/1.5 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.ambience-controls {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) auto;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+}
+
+.ambience-field {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--ink-muted);
+  font: 600 0.58rem/1.2 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ambience-field select,
+.ambience-field input[type="range"] {
+  min-height: 2.75rem;
+}
+
+.ambience-field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(5, 5, 4, 0.36);
+  padding: 0 0.75rem;
+  color: var(--ink);
+}
+
+.ambience-volume-field {
+  grid-column: 1 / -1;
+}
+
+.ambience-volume-field input {
+  width: 100%;
+}
+
+.ambience-status {
+  margin-top: 0.65rem;
+  color: var(--ink);
+}
+
+.ambience-license {
+  margin-top: 0.3rem;
+  color: var(--ink-muted);
+  font-size: 0.58rem;
+}
+
+@media (max-width: 30rem) {
+  .ambience-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .ambience-volume-field {
+    grid-column: auto;
+  }
+}
+
 .scene-preset-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

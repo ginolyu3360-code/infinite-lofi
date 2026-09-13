@@ -435,6 +435,24 @@
             </div>
           </div>
 
+          <div class="scene-section" aria-labelledby="ambienceTitle">
+            <h3 id="ambienceTitle" class="scene-section-title" data-i18n="ambience.title">Ambient sound</h3>
+            <p class="scene-section-copy" data-i18n="ambience.description">Layer one bundled offline sound beside your music. It always starts paused after launch.</p>
+            <div class="ambience-controls">
+              <label class="ambience-field" for="ambienceSoundSelect">
+                <span data-i18n="ambience.sound">Sound</span>
+                <select id="ambienceSoundSelect" aria-label="Ambient sound" data-i18n-aria-label="ambience.sound"></select>
+              </label>
+              <button id="ambienceToggleBtn" class="control-btn" type="button" aria-pressed="false" disabled data-i18n="ambience.play">Play ambience</button>
+              <label class="ambience-field ambience-volume-field" for="ambienceVolumeSlider">
+                <span data-i18n="ambience.volume">Ambient volume</span>
+                <input id="ambienceVolumeSlider" type="range" min="0" max="100" value="35" aria-label="Ambient volume" data-i18n-aria-label="ambience.volume" />
+              </label>
+            </div>
+            <p id="ambienceStatus" class="ambience-status" role="status" aria-live="polite" data-i18n="ambience.offStatus">Ambient sound is off.</p>
+            <p class="ambience-license" data-i18n="ambience.license">Bundled original loops · Infinite Lo-Fi contributors · MIT</p>
+          </div>
+
           <div class="mt-4 bg-preview">
             <div id="bgPreviewSurface" class="bg-preview-surface"></div>
           </div>
@@ -506,11 +524,13 @@
       <div id="a11yStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
       <audio id="lofiPlayer" preload="metadata"></audio>
+      <audio id="ambiencePlayer" preload="none" loop></audio>
     </div>
 
     <script src="./core.js"></script>
     <script src="./i18n.js"></script>
     <script src="./tasks.js"></script>
+    <script src="./ambience.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>
@@ -518,6 +538,7 @@
     <script src="./player.js"></script>
     <script src="./media-session.js"></script>
     <script src="./player-controller.js"></script>
+    <script src="./ambience-controller.js"></script>
     <script src="./backgrounds.js"></script>
     <script src="./stats.js"></script>
     <script src="./focus-session.js"></script>

@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B is implemented and locally verified on its feature branch; PR delivery evidence is pending. Phase 4C1 and 4C2 remain unstarted. This section supersedes the 2026-09-09 draft.
+Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B is locally committed and Phase 4C1 is implemented with model/development-app verification on `codex/phase4-focus-depth`; final combined packaging, performance, PR, and merge evidence remain pending while Phase 4C2 is implemented. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -352,7 +352,7 @@ Implementation status: implemented and locally verified on `codex/phase4b-focus-
 - [x] Development and Universal packaged Electron checks cover named accessibility nodes, keyboard focus, all seven interface languages, every built-in scene's existing AA palette, reduced motion, Notes/timer/task/player/history/backup regressions, and responsive Stats at 720 × 520, 800 × 600, 899/901 × 700, 1100 × 760, and the display maximum of 1440 × 794.
 - [ ] Exact native 1440 × 900 remains unavailable on the reference display and is not claimed as passed.
 - [x] `npm run check` passes with 82 tests; the unsigned Universal application contains `x86_64` and `arm64`, and isolated development plus packaged smoke pass without renderer exceptions.
-- [ ] Final feature-commit CI, squash merge, exact-merge `main` CI, and follow-up delivery evidence are pending. No version bump, tag, Release, signing, notarization, Phase 4C1, or Phase 4C2 work is implicit.
+- [ ] Final feature-commit CI, squash merge, exact-merge `main` CI, and follow-up delivery evidence are pending. By explicit user direction on 2026-09-13, 4B, 4C1, and 4C2 will share one PR after retaining separate local phase commits; no version bump, tag, Release, signing, or notarization is implicit.
 
 ### Phase 4C1 — Ambient Layer
 
@@ -385,6 +385,15 @@ Goal: add a small, reliable offline ambient sound choice without changing the lo
 - Real development and Universal packaged Electron checks exercise actual decoded playback, audible loop quality, pause/resume, system commands, accessible controls, keyboard focus, themes, and supported sizes. If listening requires the user, supply a numbered tutorial and leave that check explicitly pending.
 - Record licenses/attribution, package-size delta, process CPU/memory measurements, and the verified concurrency bound before considering C1 complete. Use the same PR/CI/squash/main-CI handoff workflow.
 
+#### Phase 4C1 implementation status
+
+- [x] Three deterministic, original MIT-licensed offline loops (Soft Rain, Quiet Cafe, and Brown Noise) are bundled with source/author/license attribution; total WAV size is about 3 MiB, below the 15 MiB budget.
+- [x] A single lazy-loaded ambient element provides independent selection, play/pause, and exact-zero volume. Selection and volume persist in additive schema-v5 `player.ambience`; playback intent never persists and relaunch remains paused and unloaded.
+- [x] Playing selection changes stop and release the previous source before the new source starts. Paused selection stays paused; command versioning prevents stale asynchronous play completion from stopping the newest source.
+- [x] Music controls remain independent; custom native Media Session pause/stop paths silence both channels and native play starts music only. Music metadata and seek ownership are unchanged.
+- [x] Invalid IDs, migration/backup, storage failure, decode failure, rapid selection, cleanup, player-preference preservation, and actual decoded development playback are covered. The isolated development smoke passed with 44 px ambient controls and no renderer exceptions.
+- [ ] Universal packaged playback, package delta, 60-second music-only/dual-audio CPU and memory measurements, actual OS Media Session action exercise, and subjective audible loop/fade listening remain for the combined 4C2 verification pass; they are not yet claimed as passed.
+
 ### Phase 4C2 — Audio Transitions
 
 Goal: add predictable audio transitions after C1 is stable, keeping final playback intent authoritative even during rapid actions or suspended execution.
@@ -414,7 +423,7 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 1. Use only `/Users/lvjunhao/Documents/GitHub/infinite_lofi`. Work directly in this checkout; never create another worktree or use/rebuild the removed ChatGPT-folder checkout.
 2. Read README, this roadmap, HANDOFF, verification-log, UI-REFRESH-PLAN, and repository AGENTS if present. Check working changes, current branch, recent commits, tags, real remote main, and latest main CI. Preserve user changes.
 3. The user will direct GPT-5.6 sol to execute. Do not create another task, switch models, or start implementation merely because this plan is saved. Obtain the user's instruction for the next slice; do not treat approval of A as approval of B/C1/C2.
-4. Each implemented slice uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. Never commit directly to main. Keep package version 1.3.0 until a separate version/release instruction.
+4. Each implemented slice normally uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. For this run, the user explicitly directed separate local commits for 4B, 4C1, and 4C2 followed by one combined PR and merge. Never commit directly to main. Keep package version 1.3.0 until a separate version/release instruction.
 5. After each merge, check main CI for that exact merge commit, then record PR, commit, CI links/results, checks, limitations, and next boundary in HANDOFF and verification-log. Merge evidence that could not exist before the feature merge goes in a follow-up documentation PR; verify its main CI too. Do not bypass the PR rule to write post-merge notes.
 6. Local checks must use isolated profiles. Do not mutate the user's installed app data or restore real backups just to test. Report unperformed checks accurately and provide numbered Chinese instructions when user interface operation is necessary.
 7. No signing/notarization, framework rewrite, accounts, cloud sync, backend, subscription, project hierarchy, deadlines, reminders, tags, task search, task descriptions, Notes bidirectional linkage, mid-session split attribution, or partial-time accounting in these slices.

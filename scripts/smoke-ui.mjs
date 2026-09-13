@@ -237,7 +237,9 @@ try {
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
-        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect'
+        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect',
+        'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
+        'ambienceVolumeSlider', 'ambienceStatus'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -936,6 +938,72 @@ try {
     return result;
   })()`);
 
+  const ambienceResult = await evaluate(`(async () => {
+    const ambient = document.querySelector('#ambiencePlayer');
+    const music = document.querySelector('#lofiPlayer');
+    const select = document.querySelector('#ambienceSoundSelect');
+    const toggle = document.querySelector('#ambienceToggleBtn');
+    const volume = document.querySelector('#ambienceVolumeSlider');
+    const waitFor = async (predicate) => {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (predicate()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return false;
+    };
+
+    select.value = 'soft-rain';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    volume.value = '0';
+    volume.dispatchEvent(new Event('input', { bubbles: true }));
+    const savedZero = JSON.parse(localStorage.getItem('infiniteLofiState')).player.ambience.volume;
+    volume.value = '35';
+    volume.dispatchEvent(new Event('input', { bubbles: true }));
+    toggle.click();
+    const firstPlayed = await waitFor(() => !ambient.paused && Number.isFinite(ambient.duration));
+    const firstSource = ambient.currentSrc || ambient.src;
+    if (music.paused) document.querySelector('#playPauseBtn').click();
+    await waitFor(() => !music.paused);
+    document.querySelector('#playPauseBtn').click();
+    const independentAfterMusicPause = !ambient.paused;
+
+    select.value = 'quiet-cafe';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const switchedWhilePlaying = await waitFor(() =>
+      !ambient.paused && (ambient.currentSrc || ambient.src).endsWith('/quiet-cafe.wav')
+    );
+    const saved = JSON.parse(localStorage.getItem('infiniteLofiState')).player.ambience;
+    const result = {
+      firstPlayed,
+      firstSource,
+      switchedWhilePlaying,
+      secondSource: ambient.currentSrc || ambient.src,
+      independentAfterMusicPause,
+      musicPaused: music.paused,
+      loop: ambient.loop,
+      savedZero,
+      saved,
+      selectHeight: select.getBoundingClientRect().height,
+      toggleHeight: toggle.getBoundingClientRect().height,
+      status: document.querySelector('#ambienceStatus').textContent.trim()
+    };
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return result;
+  })()`);
+  await delay(1_000);
+  const ambienceRestartResult = await evaluate(`(() => {
+    const ambient = document.querySelector('#ambiencePlayer');
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      selected: document.querySelector('#ambienceSoundSelect').value,
+      saved: state.player.ambience,
+      paused: ambient.paused,
+      sourcePresent: ambient.hasAttribute('src'),
+      status: document.querySelector('#ambienceStatus').textContent.trim()
+    };
+  })()`);
+
   const expiredSeedResult = await evaluate(`(() => {
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     const deadlineMs = Date.now() - 1_000;
@@ -1261,6 +1329,15 @@ try {
     playerResult.mediaPlaybackState !== 'playing'
   ) failures.push("playlist persistence or native media session failed");
   if (
+    !ambienceResult.firstPlayed || !ambienceResult.firstSource.endsWith('/soft-rain.wav') ||
+    !ambienceResult.switchedWhilePlaying || !ambienceResult.secondSource.endsWith('/quiet-cafe.wav') ||
+    !ambienceResult.independentAfterMusicPause || !ambienceResult.musicPaused || !ambienceResult.loop ||
+    ambienceResult.savedZero !== 0 || ambienceResult.saved.soundId !== 'quiet-cafe' || ambienceResult.saved.volume !== 0.35 ||
+    ambienceResult.selectHeight < 42 || ambienceResult.toggleHeight < 42 || !ambienceResult.status.includes('Quiet Cafe') ||
+    ambienceRestartResult.selected !== 'quiet-cafe' || ambienceRestartResult.saved.soundId !== 'quiet-cafe' ||
+    ambienceRestartResult.saved.volume !== 0.35 || !ambienceRestartResult.paused || ambienceRestartResult.sourcePresent
+  ) failures.push("ambient selection, isolation, persistence, or paused startup failed");
+  if (
     expiredRestoreOnce.count !== 1 || expiredRestoreOnce.taskId !== "task-deleted-smoke" ||
     expiredRestoreOnce.taskTitle !== "Deleted task snapshot" ||
     expiredRestoreOnce.completedAt !== new Date(expiredSeedResult.deadlineMs).toISOString() ||
@@ -1276,7 +1353,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

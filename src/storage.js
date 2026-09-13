@@ -11,9 +11,13 @@
     typeof module !== "undefined" && module.exports
       ? require("./i18n")
       : globalScope.InfiniteLofiI18n;
+  const ambience =
+    typeof module !== "undefined" && module.exports
+      ? require("./ambience")
+      : globalScope.InfiniteLofiAmbience;
 
-  if (!core || !tasks || !i18n) {
-    throw new Error("Infinite Lo-Fi core, task, and language helpers are required by storage");
+  if (!core || !tasks || !i18n || !ambience) {
+    throw new Error("Infinite Lo-Fi core, task, language, and ambience helpers are required by storage");
   }
 
   const CURRENT_SCHEMA_VERSION = 5;
@@ -164,7 +168,8 @@
       player: {
         folderPath: "",
         queue: [],
-        activeTrackKey: ""
+        activeTrackKey: "",
+        ambience: { ...ambience.DEFAULT_AMBIENCE_SETTINGS }
       },
       timerRuntime: {
         phase: "focus",
@@ -201,13 +206,17 @@
 
     const statsSource = isObject(source.stats) ? source.stats : {};
     const playerSource = isObject(source.player) ? source.player : {};
-    const normalizedPlayer = sourceVersion >= 4
+    const normalizedPlayerBase = sourceVersion >= 4
       ? {
           folderPath: normalizeString(playerSource.folderPath, 8192),
           queue: normalizePlayerQueue(playerSource.queue),
           activeTrackKey: normalizeString(playerSource.activeTrackKey, 8192)
         }
       : migrateLegacyPlayer(playerSource);
+    const normalizedPlayer = {
+      ...normalizedPlayerBase,
+      ambience: ambience.normalizeAmbienceSettings(playerSource.ambience)
+    };
     const runtimeSource = isObject(source.timerRuntime) ? source.timerRuntime : {};
     const runtimePhase = runtimeSource.phase === "longBreak"
       ? "longBreak"

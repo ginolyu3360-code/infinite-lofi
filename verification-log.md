@@ -1,5 +1,28 @@
 # Verification Log
 
+## 2026-09-13 — Phase 4C1 Ambient Layer local implementation
+
+### Implemented
+
+- Added three original deterministic 12-second mono PCM loops—Soft Rain, Quiet Cafe, and Brown Noise—with generation source, author/source table, packaged MIT license, and no remote runtime dependency. Combined audio size is about 3 MiB, below the 15 MiB asset budget.
+- Added one lazy-loaded ambient channel in Scene with independent sound selection, explicit play/pause, and exact-zero volume. Additive schema-v5 `player.ambience` stores only sound ID and volume; startup, backup restore, recovery, and reload stay paused and unloaded.
+- Enforced one-source concurrency, stop-before-switch, paused-selection behavior, stale-command suppression, visible decode failure, and close/reload cleanup. Existing playlist persistence now preserves ambient preferences instead of overwriting the `player` object.
+- Extended native Media Session actions so play starts music only, while pause/stop invoke the renderer's combined music-and-ambient actions. Music metadata, artwork, position, and seek remain unchanged.
+- Added localized ambient UI/status/accessibility text for all seven supported display languages. Timer phase changes remain independent from ambience.
+
+### Local verification
+
+- `npm run check` passed with 92 tests, all JavaScript syntax checks, and the minified stylesheet build.
+- New tests cover volume clamp/exact zero, invalid IDs, schema migration/defaults, backup round-trip, player preference preservation, one-source switching, paused selection, rapid stale callbacks, decode failure, storage failure, native action delegation, cleanup, WAV structure, and the 15 MiB budget.
+- Isolated development Electron smoke passed with no renderer exceptions. Actual bundled Soft Rain and Quiet Cafe decoded and played; switching while playing retained one active element, music pause did not pause ambience, exact-zero volume persisted, controls measured 44 px, and reload restored the selection/volume while leaving ambience paused and source-free.
+- The full prior timer/task/history/Notes/player/scene/language/accessibility/layout regression path remained green, including Mini 420 × 250 and 360 × 200, the 900 px Notes breakpoint, all scene AA palettes, and 5,000-session Focus Review performance.
+
+### Pending combined evidence
+
+- Universal packaged playback, package-size delta, 60-second process CPU/memory comparison, actual OS Media Session action exercise, and subjective audible loop/fade listening are not yet claimed. They will be run after Phase 4C2 so final measurements reflect the delivered combined audio path.
+- Phase 4B is separately committed as `5123207`; Phase 4C1 and Phase 4C2 will also receive separate local commits. By explicit user direction, all three phases will then share one PR, final-commit CI, squash merge, and exact-merge `main` CI check.
+- Package version remains 1.3.0. No tag, GitHub Release, signing, or notarization action is authorized.
+
 ## 2026-09-13 — Phase 4B Focus Review implementation
 
 ### Baseline revalidation

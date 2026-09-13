@@ -55,6 +55,9 @@ test("connects metadata, transport actions, and position to native media control
   const audio = createFakeAudio();
   let previousCount = 0;
   let nextCount = 0;
+  let playCount = 0;
+  let pauseCount = 0;
+  let stopCount = 0;
   const controller = createMediaSessionController({
     mediaSession,
     MediaMetadata: FakeMediaMetadata,
@@ -63,6 +66,9 @@ test("connects metadata, transport actions, and position to native media control
   });
 
   assert.equal(controller.installActionHandlers({
+    play: () => { playCount += 1; return audio.play(); },
+    pause: () => { pauseCount += 1; audio.pause(); },
+    stop: () => { stopCount += 1; audio.pause(); audio.currentTime = 0; },
     previousTrack: () => { previousCount += 1; },
     nextTrack: () => { nextCount += 1; }
   }), true);
@@ -78,6 +84,7 @@ test("connects metadata, transport actions, and position to native media control
   assert.deepEqual(positions.at(-1), { duration: 120, playbackRate: 1, position: 20 });
 
   await actionHandlers.get("play")();
+  assert.equal(playCount, 1);
   assert.equal(mediaSession.playbackState, "playing");
   actionHandlers.get("seekforward")({ seekOffset: 15 });
   assert.equal(audio.currentTime, 35);
@@ -90,8 +97,11 @@ test("connects metadata, transport actions, and position to native media control
   assert.equal(previousCount, 1);
   assert.equal(nextCount, 1);
   actionHandlers.get("stop")();
+  assert.equal(stopCount, 1);
   assert.equal(audio.currentTime, 0);
   assert.equal(mediaSession.playbackState, "paused");
+  actionHandlers.get("pause")();
+  assert.equal(pauseCount, 1);
 });
 
 test("degrades safely when Media Session is unavailable", () => {

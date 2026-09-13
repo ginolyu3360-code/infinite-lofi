@@ -15,8 +15,9 @@ Updated: 2026-09-13
 - Phase 0 through Phase 3E are complete. The public v1.3.0 release contains Phase 3.
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
-- Phase 4B Focus Review is implemented and locally verified on `codex/phase4b-focus-review`; feature PR and CI/merge evidence are pending.
-- Phase 4C1 and Phase 4C2 are not implemented.
+- Phase 4B Focus Review is locally committed as `5123207` on `codex/phase4-focus-depth`.
+- Phase 4C1 Ambient Layer is implemented on the same branch with model tests, `npm run check`, and isolated development Electron smoke passing. Its separate local commit is the next checkpoint; final package/performance/listening evidence is intentionally deferred to the combined 4C2 validation.
+- Phase 4C2 is now explicitly authorized and is the active implementation slice. By user direction, 4B, 4C1, and 4C2 retain separate local commits but share one final PR, CI, squash merge, and exact-merge `main` CI verification.
 - Post-4A display-language settings are complete through [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). Final head `0d4b9723841d235375b60509f782cc967bfffcff` passed [PR CI run 34701126047](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701126047), was squash-merged as `500865184756a7288fa7baee31dcb040259a31b5`, and passed exact-merge [main CI run 34701318256](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701318256). It adds seven immediate interface languages in Keys while keeping schema v5 and package version 1.3.0.
 
 ## Display language behavior
@@ -49,6 +50,14 @@ Updated: 2026-09-13
 - Rendering is capped at eight groups per keyboard-accessible page. Review selectors run when Stats data, range, or language changes, not on timer ticks.
 - All new presentation copy is available in Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish.
 
+## Phase 4C1 implemented behavior
+
+- Scene contains Soft Rain, Quiet Cafe, and Brown Noise as original deterministic MIT-licensed 12-second offline WAV loops. Generation source, authorship, attribution, and the packaged license are retained under `assets/ambience`; their combined size is about 3 MiB.
+- One lazy-loaded ambient media element can play beside music. Selection and a separate exact-zero-capable volume persist as `player.ambience` under schema v5, while runtime playback never persists and every launch/restore starts paused with no decoded source loaded.
+- Sound switches stop and release the old source before the newest selection plays; paused selection remains paused, and stale asynchronous callbacks cannot stop the latest source. Decode failures become visible without disabling music or the timer, and unload cleanup releases the source.
+- Music Play/Pause remains music-only. Native Media Session play remains music-only, while its pause and stop handlers silence both channels; metadata and seek remain owned by music.
+- All ambient copy is localized into the seven supported display languages. The main player and Mini Mode remain compact because controls live in the existing Scene drawer.
+
 ## Local verification completed
 
 - Phase 4B `npm run check` passed with 82 unit/controller tests, all syntax checks, and a minified stylesheet rebuild.
@@ -69,11 +78,11 @@ Updated: 2026-09-13
 
 ## Explicit limitations and boundaries
 
-- The current Phase 4B runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The exact 1440 × 900 native target could not be provided and remains unverified; this is not recorded as a pass.
+- The current Phase 4B/C1 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The exact 1440 × 900 native target could not be provided and remains unverified; this is not recorded as a pass.
 - The Universal build is intentionally unsigned and not notarized. No installer, version tag, or GitHub Release is part of Phase 4B.
 - Tray menu rendering and OS notification presentation are not directly introspected by the renderer smoke; their unchanged IPC paths were exercised without exceptions, and existing main-process behavior was not modified.
-- Tasks remain title-only and optional. Phase 4B does not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, ambient audio, or fades.
+- Tasks remain title-only and optional. Phase 4B/C1 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, or multiple ambient layers. Audio fades remain Phase 4C2 work.
 
 ## Next product boundary
 
-After Phase 4B delivery evidence is complete, the next planned slice is Phase 4C1 Ambient Layer, but it requires a separate explicit instruction. Phase 4C2 Audio Transitions remains a later independent slice. Do not implement either during Phase 4B follow-up.
+Implement Phase 4C2 Audio Transitions next, then run combined Universal packaging, actual playback, CPU/memory, accessibility/layout, and regression verification. Keep C2 in its own local commit, then deliver 4B+C1+C2 through one PR as explicitly requested. Do not tag, release, sign, or notarize.

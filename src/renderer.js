@@ -38,6 +38,8 @@ if (
   !window.InfiniteLofiPlayer ||
   !window.InfiniteLofiMediaSession ||
   !window.InfiniteLofiPlayerController ||
+  !window.InfiniteLofiAmbience ||
+  !window.InfiniteLofiAmbienceController ||
   !window.InfiniteLofiBackgrounds ||
   !window.InfiniteLofiStats ||
   !window.InfiniteLofiFocusSession ||
@@ -75,6 +77,7 @@ const {
 } = window.InfiniteLofiTimer;
 const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
+const { createAmbienceController } = window.InfiniteLofiAmbienceController;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
@@ -131,6 +134,11 @@ const playlistPanel = document.getElementById("playlistPanel");
 const playlistItems = document.getElementById("playlistItems");
 const playlistStatus = document.getElementById("playlistStatus");
 const volumeSlider = document.getElementById("volumeSlider");
+const ambiencePlayer = document.getElementById("ambiencePlayer");
+const ambienceSoundSelect = document.getElementById("ambienceSoundSelect");
+const ambienceToggleBtn = document.getElementById("ambienceToggleBtn");
+const ambienceVolumeSlider = document.getElementById("ambienceVolumeSlider");
+const ambienceStatus = document.getElementById("ambienceStatus");
 const brightnessSlider = document.getElementById("brightnessSlider");
 const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
 const focusPlanToggleBtn = document.getElementById("focusPlanToggleBtn");
@@ -324,13 +332,16 @@ const playerController = createPlayerController({
 });
 const {
   loadMusicFolder,
+  pause: pauseMusic,
   persistState: persistPlayerState,
+  play: playMusic,
   prevTrack,
   removeMissingTracks,
   refreshLanguage: refreshPlayerLanguage,
   rescanMusicFolder,
   restorePersistedPlayer,
   switchTrack,
+  stop: stopMusic,
   togglePlayback,
   togglePlaylistPanel,
   updateTrack,
@@ -338,7 +349,34 @@ const {
   useDefaultTracks
 } = playerController;
 
+const ambienceController = createAmbienceController({
+  appStorage,
+  elements: {
+    document,
+    audio: ambiencePlayer,
+    soundSelect: ambienceSoundSelect,
+    toggleButton: ambienceToggleBtn,
+    volumeSlider: ambienceVolumeSlider,
+    status: ambienceStatus
+  },
+  announce: announceStatus,
+  onError: (error) => {
+    console.warn("Ambient audio action failed:", error);
+    announceStatus(t("ambience.error"));
+  },
+  t
+});
+
 mediaSessionController.installActionHandlers({
+  play: playMusic,
+  pause: () => {
+    pauseMusic();
+    ambienceController.pause();
+  },
+  stop: () => {
+    stopMusic();
+    ambienceController.stop();
+  },
   previousTrack: prevTrack,
   nextTrack: switchTrack
 });
@@ -550,6 +588,7 @@ function refreshLocalizedUi() {
   refreshShortcutLabels();
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
+  ambienceController.refreshLanguage();
   tasksController?.render();
   renderStats();
   weatherController?.refreshLanguage?.();
@@ -1644,6 +1683,7 @@ function toggleShortcutHelp(forceOpen) {
 
 async function init() {
   tasksController.bindEvents();
+  ambienceController.bindEvents();
   loadUiSettings();
   loadStatsRange();
   loadTimerSettings();
@@ -1657,6 +1697,7 @@ async function init() {
   loadNotes();
   updateTrack();
   await restorePersistedPlayer();
+  ambienceController.restore();
   updateVolume();
   // ensure initial brightness is applied (may have been loaded)
   const bs = Number(brightnessSlider ? brightnessSlider.value : 100) / 100;
@@ -1803,6 +1844,7 @@ async function init() {
         saveNotesNow();
         saveTimerRuntime();
         persistPlayerState();
+        ambienceController.destroy();
       }
     },
     formatTime,
