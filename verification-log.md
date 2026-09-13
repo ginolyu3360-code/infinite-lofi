@@ -1,5 +1,33 @@
 # Verification Log
 
+## 2026-09-13 — Phase 4C2 Audio Transitions and combined local acceptance
+
+### Implemented
+
+- Added opt-in 0–500 ms audio transitions, defaulting off at 200 ms, as an additive schema-v5 preference with legacy/default/backup normalization and storage-failure rollback.
+- Added one cancellable gain envelope per music/ambient channel. Persisted user volume and transient gain stay separate, exact mute remains zero, stale callbacks cannot restore an older intent, and settled envelopes leave no animation-frame polling.
+- Routed explicit music and ambient play/pause plus sequential track/sound replacement through the envelopes. Old sources fade to zero before replacement; no crossfade, overlapping ambient source, phase ducking, or new audio asset was added.
+- Made native stop immediately cancel and silence both channels, native pause settle both within the bound, and native play remain music-only. Suspend/resume and unload settle gains; timer-triggered music uses the same authoritative transport while timer phases never start ambience.
+- Added accessible Scene settings and all dynamic copy in Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish. Added a reusable packaged-audio performance measurement command.
+- Packaging review found the Markdown attribution file was excluded by the existing package filter, so it was minimally renamed to `ATTRIBUTION.txt`; the final `app.asar` contains both attribution and MIT license.
+
+### Automated and packaged checks
+
+- `npm run check` passed with 98 tests, syntax checks, and the minified stylesheet build. Fake-clock/model/controller coverage includes preference bounds, user/transient gain composition, mute during fades, rapid play/pause/play, sequential replacement, late callbacks and folder scans, storage/decode/play failures, cancellation/no idle polling, suspend settlement, and immediate stop.
+- Isolated development Electron smoke and final isolated Universal packaged-app smoke both passed with no renderer exceptions. Actual decoded playback checks measured non-final gain during a 200 ms fade, exact target gain afterward, rapid reversal, exact zero, no source replacement until fade-out completed, correct new source afterward, independent ambient playback, persisted settings, and paused/source-free restart.
+- Full regressions passed for Focus Intent snapshots/atomic recovery, Focus Review reconciliation/pagination, Notes, playlist recovery, Media Session metadata/state, backup restore, all seven languages, IME/keyboard focus, reduced motion, scene contrast, timer auto-start/recovery, and duplicate-completion protection.
+- Layout checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1024 × 677, 1100 × 760, and the available 1440 × 794 maximum. Both sides of the 900 px Notes breakpoint and Mini 420 × 250 / 360 × 200 passed; audio controls measured at least 44 px. Exact native 1440 × 900 remains unavailable and unverified.
+- The maximum 100-task / 5,000-session fixture over 30 repetitions reported final development p95 of 17.0 ms drawer open, 38.0 ms task action, and 78.3 ms range change; packaged p95 was 17.1 / 41.8 / 84.8 ms. All remain below the local 100 ms reference target.
+- `npm run pack:universal` passed with electron-builder 26.15.3 and Electron 41.10.7. The final executable is Mach-O Universal `x86_64 arm64`; `app.asar` contains all ambient files, attribution/license, and transition code. WAV assets total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15/20 MiB budgets.
+- The packaged performance comparison used fresh profiles, summed the main process and all descendants, warmed up for five seconds, then sampled macOS `ps` once per second for 60 samples per condition. Music-only averaged 8.82% CPU and 454.98 MiB RSS; music plus ambience averaged 9.03% and 450.28 MiB. Incremental +0.21 CPU percentage points and -4.70 MiB average RSS pass the +5 / +50 MiB budgets. Both page resource lists contained zero HTTP(S) entries.
+- All Electron tests used disposable temporary profiles. Normal installed application data was not read, restored, or modified.
+
+### Pending delivery and human checks
+
+- Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop button exercise remain human checks. Automated handler delegation, deterministic hashes, PCM/loop-boundary analysis, actual decode/playback, final playback state, and Media Session state pass, but are not claimed as subjective evidence.
+- Phase 4B is locally committed as `5123207` and Phase 4C1 as `e7aa161`; Phase 4C2 receives its own local commit after this final record. Per explicit user direction, the three phases then share one PR, final-head CI, squash merge, and exact-merge `main` CI verification.
+- The package remains version 1.3.0 and intentionally unsigned/unnotarized. No version tag, GitHub Release, installer release, signing, or notarization action was performed.
+
 ## 2026-09-13 — Phase 4C1 Ambient Layer local implementation
 
 ### Implemented
@@ -17,9 +45,9 @@
 - Isolated development Electron smoke passed with no renderer exceptions. Actual bundled Soft Rain and Quiet Cafe decoded and played; switching while playing retained one active element, music pause did not pause ambience, exact-zero volume persisted, controls measured 44 px, and reload restored the selection/volume while leaving ambience paused and source-free.
 - The full prior timer/task/history/Notes/player/scene/language/accessibility/layout regression path remained green, including Mini 420 × 250 and 360 × 200, the 900 px Notes breakpoint, all scene AA palettes, and 5,000-session Focus Review performance.
 
-### Pending combined evidence
+### Combined evidence status
 
-- Universal packaged playback, package-size delta, 60-second process CPU/memory comparison, actual OS Media Session action exercise, and subjective audible loop/fade listening are not yet claimed. They will be run after Phase 4C2 so final measurements reflect the delivered combined audio path.
+- Universal packaged playback, package-size/content budgets, deterministic seam analysis, and the 60-second process CPU/memory comparison were completed in the combined Phase 4C2 acceptance pass above. Actual OS Media Session button exercise and subjective audible loop/fade listening remain explicitly pending human checks.
 - Phase 4B is separately committed as `5123207`; Phase 4C1 and Phase 4C2 will also receive separate local commits. By explicit user direction, all three phases will then share one PR, final-commit CI, squash merge, and exact-merge `main` CI check.
 - Package version remains 1.3.0. No tag, GitHub Release, signing, or notarization action is authorized.
 

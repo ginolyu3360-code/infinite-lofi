@@ -40,6 +40,7 @@ if (
   !window.InfiniteLofiPlayerController ||
   !window.InfiniteLofiAmbience ||
   !window.InfiniteLofiAmbienceController ||
+  !window.InfiniteLofiAudioTransition ||
   !window.InfiniteLofiBackgrounds ||
   !window.InfiniteLofiStats ||
   !window.InfiniteLofiFocusSession ||
@@ -78,6 +79,7 @@ const {
 const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
 const { createAmbienceController } = window.InfiniteLofiAmbienceController;
+const { normalizeAudioTransitions } = window.InfiniteLofiAudioTransition;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
@@ -139,6 +141,8 @@ const ambienceSoundSelect = document.getElementById("ambienceSoundSelect");
 const ambienceToggleBtn = document.getElementById("ambienceToggleBtn");
 const ambienceVolumeSlider = document.getElementById("ambienceVolumeSlider");
 const ambienceStatus = document.getElementById("ambienceStatus");
+const audioTransitionsEnabled = document.getElementById("audioTransitionsEnabled");
+const audioTransitionDuration = document.getElementById("audioTransitionDuration");
 const brightnessSlider = document.getElementById("brightnessSlider");
 const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
 const focusPlanToggleBtn = document.getElementById("focusPlanToggleBtn");
@@ -288,6 +292,7 @@ let timerGoalSummary = null;
 let completionSaveErrorShown = false;
 let tasksController = null;
 let weatherController = null;
+let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().player?.audioTransitions);
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -326,11 +331,13 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: mediaSessionController.updateMetadata,
+  getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
   setDisclosureState,
   t
 });
 const {
+  getUserVolume: getMusicUserVolume,
   loadMusicFolder,
   pause: pauseMusic,
   persistState: persistPlayerState,
@@ -340,6 +347,7 @@ const {
   refreshLanguage: refreshPlayerLanguage,
   rescanMusicFolder,
   restorePersistedPlayer,
+  settleTransition: settleMusicTransition,
   switchTrack,
   stop: stopMusic,
   togglePlayback,
@@ -360,12 +368,40 @@ const ambienceController = createAmbienceController({
     status: ambienceStatus
   },
   announce: announceStatus,
+  getAudioTransitionSettings: () => audioTransitionSettings,
   onError: (error) => {
     console.warn("Ambient audio action failed:", error);
     announceStatus(t("ambience.error"));
   },
   t
 });
+
+function renderAudioTransitionSettings() {
+  audioTransitionsEnabled.checked = audioTransitionSettings.enabled;
+  audioTransitionDuration.value = String(audioTransitionSettings.durationMs);
+  audioTransitionDuration.disabled = !audioTransitionSettings.enabled;
+}
+
+function saveAudioTransitionSettings(nextSettings) {
+  const previous = audioTransitionSettings;
+  const normalized = normalizeAudioTransitions(nextSettings);
+  try {
+    const committed = appStorage.update((state) => {
+      state.player.audioTransitions = normalized;
+    });
+    audioTransitionSettings = normalizeAudioTransitions(committed.player.audioTransitions);
+  } catch (error) {
+    audioTransitionSettings = previous;
+    renderAudioTransitionSettings();
+    showStorageFailure(error, t("audioTransitions.saveError"));
+    return false;
+  }
+  renderAudioTransitionSettings();
+  settleMusicTransition();
+  ambienceController.settleTransition();
+  announceStatus(t(audioTransitionSettings.enabled ? "audioTransitions.enabled" : "audioTransitions.disabled"));
+  return true;
+}
 
 mediaSessionController.installActionHandlers({
   play: playMusic,
@@ -544,7 +580,6 @@ function loadUiSettings() {
   if (Number.isFinite(storedVol)) {
     const safeVolume = normalizeVolume(storedVol);
     if (volumeSlider) volumeSlider.value = String(Math.round(safeVolume * 100));
-    if (lofiPlayer) lofiPlayer.volume = safeVolume;
   }
 
   // brightness
@@ -562,7 +597,7 @@ function loadUiSettings() {
 
 function saveUiSettings() {
   const payload = {
-    volume: normalizeVolume(lofiPlayer.volume),
+    volume: normalizeVolume(getMusicUserVolume()),
     brightness: Number(getComputedStyle(document.documentElement).getPropertyValue("--scene-brightness")) || 1,
     shortcuts: shortcutSettings,
     background: backgroundSettings,
@@ -589,6 +624,7 @@ function refreshLocalizedUi() {
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
   ambienceController.refreshLanguage();
+  renderAudioTransitionSettings();
   tasksController?.render();
   renderStats();
   weatherController?.refreshLanguage?.();
@@ -1337,7 +1373,7 @@ function stopTimer() {
     currentFocusSession = committed.timerRuntime.focusSession;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
     sendTrayStatus();
     return true;
   } catch (error) {
@@ -1423,7 +1459,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
     timerId = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
   }
   refreshTimerGoalSummary(committed, new Date(completedAtMs));
   renderStats();
@@ -1433,9 +1469,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   notifyPhaseSwitch();
   announceStatus(t("timer.phaseStartedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
   if (timerId !== null && lofiPlayer.paused) {
-    lofiPlayer.play().catch(() => {
-      playPauseBtn.textContent = t("player.play");
-    });
+    playMusic();
   }
   return true;
 }
@@ -1498,12 +1532,7 @@ function toggleTimer() {
     showStorageFailure(error, t("storage.timerStartError"));
     return;
   }
-  if (!lofiPlayer.src) {
-    updateTrack();
-  }
-  lofiPlayer.play().catch(() => {
-    playPauseBtn.textContent = t("player.play");
-  });
+  playMusic();
   sendTrayStatus();
   announceStatus(t("timer.startedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
 }
@@ -1530,7 +1559,7 @@ function resetTimer() {
     currentFocusSession = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
     tasksController?.render(committed);
   } catch (error) {
     showStorageFailure(error, t("storage.timerResetError"));
@@ -1649,6 +1678,10 @@ function bindAppCommands() {
       resetTimer();
     }
   });
+  window.desktopApp.onPowerState?.(() => {
+    settleMusicTransition();
+    ambienceController.settleTransition();
+  });
 }
 
 
@@ -1684,6 +1717,19 @@ function toggleShortcutHelp(forceOpen) {
 async function init() {
   tasksController.bindEvents();
   ambienceController.bindEvents();
+  audioTransitionsEnabled.addEventListener("change", () => {
+    saveAudioTransitionSettings({
+      ...audioTransitionSettings,
+      enabled: audioTransitionsEnabled.checked
+    });
+  });
+  audioTransitionDuration.addEventListener("change", () => {
+    saveAudioTransitionSettings({
+      ...audioTransitionSettings,
+      durationMs: Number(audioTransitionDuration.value)
+    });
+  });
+  renderAudioTransitionSettings();
   loadUiSettings();
   loadStatsRange();
   loadTimerSettings();
@@ -1844,6 +1890,7 @@ async function init() {
         saveNotesNow();
         saveTimerRuntime();
         persistPlayerState();
+        settleMusicTransition();
         ambienceController.destroy();
       }
     },

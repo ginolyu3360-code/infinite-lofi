@@ -1,5 +1,8 @@
 (function exposeInfiniteLofiPlayerController(globalScope) {
   const i18n = typeof module !== "undefined" && module.exports ? require("./i18n") : globalScope.InfiniteLofiI18n;
+  const audioTransition = typeof module !== "undefined" && module.exports
+    ? require("./audio-transition")
+    : globalScope.InfiniteLofiAudioTransition;
   const defaultTranslate = i18n.createI18n("en").t;
   function createPlayerController(options) {
     const {
@@ -11,6 +14,8 @@
       onArtworkChange = () => {},
       onTrackChange = () => {},
       announce = () => {},
+      getAudioTransitionSettings = () => audioTransition.DEFAULT_AUDIO_TRANSITIONS,
+      gainEnvelopeFactory = audioTransition.createGainEnvelope,
       t = defaultTranslate,
       setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       alert: showAlert = globalScope.alert?.bind(globalScope) || (() => {}),
@@ -24,6 +29,16 @@
     let localMusicFolder = null;
     let folderUnavailable = false;
     let isScanning = false;
+    let playbackCommandVersion = 0;
+    let desiredPlaying = false;
+    const musicEnvelope = gainEnvelopeFactory({
+      audio: elements.lofiPlayer,
+      userVolume: Number(elements.volumeSlider.value) / 100
+    });
+
+    function transitionSettings() {
+      return audioTransition.normalizeAudioTransitions(getAudioTransitionSettings());
+    }
 
     function getActiveTrack() {
       return playlist[currentTrackIndex] || null;
@@ -136,8 +151,11 @@
     }
 
     function updateTrack() {
+      playbackCommandVersion += 1;
+      musicEnvelope.cancel({ gain: 1 });
       const track = getActiveTrack();
       if (!playerModel.isTrackPlayable(track)) {
+        desiredPlaying = false;
         elements.trackLabel.textContent = t(playlist.length > 0 ? "player.noPlayable" : "player.empty");
         elements.lofiPlayer.pause();
         elements.lofiPlayer.removeAttribute("src");
@@ -173,7 +191,8 @@
         renderPlaylist();
         return false;
       }
-      const shouldResume = !elements.lofiPlayer.paused;
+      const shouldResume = desiredPlaying || !elements.lofiPlayer.paused;
+      const playbackVersionBeforeScan = playbackCommandVersion;
       isScanning = true;
       updateFolderStatus();
       try {
@@ -189,12 +208,11 @@
           return false;
         }
         localMusicFolder = result.folderPath || localMusicFolder;
+        const resumeAfterScan = shouldResume && playbackCommandVersion === playbackVersionBeforeScan;
         setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
         persistState();
-        if (shouldResume && playerModel.isTrackPlayable(getActiveTrack())) {
-          elements.lofiPlayer.play().catch(() => {
-            elements.playPauseBtn.textContent = t("player.play");
-          });
+        if (resumeAfterScan && playerModel.isTrackPlayable(getActiveTrack())) {
+          play();
         }
         return true;
       } catch (error) {
@@ -261,7 +279,7 @@
     }
 
     function useDefaultTracks() {
-      elements.lofiPlayer.pause();
+      stop();
       localMusicFolder = null;
       folderUnavailable = false;
       playlist = bundledTracks.map((track) => ({ ...track }));
@@ -290,75 +308,108 @@
       persistState();
     }
 
-    function playSelectedTrack(index) {
-      if (!playerModel.isTrackPlayable(playlist[index])) return;
-      currentTrackIndex = index;
-      updateTrack();
-      persistState();
-      elements.lofiPlayer.play().catch(() => {
+    async function startPlayback(version, { announcePlayback = false } = {}) {
+      if (!elements.lofiPlayer.src) return false;
+      const settings = transitionSettings();
+      musicEnvelope.cancel({ gain: settings.enabled ? 0 : 1 });
+      try {
+        await elements.lofiPlayer.play();
+        if (version !== playbackCommandVersion || !desiredPlaying) return false;
+        if (settings.enabled) {
+          await musicEnvelope.fadeTo(1, settings.durationMs);
+          if (version !== playbackCommandVersion || !desiredPlaying) return false;
+        }
+        elements.playPauseBtn.textContent = t("player.pause");
+        if (announcePlayback) announce(t("player.started"));
+        return true;
+      } catch {
+        if (version === playbackCommandVersion) desiredPlaying = false;
+        musicEnvelope.cancel({ gain: 1 });
         elements.playPauseBtn.textContent = t("player.play");
-      });
-    }
-
-    function togglePlayback() {
-      if (!elements.lofiPlayer.src) updateTrack();
-      if (!elements.lofiPlayer.src) return;
-      if (elements.lofiPlayer.paused) {
-        elements.lofiPlayer.play().then(() => {
-          elements.playPauseBtn.textContent = t("player.pause");
-          announce(t("player.started"));
-        }).catch(() => {
-          elements.playPauseBtn.textContent = t("player.play");
-        });
-      } else {
-        elements.lofiPlayer.pause();
-        elements.playPauseBtn.textContent = t("player.play");
-        announce(t("player.paused"));
+        return false;
       }
     }
 
-    function play() {
+    function play(options = {}) {
       if (!elements.lofiPlayer.src) updateTrack();
       if (!elements.lofiPlayer.src) return Promise.resolve(false);
-      return elements.lofiPlayer.play().then(() => {
-        elements.playPauseBtn.textContent = t("player.pause");
-        return true;
-      }).catch(() => {
-        elements.playPauseBtn.textContent = t("player.play");
-        return false;
-      });
+      const version = ++playbackCommandVersion;
+      desiredPlaying = true;
+      return startPlayback(version, options);
     }
 
-    function pause() {
+    async function pause(options = {}) {
+      const { immediate = false, announcePlayback = false } = options;
+      const version = ++playbackCommandVersion;
+      desiredPlaying = false;
+      const settings = transitionSettings();
+      if (!immediate && settings.enabled && !elements.lofiPlayer.paused) {
+        await musicEnvelope.fadeTo(0, settings.durationMs);
+        if (version !== playbackCommandVersion || desiredPlaying) return false;
+      }
       elements.lofiPlayer.pause();
+      musicEnvelope.cancel({ gain: 1 });
       elements.playPauseBtn.textContent = t("player.play");
+      if (announcePlayback) announce(t("player.paused"));
+      return true;
     }
 
     function stop() {
-      pause();
+      playbackCommandVersion += 1;
+      desiredPlaying = false;
+      musicEnvelope.cancel({ gain: 1 });
+      elements.lofiPlayer.pause();
+      elements.playPauseBtn.textContent = t("player.play");
       if (Number.isFinite(Number(elements.lofiPlayer.duration)) && Number(elements.lofiPlayer.duration) > 0) {
         elements.lofiPlayer.currentTime = 0;
       }
     }
 
+    async function changeTrack(index, shouldResume) {
+      if (!playerModel.isTrackPlayable(playlist[index])) return false;
+      const version = ++playbackCommandVersion;
+      desiredPlaying = shouldResume;
+      const settings = transitionSettings();
+      if (shouldResume && settings.enabled && !elements.lofiPlayer.paused) {
+        await musicEnvelope.fadeTo(0, settings.durationMs);
+        if (version !== playbackCommandVersion) return false;
+      }
+      elements.lofiPlayer.pause();
+      musicEnvelope.cancel({ gain: 1 });
+      currentTrackIndex = index;
+      updateTrack();
+      const sourceVersion = playbackCommandVersion;
+      persistState();
+      desiredPlaying = shouldResume;
+      if (shouldResume) return startPlayback(sourceVersion);
+      return true;
+    }
+
+    function playSelectedTrack(index) {
+      return changeTrack(index, true);
+    }
+
+    function togglePlayback() {
+      if (!elements.lofiPlayer.src) updateTrack();
+      if (!elements.lofiPlayer.src) return;
+      return desiredPlaying
+        ? pause({ announcePlayback: true })
+        : play({ announcePlayback: true });
+    }
+
     function moveToAdjacentTrack(direction) {
-      const shouldResume = !elements.lofiPlayer.paused || elements.lofiPlayer.ended;
+      const shouldResume = desiredPlaying || !elements.lofiPlayer.paused || elements.lofiPlayer.ended;
       const nextIndex = playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, direction);
       if (nextIndex < 0) return;
-      currentTrackIndex = nextIndex;
-      updateTrack();
-      persistState();
-      if (shouldResume) elements.lofiPlayer.play().catch(() => {
-        elements.playPauseBtn.textContent = t("player.play");
-      });
+      return changeTrack(nextIndex, shouldResume);
     }
 
     function switchTrack() {
-      moveToAdjacentTrack(1);
+      return moveToAdjacentTrack(1);
     }
 
     function prevTrack() {
-      moveToAdjacentTrack(-1);
+      return moveToAdjacentTrack(-1);
     }
 
     function togglePlaylistPanel(forceOpen) {
@@ -378,7 +429,13 @@
 
     function updateVolume() {
       const normalized = Number(elements.volumeSlider.value) / 100;
-      elements.lofiPlayer.volume = Number.isFinite(normalized) ? normalized : 0.68;
+      musicEnvelope.setUserVolume(Number.isFinite(normalized) ? normalized : 0.68);
+    }
+
+    function settleTransition() {
+      playbackCommandVersion += 1;
+      musicEnvelope.cancel({ gain: 1 });
+      if (!desiredPlaying) elements.lofiPlayer.pause();
     }
 
     function refreshLanguage() {
@@ -387,6 +444,7 @@
     }
 
     return {
+      getUserVolume: () => musicEnvelope.getState().userVolume,
       loadMusicFolder,
       pause,
       persistState,
@@ -396,6 +454,7 @@
       refreshLanguage,
       rescanMusicFolder,
       restorePersistedPlayer,
+      settleTransition,
       switchTrack,
       stop,
       togglePlayback,

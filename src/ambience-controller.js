@@ -2,12 +2,17 @@
   const ambienceModel = typeof module !== "undefined" && module.exports
     ? require("./ambience")
     : globalScope.InfiniteLofiAmbience;
+  const audioTransition = typeof module !== "undefined" && module.exports
+    ? require("./audio-transition")
+    : globalScope.InfiniteLofiAudioTransition;
 
   function createAmbienceController(options = {}) {
     const {
       appStorage,
       elements,
       sounds = ambienceModel.AMBIENCE_SOUNDS,
+      getAudioTransitionSettings = () => audioTransition.DEFAULT_AUDIO_TRANSITIONS,
+      gainEnvelopeFactory = audioTransition.createGainEnvelope,
       onError = () => {},
       announce = () => {},
       t = (key) => key
@@ -17,7 +22,13 @@
     let commandVersion = 0;
     let destroyed = false;
     let loadedSoundId = null;
+    let desiredPlaying = false;
     const unavailableSoundIds = new Set();
+    const ambientEnvelope = gainEnvelopeFactory({ audio, userVolume: settings.volume });
+
+    function transitionSettings() {
+      return audioTransition.normalizeAudioTransitions(getAudioTransitionSettings());
+    }
 
     function selectedSound() {
       return sounds.find((sound) => sound.id === settings.soundId) || null;
@@ -41,6 +52,7 @@
     }
 
     function stopElement({ resetTime = false, clearSource = false } = {}) {
+      ambientEnvelope.cancel({ gain: 1 });
       audio.pause();
       if (resetTime) {
         try { audio.currentTime = 0; } catch {}
@@ -91,7 +103,7 @@
         audio.src = sound.src;
         audio.loop = true;
         audio.preload = "auto";
-        audio.volume = settings.volume;
+        ambientEnvelope.setUserVolume(settings.volume);
         audio.load?.();
       }
     }
@@ -103,40 +115,59 @@
         return false;
       }
       const version = ++commandVersion;
+      desiredPlaying = true;
       ensureSource(sound);
-      audio.volume = settings.volume;
+      const transitions = transitionSettings();
+      ambientEnvelope.cancel({ gain: transitions.enabled ? 0 : 1 });
       try {
         await audio.play();
-        if (destroyed || version !== commandVersion || settings.soundId !== sound.id) {
+        if (destroyed || version !== commandVersion || !desiredPlaying || settings.soundId !== sound.id) {
           const expected = new URL(sound.src, elements.document.baseURI).href;
           if (loadedSoundId === sound.id && audio.src === expected) stopElement();
           return false;
+        }
+        if (transitions.enabled) {
+          await ambientEnvelope.fadeTo(1, transitions.durationMs);
+          if (destroyed || version !== commandVersion || !desiredPlaying || settings.soundId !== sound.id) return false;
         }
         render();
         announce(t("ambience.started", { sound: t(sound.labelKey) }));
         return true;
       } catch (error) {
-        if (version === commandVersion) markUnavailable(sound.id, error);
+        if (version === commandVersion) {
+          desiredPlaying = false;
+          markUnavailable(sound.id, error);
+        }
         return false;
       }
     }
 
-    function pause({ resetTime = false } = {}) {
-      commandVersion += 1;
+    async function pause({ resetTime = false, immediate = false } = {}) {
+      const version = ++commandVersion;
+      desiredPlaying = false;
+      const transitions = transitionSettings();
+      if (!immediate && transitions.enabled && isPlaying()) {
+        await ambientEnvelope.fadeTo(0, transitions.durationMs);
+        if (version !== commandVersion || desiredPlaying) return false;
+      }
       stopElement({ resetTime });
       render();
       return true;
     }
 
     function stop() {
-      return pause({ resetTime: true });
+      commandVersion += 1;
+      desiredPlaying = false;
+      stopElement({ resetTime: true });
+      render();
+      return true;
     }
 
     function toggle() {
-      if (isPlaying()) {
-        pause();
+      if (desiredPlaying) {
+        const result = pause();
         announce(t("ambience.paused"));
-        return Promise.resolve(false);
+        return result;
       }
       return play();
     }
@@ -144,6 +175,7 @@
     function markUnavailable(soundId, error) {
       if (!soundId) return;
       commandVersion += 1;
+      desiredPlaying = false;
       unavailableSoundIds.add(soundId);
       stopElement({ resetTime: true, clearSource: true });
       render();
@@ -153,19 +185,27 @@
     async function setSound(soundId) {
       const nextSoundId = sounds.some((sound) => sound.id === soundId) ? soundId : null;
       const previousSettings = settings;
-      const shouldResume = isPlaying();
-      commandVersion += 1;
+      const shouldResume = desiredPlaying || isPlaying();
+      const version = ++commandVersion;
+      desiredPlaying = shouldResume;
+      const transitions = transitionSettings();
+      if (shouldResume && transitions.enabled && isPlaying()) {
+        await ambientEnvelope.fadeTo(0, transitions.durationMs);
+        if (version !== commandVersion) return false;
+      }
       stopElement({ resetTime: true, clearSource: true });
       try {
         persist({ ...settings, soundId: nextSoundId });
       } catch (error) {
         settings = previousSettings;
+        desiredPlaying = false;
         render();
         onError(error);
         return false;
       }
       render();
-      if (shouldResume && nextSoundId) return play();
+      desiredPlaying = shouldResume && Boolean(nextSoundId);
+      if (desiredPlaying) return play();
       return true;
     }
 
@@ -180,21 +220,29 @@
         onError(error);
         return false;
       }
-      audio.volume = settings.volume;
+      ambientEnvelope.setUserVolume(settings.volume);
       render();
       return true;
     }
 
     function restore() {
       commandVersion += 1;
+      desiredPlaying = false;
       stopElement({ resetTime: true, clearSource: true });
       settings = ambienceModel.normalizeAmbienceSettings(appStorage.getState().player?.ambience);
       audio.loop = true;
-      audio.volume = settings.volume;
+      ambientEnvelope.setUserVolume(settings.volume);
       render();
     }
 
     function refreshLanguage() {
+      render();
+    }
+
+    function settleTransition() {
+      commandVersion += 1;
+      ambientEnvelope.cancel({ gain: 1 });
+      if (!desiredPlaying) audio.pause();
       render();
     }
 
@@ -212,6 +260,7 @@
     function destroy() {
       destroyed = true;
       commandVersion += 1;
+      desiredPlaying = false;
       stopElement({ resetTime: true, clearSource: true });
     }
 
@@ -226,6 +275,7 @@
       restore,
       setSound,
       setVolume,
+      settleTransition,
       stop,
       toggle
     };

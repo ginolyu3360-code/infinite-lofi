@@ -448,6 +448,14 @@
                 <span data-i18n="ambience.volume">Ambient volume</span>
                 <input id="ambienceVolumeSlider" type="range" min="0" max="100" value="35" aria-label="Ambient volume" data-i18n-aria-label="ambience.volume" />
               </label>
+              <label class="audio-transition-toggle" for="audioTransitionsEnabled">
+                <span><strong data-i18n="audioTransitions.title">Audio fades</strong><small data-i18n="audioTransitions.hint">Fade explicit play, pause, and sequential source changes.</small></span>
+                <input id="audioTransitionsEnabled" type="checkbox" />
+              </label>
+              <label class="ambience-field audio-transition-duration" for="audioTransitionDuration">
+                <span data-i18n="audioTransitions.duration">Fade duration (ms)</span>
+                <input id="audioTransitionDuration" type="number" min="0" max="500" step="10" value="200" aria-label="Fade duration in milliseconds" data-i18n-aria-label="audioTransitions.duration" />
+              </label>
             </div>
             <p id="ambienceStatus" class="ambience-status" role="status" aria-live="polite" data-i18n="ambience.offStatus">Ambient sound is off.</p>
             <p class="ambience-license" data-i18n="ambience.license">Bundled original loops · Infinite Lo-Fi contributors · MIT</p>
@@ -531,6 +539,7 @@
     <script src="./i18n.js"></script>
     <script src="./tasks.js"></script>
     <script src="./ambience.js"></script>
+    <script src="./audio-transition.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>

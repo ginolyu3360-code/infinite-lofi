@@ -1,10 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const ambience = require("../src/ambience");
 const { createAmbienceController } = require("../src/ambience-controller");
+const { createGainEnvelope } = require("../src/audio-transition");
 
 function createElement(tagName = "div") {
   const listeners = new Map();
@@ -191,10 +193,97 @@ test("destroys ambient playback and releases its decoded source", async () => {
   assert.equal(await controller.play(), false);
 });
 
+test("ambient fades obey the latest play, pause, switch, and stop intent", async () => {
+  let now = 0;
+  let nextHandle = 1;
+  const scheduled = new Map();
+  const advance = async (milliseconds) => {
+    now += milliseconds;
+    const callbacks = [...scheduled.values()];
+    scheduled.clear();
+    callbacks.forEach((callback) => callback(now));
+    await Promise.resolve();
+  };
+  const gainEnvelopeFactory = (options) => createGainEnvelope({
+    ...options,
+    now: () => now,
+    schedule(callback) {
+      const handle = nextHandle++;
+      scheduled.set(handle, callback);
+      return handle;
+    },
+    cancelScheduled(handle) { scheduled.delete(handle); }
+  });
+  const { controller, elements, getState } = createHarness(
+    { soundId: "soft-rain", volume: 0.4 },
+    {
+      gainEnvelopeFactory,
+      getAudioTransitionSettings: () => ({ enabled: true, durationMs: 200 })
+    }
+  );
+  controller.restore();
+
+  const firstPlay = controller.play();
+  await Promise.resolve();
+  await advance(200);
+  assert.equal(await firstPlay, true);
+  assert.equal(elements.audio.volume, 0.4);
+
+  const stalePause = controller.pause();
+  await Promise.resolve();
+  await advance(100);
+  assert.equal(elements.audio.volume, 0.2);
+  const replay = controller.play();
+  await Promise.resolve();
+  assert.equal(await stalePause, false);
+  await advance(200);
+  assert.equal(await replay, true);
+  assert.equal(elements.audio.paused, false);
+  assert.equal(elements.audio.volume, 0.4);
+
+  const switched = controller.setSound("quiet-cafe");
+  await Promise.resolve();
+  await advance(200);
+  await advance(200);
+  assert.equal(await switched, true);
+  assert.equal(getState().player.ambience.soundId, "quiet-cafe");
+  assert.match(elements.audio.src, /quiet-cafe\.wav$/);
+  assert.equal(elements.audio.paused, false);
+
+  const suspendedPause = controller.pause();
+  await Promise.resolve();
+  await advance(50);
+  controller.settleTransition();
+  assert.equal(await suspendedPause, false);
+  assert.equal(elements.audio.paused, true);
+  assert.equal(elements.audio.volume, 0.4);
+  const resumedPlay = controller.play();
+  await Promise.resolve();
+  await advance(200);
+  assert.equal(await resumedPlay, true);
+
+  const interruptedPause = controller.pause();
+  await Promise.resolve();
+  await advance(50);
+  controller.stop();
+  await advance(500);
+  assert.equal(await interruptedPause, false);
+  assert.equal(elements.audio.paused, true);
+  assert.equal(elements.audio.currentTime, 0);
+  assert.equal(elements.audio.volume, 0.4);
+  assert.equal(scheduled.size, 0);
+});
+
 test("bundled ambient WAV files are valid, deterministic-size PCM and remain within the asset budget", () => {
+  const expectedHashes = {
+    "brown-noise.wav": "e524ba2882283c3b669e57083f65a3ecb0d234c071c42d6009244c88d10cacdd",
+    "quiet-cafe.wav": "9bcd8ed65fb2f4cd098617f5cbb58d8baa4330206c98589f28455f048055858a",
+    "soft-rain.wav": "6f40f4f0700d75053acb5abf3260ebac9c6fb937c5670332494fc511158f3fae"
+  };
   let totalBytes = 0;
   for (const sound of ambience.AMBIENCE_SOUNDS) {
-    const filePath = path.join(__dirname, "..", "assets", "ambience", path.basename(sound.src));
+    const fileName = path.basename(sound.src);
+    const filePath = path.join(__dirname, "..", "assets", "ambience", fileName);
     const buffer = fs.readFileSync(filePath);
     totalBytes += buffer.length;
     assert.equal(buffer.toString("ascii", 0, 4), "RIFF");
@@ -204,6 +293,21 @@ test("bundled ambient WAV files are valid, deterministic-size PCM and remain wit
     assert.equal(buffer.readUInt32LE(24), 44100);
     assert.equal(buffer.readUInt16LE(34), 16);
     assert.equal(buffer.readUInt32LE(40), 44100 * 12 * 2);
+    assert.equal(crypto.createHash("sha256").update(buffer).digest("hex"), expectedHashes[fileName]);
+
+    let adjacentSquareSum = 0;
+    let previous = buffer.readInt16LE(44);
+    for (let offset = 46; offset < buffer.length; offset += 2) {
+      const current = buffer.readInt16LE(offset);
+      const delta = current - previous;
+      adjacentSquareSum += delta * delta;
+      previous = current;
+    }
+    const adjacentRms = Math.sqrt(adjacentSquareSum / (buffer.readUInt32LE(40) / 2 - 1));
+    const loopBoundaryDelta = Math.abs(buffer.readInt16LE(44) - previous);
+    assert.ok(loopBoundaryDelta <= adjacentRms, `${fileName} loop boundary exceeds its adjacent-sample RMS`);
   }
   assert.ok(totalBytes < 15 * 1024 * 1024);
+  assert.match(fs.readFileSync(path.join(__dirname, "..", "assets", "ambience", "ATTRIBUTION.txt"), "utf8"), /generated by/);
+  assert.match(fs.readFileSync(path.join(__dirname, "..", "assets", "ambience", "LICENSE.txt"), "utf8"), /MIT License/);
 });

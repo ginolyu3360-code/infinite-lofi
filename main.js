@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFile } = require("child_process");
@@ -37,6 +37,11 @@ function sendCommandToRenderer(command) {
     return;
   }
   mainWindow.webContents.send("app:command", command);
+}
+
+function sendPowerStateToRenderer(state) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("app:power-state", state);
 }
 
 function showMainWindow() {
@@ -166,6 +171,8 @@ app.whenReady().then(async () => {
   });
   createMainWindow();
   createTray();
+  powerMonitor.on("suspend", () => sendPowerStateToRenderer("suspend"));
+  powerMonitor.on("resume", () => sendPowerStateToRenderer("resume"));
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

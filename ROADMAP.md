@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B is locally committed and Phase 4C1 is implemented with model/development-app verification on `codex/phase4-focus-depth`; final combined packaging, performance, PR, and merge evidence remain pending while Phase 4C2 is implemented. This section supersedes the 2026-09-09 draft.
+Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B and Phase 4C1 have separate local commits; Phase 4C2 and the combined local acceptance pass are complete on `codex/phase4-focus-depth`. The shared feature PR, final-commit CI, squash merge, and exact-merge `main` CI remain pending. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -311,7 +311,7 @@ This maintenance feature did not itself implement or change Phase 4B, 4C1, or 4C
 
 Goal: explain recorded time with modest, transparent summaries. This is a narrower replacement for the original Focus Insights proposal, not an intelligence or productivity-scoring feature.
 
-Implementation status: implemented and locally verified on `codex/phase4b-focus-review` on 2026-09-13. Feature PR, final-commit CI, squash merge, and exact-merge `main` CI remain pending.
+Implementation status: implemented and locally verified in commit `5123207` on `codex/phase4-focus-depth` on 2026-09-13. By explicit user direction, 4B, 4C1, and 4C2 share the pending feature PR and delivery checks.
 
 #### Scope and interpretation
 
@@ -392,7 +392,10 @@ Goal: add a small, reliable offline ambient sound choice without changing the lo
 - [x] Playing selection changes stop and release the previous source before the new source starts. Paused selection stays paused; command versioning prevents stale asynchronous play completion from stopping the newest source.
 - [x] Music controls remain independent; custom native Media Session pause/stop paths silence both channels and native play starts music only. Music metadata and seek ownership are unchanged.
 - [x] Invalid IDs, migration/backup, storage failure, decode failure, rapid selection, cleanup, player-preference preservation, and actual decoded development playback are covered. The isolated development smoke passed with 44 px ambient controls and no renderer exceptions.
-- [ ] Universal packaged playback, package delta, 60-second music-only/dual-audio CPU and memory measurements, actual OS Media Session action exercise, and subjective audible loop/fade listening remain for the combined 4C2 verification pass; they are not yet claimed as passed.
+- [x] Universal packaged playback passed with one active ambient element, no renderer exceptions, no external resource requests, and an `x86_64 arm64` executable. Ambient assets total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15/20 MiB budgets; attribution and license are present in `app.asar`.
+- [x] A documented macOS `ps` comparison sampled the main process and all descendants once per second for 60 samples after a five-second warm-up. Music-only averaged 8.82% CPU / 454.98 MiB RSS; music plus ambience averaged 9.03% / 450.28 MiB. The +0.21 percentage-point CPU and -4.70 MiB average RSS deltas pass the +5 / +50 MiB targets.
+- [x] Deterministic hashes, WAV structure, asset budget, and loop-boundary discontinuity relative to adjacent-sample RMS are covered by tests; actual files decoded and looped in development and packaged Electron.
+- [ ] Actual operating-system Media Session button exercise and subjective audible loop/fade listening require human interaction and remain explicitly pending. Automated handler delegation, final state, waveform boundary, and real decoded playback checks pass, but are not represented as human listening evidence.
 
 ### Phase 4C2 — Audio Transitions
 
@@ -417,6 +420,17 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 - Development and packaged Electron checks verify actual final paused/playing state, audible transitions, no old-source resurrection, correct Media Session state, settings accessibility, and unchanged timer/task/history behavior.
 - If optional phase ducking would require a more complex state model, defer it rather than growing this slice. Sleep timers, multi-layer mixing, custom ambient-file imports, streaming, and background downloads remain separate proposals.
 - Complete the normal feature PR, final-commit CI, squash merge, post-merge main CI, and documentation evidence; no release action is implicit.
+
+#### Phase 4C2 implementation status
+
+- [x] Added an opt-in `player.audioTransitions` schema-v5 preference, defaulting off with a 200 ms duration normalized to 0–500 ms. Old state and backups receive safe defaults; only the preference persists, never envelope or autoplay state.
+- [x] Music and ambience each use one cancellable gain envelope whose effective volume is saved user volume multiplied by transient gain. Exact mute remains zero, source switches are sequential rather than crossfaded, and no animation-frame polling remains after settlement.
+- [x] Rapid play/pause/play, volume change during fade, late callbacks, source replacement, decode/play failure, immediate native stop, and suspend/resume settlement preserve the newest intent. Timer-driven music goes through the same controller path and never starts ambience.
+- [x] Scene exposes keyboard-accessible enable and duration controls with localized labels in all seven interface languages; controls meet the 44 px target and remain outside compact Mini Mode.
+- [x] Fake-clock model/controller tests and real development/packaged Electron checks cover mid-fade gain, final playing/paused state, rapid reversal, exact mute, old-source non-resurrection, sequential switches, persisted settings, paused restart, accessibility, all layouts/themes, Notes/timer/task/history/backup regressions, and Media Session state.
+- [x] `npm run check` passes with 98 tests; isolated development and final Universal packaged smoke pass without renderer exceptions. The final package contains both `x86_64` and `arm64` and adds no C2 audio assets or runtime dependency.
+- [ ] Exact native 1440 × 900 remains unavailable on the reference display; the maximum tested renderer viewport is 1440 × 794. OS Media Session button exercise and subjective audible loop/fade quality remain human checks.
+- [ ] The combined feature PR, final-head CI, squash merge, exact-merge `main` CI, and follow-up documentation evidence remain pending. Package version stays 1.3.0; no tag, Release, signing, or notarization is authorized.
 
 ### Phase 4 execution and handoff rules
 

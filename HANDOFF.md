@@ -16,8 +16,8 @@ Updated: 2026-09-13
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B Focus Review is locally committed as `5123207` on `codex/phase4-focus-depth`.
-- Phase 4C1 Ambient Layer is implemented on the same branch with model tests, `npm run check`, and isolated development Electron smoke passing. Its separate local commit is the next checkpoint; final package/performance/listening evidence is intentionally deferred to the combined 4C2 validation.
-- Phase 4C2 is now explicitly authorized and is the active implementation slice. By user direction, 4B, 4C1, and 4C2 retain separate local commits but share one final PR, CI, squash merge, and exact-merge `main` CI verification.
+- Phase 4C1 Ambient Layer is locally committed as `e7aa161` on the same branch. Its combined Universal playback, packaging, and 60-second performance evidence is now complete; only explicitly human OS-control/listening checks remain pending.
+- Phase 4C2 Audio Transitions is implemented and locally verified on the same branch, including the combined final acceptance pass. Its dedicated phase commit contains this handoff. By user direction, 4B, 4C1, and 4C2 retain separate local commits but share one pending PR, CI, squash merge, and exact-merge `main` CI verification.
 - Post-4A display-language settings are complete through [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). Final head `0d4b9723841d235375b60509f782cc967bfffcff` passed [PR CI run 34701126047](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701126047), was squash-merged as `500865184756a7288fa7baee31dcb040259a31b5`, and passed exact-merge [main CI run 34701318256](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701318256). It adds seven immediate interface languages in Keys while keeping schema v5 and package version 1.3.0.
 
 ## Display language behavior
@@ -58,7 +58,23 @@ Updated: 2026-09-13
 - Music Play/Pause remains music-only. Native Media Session play remains music-only, while its pause and stop handlers silence both channels; metadata and seek remain owned by music.
 - All ambient copy is localized into the seven supported display languages. The main player and Mini Mode remain compact because controls live in the existing Scene drawer.
 
+## Phase 4C2 implemented behavior
+
+- Scene provides an optional audio-transition switch and a duration normalized between 0 and 500 ms, defaulting off at 200 ms. The additive schema-v5 preference survives backup/restore without persisting playback or an in-progress fade.
+- Music and ambience each own one cancellable envelope. Saved user volume remains separate from transient gain, exact zero remains silent, and a newer command cancels stale callbacks without idle polling.
+- Explicit play/pause and sequential track/sound changes fade when enabled. The previous source reaches zero before replacement, so no overlapping crossfade or second ambient layer is introduced.
+- Native stop cancels transitions and silences both channels immediately; native pause settles both within the configured bound; native play remains music-only. Suspend/resume and unload settle gains safely.
+- Timer-triggered music uses the same controller transport. Timer state never starts ambience, and rapid timer/user commands keep the newest playback intent authoritative.
+
 ## Local verification completed
+
+- Combined Phase 4C2 `npm run check` passed with 98 tests, all JavaScript syntax checks, and a minified stylesheet rebuild. New fake-clock and controller tests cover clamping, exact mute, gain composition, cancellation/no idle polling, rapid reversals, sequential switching, late folder scans, failures, suspend settlement, and immediate stop.
+- Final isolated development and Universal packaged Electron smoke passed with no renderer exceptions. It measured real 200 ms mid-fade gains, final gain/state, rapid pause/play, mute during a fade, old-source retention during fade-out, source replacement afterward, ambient independence, persistence, and paused/source-free restart.
+- The full 4B performance fixture remained within target: final development range-switch p95 was 78.3 ms and packaged p95 was 84.8 ms over 30 repetitions at 100 tasks / 5,000 sessions. All existing task, timer, backup, recovery, language, Notes, music, history, scene, contrast, keyboard, IME, and focus assertions remained green.
+- Final responsive checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1024 × 677, 1100 × 760, and 1440 × 794; both sides of the 900 px Notes breakpoint and Mini 420 × 250 / 360 × 200 passed. Transition and ambient controls measured at least 44 px.
+- Final `npm run pack:universal` passed with electron-builder 26.15.3 / Electron 41.10.7. `file` and `lipo` confirmed `x86_64 arm64`; `app.asar` contains all three loops, `ATTRIBUTION.txt`, `LICENSE.txt`, and the transition module.
+- Ambient WAVs total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15 MiB asset and 20 MiB content budgets. Deterministic SHA-256, PCM structure, and bounded loop discontinuity are regression-tested.
+- The macOS process comparison used the packaged executable, fresh profiles, the main process plus every descendant, a five-second warm-up, and 60 one-second `ps` samples per condition. Music-only averaged 8.82% CPU / 454.98 MiB summed RSS; music plus ambience averaged 9.03% / 450.28 MiB. Incremental cost was +0.21 percentage points / -4.70 MiB, passing the +5 / +50 MiB budgets. Both runs reported zero HTTP(S) resources.
 
 - Phase 4B `npm run check` passed with 82 unit/controller tests, all syntax checks, and a minified stylesheet rebuild.
 - Isolated development and packaged Electron smoke both passed the Phase 4B selector, rendering, accessibility, seven-language, layout, timer/task/history, Notes, player, scene, backup, and recovery paths without renderer exceptions.
@@ -78,11 +94,12 @@ Updated: 2026-09-13
 
 ## Explicit limitations and boundaries
 
-- The current Phase 4B/C1 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The exact 1440 × 900 native target could not be provided and remains unverified; this is not recorded as a pass.
+- The current Phase 4B/C1/C2 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The exact 1440 × 900 native target could not be provided and remains unverified; this is not recorded as a pass.
+- Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop buttons require human interaction and remain pending. Automated action-handler delegation, waveform seam bounds, actual decode/playback, final state, and native Media Session state all pass; those checks are not mislabeled as subjective listening.
 - The Universal build is intentionally unsigned and not notarized. No installer, version tag, or GitHub Release is part of Phase 4B.
 - Tray menu rendering and OS notification presentation are not directly introspected by the renderer smoke; their unchanged IPC paths were exercised without exceptions, and existing main-process behavior was not modified.
-- Tasks remain title-only and optional. Phase 4B/C1 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, or multiple ambient layers. Audio fades remain Phase 4C2 work.
+- Tasks remain title-only and optional. Phase 4B/C1/C2 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, multiple ambient layers, crossfades, phase ducking, or sleep timers.
 
 ## Next product boundary
 
-Implement Phase 4C2 Audio Transitions next, then run combined Universal packaging, actual playback, CPU/memory, accessibility/layout, and regression verification. Keep C2 in its own local commit, then deliver 4B+C1+C2 through one PR as explicitly requested. Do not tag, release, sign, or notarize.
+Create the dedicated Phase 4C2 local commit, then deliver the existing 4B + 4C1 + 4C2 commits through one PR as explicitly requested. Wait for final-head CI, squash merge, and exact-merge `main` CI. Record those identifiers in a follow-up documentation PR and verify its `main` CI too. Do not tag, release, sign, or notarize.

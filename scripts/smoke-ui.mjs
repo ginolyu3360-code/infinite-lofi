@@ -239,7 +239,8 @@ try {
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
         'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect',
         'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
-        'ambienceVolumeSlider', 'ambienceStatus'
+        'ambienceVolumeSlider', 'ambienceStatus', 'audioTransitionsEnabled',
+        'audioTransitionDuration'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -934,8 +935,84 @@ try {
       mediaSessionTitle: navigator.mediaSession?.metadata?.title || '',
       mediaPlaybackState: navigator.mediaSession?.playbackState || 'none'
     };
-    player.pause();
+    document.querySelector('#playPauseBtn').click();
     return result;
+  })()`);
+
+  const audioTransitionResult = await evaluate(`(async () => {
+    const music = document.querySelector('#lofiPlayer');
+    const userVolume = document.querySelector('#volumeSlider');
+    const enabled = document.querySelector('#audioTransitionsEnabled');
+    const duration = document.querySelector('#audioTransitionDuration');
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    const before = {
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions,
+      checked: enabled.checked,
+      duration: duration.value,
+      durationDisabled: duration.disabled
+    };
+    if (!music.paused) {
+      document.querySelector('#playPauseBtn').click();
+      await wait(20);
+    }
+    enabled.checked = true;
+    enabled.dispatchEvent(new Event('change', { bubbles: true }));
+    duration.value = '200';
+    duration.dispatchEvent(new Event('change', { bubbles: true }));
+    userVolume.value = '60';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+
+    document.querySelector('#playPauseBtn').click();
+    await wait(70);
+    const playMidVolume = music.volume;
+    await wait(220);
+    const playFinal = { paused: music.paused, volume: music.volume };
+
+    document.querySelector('#playPauseBtn').click();
+    await wait(70);
+    const pauseMidVolume = music.volume;
+    document.querySelector('#playPauseBtn').click();
+    await wait(250);
+    const rapidFinal = { paused: music.paused, volume: music.volume };
+
+    document.querySelector('#playPauseBtn').click();
+    await wait(60);
+    userVolume.value = '0';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+    const muteDuringFade = {
+      effective: music.volume,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.volume
+    };
+    document.querySelector('#playPauseBtn').click();
+    await wait(250);
+    const mutedReplay = { paused: music.paused, volume: music.volume };
+    userVolume.value = '60';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+
+    const sourceBeforeSwitch = music.currentSrc || music.src;
+    document.querySelector('#nextTrackBtn').click();
+    await wait(80);
+    const sourceDuringFadeOut = music.currentSrc || music.src;
+    await wait(380);
+    const sourceAfterSwitch = music.currentSrc || music.src;
+    const saved = JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions;
+    return {
+      before,
+      saved,
+      playMidVolume,
+      playFinal,
+      pauseMidVolume,
+      rapidFinal,
+      muteDuringFade,
+      mutedReplay,
+      sourceBeforeSwitch,
+      sourceDuringFadeOut,
+      sourceAfterSwitch,
+      finalPaused: music.paused,
+      finalVolume: music.volume,
+      checkboxLabelHeight: enabled.closest('label').getBoundingClientRect().height,
+      durationHeight: duration.getBoundingClientRect().height
+    };
   })()`);
 
   const ambienceResult = await evaluate(`(async () => {
@@ -965,6 +1042,7 @@ try {
     if (music.paused) document.querySelector('#playPauseBtn').click();
     await waitFor(() => !music.paused);
     document.querySelector('#playPauseBtn').click();
+    await waitFor(() => music.paused);
     const independentAfterMusicPause = !ambient.paused;
 
     select.value = 'quiet-cafe';
@@ -998,6 +1076,7 @@ try {
     return {
       selected: document.querySelector('#ambienceSoundSelect').value,
       saved: state.player.ambience,
+      transitionSettings: state.player.audioTransitions,
       paused: ambient.paused,
       sourcePresent: ambient.hasAttribute('src'),
       status: document.querySelector('#ambienceStatus').textContent.trim()
@@ -1329,13 +1408,29 @@ try {
     playerResult.mediaPlaybackState !== 'playing'
   ) failures.push("playlist persistence or native media session failed");
   if (
+    audioTransitionResult.before.saved.enabled || audioTransitionResult.before.checked ||
+    audioTransitionResult.before.duration !== '200' || !audioTransitionResult.before.durationDisabled ||
+    !audioTransitionResult.saved.enabled || audioTransitionResult.saved.durationMs !== 200 ||
+    !(audioTransitionResult.playMidVolume > 0 && audioTransitionResult.playMidVolume < 0.6) ||
+    audioTransitionResult.playFinal.paused || Math.abs(audioTransitionResult.playFinal.volume - 0.6) > 0.02 ||
+    !(audioTransitionResult.pauseMidVolume > 0 && audioTransitionResult.pauseMidVolume < 0.6) ||
+    audioTransitionResult.rapidFinal.paused || Math.abs(audioTransitionResult.rapidFinal.volume - 0.6) > 0.02 ||
+    audioTransitionResult.muteDuringFade.effective !== 0 || audioTransitionResult.muteDuringFade.saved !== 0 ||
+    audioTransitionResult.mutedReplay.paused || audioTransitionResult.mutedReplay.volume !== 0 ||
+    audioTransitionResult.sourceDuringFadeOut !== audioTransitionResult.sourceBeforeSwitch ||
+    audioTransitionResult.sourceAfterSwitch === audioTransitionResult.sourceBeforeSwitch ||
+    audioTransitionResult.finalPaused || Math.abs(audioTransitionResult.finalVolume - 0.6) > 0.02 ||
+    audioTransitionResult.checkboxLabelHeight < 42 || audioTransitionResult.durationHeight < 42
+  ) failures.push("audio transition preference, gain separation, cancellation, or sequential switch failed");
+  if (
     !ambienceResult.firstPlayed || !ambienceResult.firstSource.endsWith('/soft-rain.wav') ||
     !ambienceResult.switchedWhilePlaying || !ambienceResult.secondSource.endsWith('/quiet-cafe.wav') ||
     !ambienceResult.independentAfterMusicPause || !ambienceResult.musicPaused || !ambienceResult.loop ||
     ambienceResult.savedZero !== 0 || ambienceResult.saved.soundId !== 'quiet-cafe' || ambienceResult.saved.volume !== 0.35 ||
     ambienceResult.selectHeight < 42 || ambienceResult.toggleHeight < 42 || !ambienceResult.status.includes('Quiet Cafe') ||
     ambienceRestartResult.selected !== 'quiet-cafe' || ambienceRestartResult.saved.soundId !== 'quiet-cafe' ||
-    ambienceRestartResult.saved.volume !== 0.35 || !ambienceRestartResult.paused || ambienceRestartResult.sourcePresent
+    ambienceRestartResult.saved.volume !== 0.35 || !ambienceRestartResult.transitionSettings.enabled ||
+    ambienceRestartResult.transitionSettings.durationMs !== 200 || !ambienceRestartResult.paused || ambienceRestartResult.sourcePresent
   ) failures.push("ambient selection, isolation, persistence, or paused startup failed");
   if (
     expiredRestoreOnce.count !== 1 || expiredRestoreOnce.taskId !== "task-deleted-smoke" ||
@@ -1353,7 +1448,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

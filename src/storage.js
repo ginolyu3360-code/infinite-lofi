@@ -15,9 +15,13 @@
     typeof module !== "undefined" && module.exports
       ? require("./ambience")
       : globalScope.InfiniteLofiAmbience;
+  const audioTransition =
+    typeof module !== "undefined" && module.exports
+      ? require("./audio-transition")
+      : globalScope.InfiniteLofiAudioTransition;
 
-  if (!core || !tasks || !i18n || !ambience) {
-    throw new Error("Infinite Lo-Fi core, task, language, and ambience helpers are required by storage");
+  if (!core || !tasks || !i18n || !ambience || !audioTransition) {
+    throw new Error("Infinite Lo-Fi core, task, language, and audio helpers are required by storage");
   }
 
   const CURRENT_SCHEMA_VERSION = 5;
@@ -169,7 +173,8 @@
         folderPath: "",
         queue: [],
         activeTrackKey: "",
-        ambience: { ...ambience.DEFAULT_AMBIENCE_SETTINGS }
+        ambience: { ...ambience.DEFAULT_AMBIENCE_SETTINGS },
+        audioTransitions: { ...audioTransition.DEFAULT_AUDIO_TRANSITIONS }
       },
       timerRuntime: {
         phase: "focus",
@@ -215,7 +220,8 @@
       : migrateLegacyPlayer(playerSource);
     const normalizedPlayer = {
       ...normalizedPlayerBase,
-      ambience: ambience.normalizeAmbienceSettings(playerSource.ambience)
+      ambience: ambience.normalizeAmbienceSettings(playerSource.ambience),
+      audioTransitions: audioTransition.normalizeAudioTransitions(playerSource.audioTransitions)
     };
     const runtimeSource = isObject(source.timerRuntime) ? source.timerRuntime : {};
     const runtimePhase = runtimeSource.phase === "longBreak"

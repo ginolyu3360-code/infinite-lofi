@@ -158,8 +158,9 @@
       }
       if (isShortcutEnabled("volumeUp") && key === "ArrowUp") {
         event.preventDefault();
+        const currentVolume = Number(elements.volumeSlider.value) / 100;
         elements.volumeSlider.value = String(
-          clamp(Math.round((elements.lofiPlayer.volume + 0.05) * 100), 0, 100)
+          clamp(Math.round((currentVolume + 0.05) * 100), 0, 100)
         );
         actions.updateVolume();
         actions.saveUiSettings();
@@ -167,8 +168,9 @@
       }
       if (isShortcutEnabled("volumeDown") && key === "ArrowDown") {
         event.preventDefault();
+        const currentVolume = Number(elements.volumeSlider.value) / 100;
         elements.volumeSlider.value = String(
-          clamp(Math.round((elements.lofiPlayer.volume - 0.05) * 100), 0, 100)
+          clamp(Math.round((currentVolume - 0.05) * 100), 0, 100)
         );
         actions.updateVolume();
         actions.saveUiSettings();

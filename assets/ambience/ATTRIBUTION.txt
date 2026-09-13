@@ -1,4 +1,5 @@
-# Ambient audio attribution
+Ambient audio attribution
+=========================
 
 The three ambient loops in this directory were procedurally generated for Infinite Lo-Fi from the deterministic source in `scripts/generate-ambience.mjs`.
 

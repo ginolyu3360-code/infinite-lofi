@@ -211,6 +211,7 @@ test("normalizes unsupported display languages without changing schema v5", () =
 test("adds and preserves additive schema v5 ambience preferences", () => {
   const defaults = createDefaultState(4200);
   assert.deepEqual(defaults.player.ambience, { soundId: null, volume: 0.35 });
+  assert.deepEqual(defaults.player.audioTransitions, { enabled: false, durationMs: 200 });
 
   defaults.player.ambience = { soundId: "soft-rain", volume: 0 };
   assert.deepEqual(normalizeState(defaults, 4201).player.ambience, {
@@ -219,21 +220,28 @@ test("adds and preserves additive schema v5 ambience preferences", () => {
   });
 
   defaults.player.ambience = { soundId: "remote-stream", volume: 4 };
+  defaults.player.audioTransitions = { enabled: true, durationMs: 900 };
   assert.deepEqual(normalizeState(defaults, 4202).player.ambience, {
     soundId: null,
     volume: 1
+  });
+  assert.deepEqual(normalizeState(defaults, 4202).player.audioTransitions, {
+    enabled: true,
+    durationMs: 500
   });
 });
 
 test("round-trips ambience preferences through backups without autoplay state", () => {
   const state = createDefaultState(4300);
   state.player.ambience = { soundId: "quiet-cafe", volume: 0.17 };
+  state.player.audioTransitions = { enabled: true, durationMs: 500 };
   const restored = importBackup({
     format: BACKUP_FORMAT,
     schemaVersion: CURRENT_SCHEMA_VERSION,
     state
   }, 4301);
   assert.deepEqual(restored.player.ambience, { soundId: "quiet-cafe", volume: 0.17 });
+  assert.deepEqual(restored.player.audioTransitions, { enabled: true, durationMs: 500 });
   assert.equal(Object.hasOwn(restored.player.ambience, "isPlaying"), false);
 });
 
@@ -308,7 +316,8 @@ test("imports old backups and rejects unrelated or newer files", () => {
       { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true }
     ],
     activeTrackKey: "local:two.mp3",
-    ambience: { soundId: null, volume: 0.35 }
+    ambience: { soundId: null, volume: 0.35 },
+    audioTransitions: { enabled: false, durationMs: 200 }
   });
 
   const migratedBuiltIns = importBackup({

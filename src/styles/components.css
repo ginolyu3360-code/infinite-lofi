@@ -1685,11 +1685,13 @@ body.has-visual-background .glass-panel {
 }
 
 .ambience-field select,
+.ambience-field input[type="number"],
 .ambience-field input[type="range"] {
   min-height: 2.75rem;
 }
 
-.ambience-field select {
+.ambience-field select,
+.ambience-field input[type="number"] {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius-small);
@@ -1704,6 +1706,42 @@ body.has-visual-background .glass-panel {
 
 .ambience-volume-field input {
   width: 100%;
+}
+
+.audio-transition-toggle {
+  min-height: 2.75rem;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(5, 5, 4, 0.24);
+  padding: 0.55rem 0.75rem;
+  color: var(--ink);
+  font: 500 0.66rem/1.3 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.audio-transition-toggle span,
+.audio-transition-toggle small {
+  display: block;
+}
+
+.audio-transition-toggle small {
+  margin-top: 0.2rem;
+  color: var(--ink-muted);
+  font-size: 0.58rem;
+}
+
+.audio-transition-toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+}
+
+.audio-transition-duration {
+  grid-column: 1 / -1;
 }
 
 .ambience-status {
@@ -1723,6 +1761,11 @@ body.has-visual-background .glass-panel {
   }
 
   .ambience-volume-field {
+    grid-column: auto;
+  }
+
+  .audio-transition-toggle,
+  .audio-transition-duration {
     grid-column: auto;
   }
 }
