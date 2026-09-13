@@ -19,6 +19,7 @@
       getLocale = () => "en"
     } = options;
     let rangeMode = "week";
+    let reviewPage = 1;
     const visibleHistoryLimit = 12;
 
     function download(payload, filename, type) {
@@ -40,6 +41,141 @@
       return hours > 0
         ? t("stats.hourMinute", { hours, minutes })
         : t("stats.minutesShort", { minutes });
+    }
+
+    function formatDayKey(dayKey) {
+      if (!core.isValidLocalDayKey(dayKey)) return dayKey || "";
+      const [year, month, day] = dayKey.split("-").map(Number);
+      return new Date(year, month - 1, day, 12).toLocaleDateString(getLocale(), {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    function compactIdentity(taskId) {
+      const value = String(taskId || "");
+      return value.length <= 18 ? value : `${value.slice(0, 8)}…${value.slice(-6)}`;
+    }
+
+    function renderReviewPagination(pageData) {
+      if (!elements.focusReviewPagination) return;
+      elements.focusReviewPagination.innerHTML = "";
+      if (pageData.totalPages <= 1) return;
+      const previous = elements.document.createElement("button");
+      previous.type = "button";
+      previous.className = "stats-export-btn";
+      previous.textContent = t("common.previous");
+      previous.disabled = pageData.page <= 1;
+      previous.setAttribute("aria-label", t("stats.previousBreakdownPage"));
+      previous.addEventListener("click", () => {
+        reviewPage = Math.max(1, pageData.page - 1);
+        renderStats();
+        elements.focusReviewList?.focus?.();
+      });
+      const status = elements.document.createElement("span");
+      status.textContent = t("stats.breakdownPage", {
+        page: pageData.page,
+        pages: pageData.totalPages,
+        count: pageData.totalItems
+      });
+      const next = elements.document.createElement("button");
+      next.type = "button";
+      next.className = "stats-export-btn";
+      next.textContent = t("common.next");
+      next.disabled = pageData.page >= pageData.totalPages;
+      next.setAttribute("aria-label", t("stats.nextBreakdownPage"));
+      next.addEventListener("click", () => {
+        reviewPage = Math.min(pageData.totalPages, pageData.page + 1);
+        renderStats();
+        elements.focusReviewList?.focus?.();
+      });
+      elements.focusReviewPagination.append(previous, status, next);
+    }
+
+    function renderFocusReview(review, hasCurrentGoal) {
+      if (!elements.focusReviewList) return;
+      const pageData = statsModel.paginateFocusReview(review.groups, reviewPage);
+      reviewPage = pageData.page;
+      elements.focusReviewRange.textContent = t("stats.coveredRange", {
+        start: formatDayKey(review.rangeStart),
+        end: formatDayKey(review.rangeEnd)
+      });
+      elements.focusReviewSummary.textContent = t(
+        review.activeDays === 1 ? "stats.reviewSummaryOne" : "stats.reviewSummary",
+        {
+        duration: formatShortDuration(review.totalSeconds / 60),
+        days: review.activeDays
+        }
+      );
+      elements.focusReviewEmpty.classList.toggle("hidden", pageData.totalItems > 0);
+      elements.focusReviewList.classList.toggle("hidden", pageData.totalItems === 0);
+      elements.focusReviewList.innerHTML = "";
+
+      for (const group of pageData.items) {
+        const row = elements.document.createElement("div");
+        row.className = "focus-review-row";
+        row.setAttribute("role", "listitem");
+        row.dataset.reviewKey = group.key;
+        const heading = elements.document.createElement("div");
+        heading.className = "focus-review-row-heading";
+        const title = elements.document.createElement("strong");
+        title.className = "focus-review-title";
+        title.textContent = group.type === "unassigned"
+          ? t("common.unassigned")
+          : group.title || t("stats.unknownDeletedTask");
+        title.title = group.title || title.textContent;
+        const meta = elements.document.createElement("span");
+        meta.className = "focus-review-meta";
+        if (group.type === "task") {
+          meta.textContent = `${group.deleted ? `${t("stats.deletedTask")} · ` : ""}${t("stats.taskIdentity", { id: compactIdentity(group.taskId) })}`;
+          meta.title = t("stats.fullTaskIdentity", { id: group.taskId });
+        } else if (group.type === "snapshot") {
+          meta.textContent = t("stats.snapshotOnly");
+        } else {
+          meta.textContent = t("stats.unassignedDetail");
+        }
+        heading.append(title, meta);
+        const duration = elements.document.createElement("span");
+        duration.className = "focus-review-duration";
+        duration.textContent = formatShortDuration(group.seconds / 60);
+        const percent = review.totalSeconds > 0
+          ? Math.round((group.seconds / review.totalSeconds) * 100)
+          : 0;
+        const meter = elements.document.createElement("div");
+        meter.className = "focus-review-meter";
+        meter.setAttribute("aria-hidden", "true");
+        const fill = elements.document.createElement("span");
+        fill.style.width = `${percent}%`;
+        meter.append(fill);
+        row.setAttribute("aria-label", t("stats.breakdownAria", {
+          title: title.textContent,
+          detail: meta.textContent,
+          duration: duration.textContent,
+          percent
+        }));
+        row.append(heading, duration, meter);
+        elements.focusReviewList.appendChild(row);
+      }
+      renderReviewPagination(pageData);
+
+      elements.focusReviewRounding.classList.toggle("hidden", review.roundingDifferenceMinutes === 0);
+      elements.focusReviewRounding.textContent = t("stats.roundingNote", {
+        difference: Math.abs(review.roundingDifferenceMinutes)
+      });
+      const retentionText = review.retentionLimitReached
+        ? t("stats.retentionBoundary", {
+            sessions: core.MAX_FOCUS_SESSIONS,
+            days: core.MAX_FOCUS_HISTORY_DAYS
+          })
+        : t("stats.retentionPolicy", {
+            sessions: core.MAX_FOCUS_SESSIONS,
+            days: core.MAX_FOCUS_HISTORY_DAYS
+          });
+      const importedText = review.importedSeconds > 0 ? ` ${t("stats.importedIncluded")}` : "";
+      const goalText = hasCurrentGoal ? ` ${t("stats.currentGoalScope")}` : "";
+      elements.focusReviewLimits.textContent = `${retentionText} ${t("stats.absenceNote")}${importedText}${goalText}`;
+      elements.focusReviewLimits.classList.toggle("is-warning", review.retentionLimitReached);
     }
 
     function toggleStatsDrawer(forceOpen) {
@@ -212,6 +348,11 @@
         state.settings.goals?.dailyFocusSeconds,
         new Date()
       );
+      const review = statsModel.summarizeFocusReview(
+        state.stats.focusSessions,
+        state.tasks?.items,
+        days
+      );
       const todayKey = core.getLocalDayKey(new Date());
       const goal = statsModel.summarizeDailyGoal(
         rows,
@@ -246,18 +387,23 @@
         week: t("stats.headingWeek"),
         month: t("stats.headingMonth")
       }[rangeMode];
-      elements.statsTotalValue.textContent = formatShortDuration(summary.totalMinutes);
+      elements.statsTotalValue.textContent = formatShortDuration(review.totalSeconds / 60);
       elements.statsAverageValue.textContent = t("stats.minuteShort", { minutes: summary.averageMinutes });
       elements.statsPeakValue.textContent = t("stats.minuteShort", { minutes: summary.peakMinutes });
-      elements.statsActiveDaysValue.textContent = `${trends.activeDays} / ${days.length}`;
+      elements.statsActiveDaysValue.textContent = `${review.activeDays} / ${days.length}`;
       elements.statsActiveDaysValue.title = state.settings.goals?.dailyFocusSeconds > 0
         ? t("stats.dayGoalTitle", { count: trends.goalDays })
         : t("stats.activeTitle");
       elements.statsStreakValue.textContent = t("stats.daysShort", { days: trends.streakDays });
-      elements.statsComparisonValue.textContent = trends.comparisonPercent === null
-        ? t("stats.new")
-        : `${trends.comparisonPercent > 0 ? "+" : ""}${trends.comparisonPercent}%`;
-      elements.statsComparisonValue.title = t("stats.previousTitle", { duration: formatShortDuration(trends.previousTotalMinutes) });
+      elements.statsComparisonValue.textContent = review.comparisonPercent === null
+        ? t("stats.noBaseline")
+        : `${review.comparisonPercent > 0 ? "+" : ""}${review.comparisonPercent}%`;
+      elements.statsComparisonValue.title = review.previousTotalSeconds > 0
+        ? t("stats.previousTitle", { duration: formatShortDuration(review.previousTotalSeconds / 60) })
+        : t("stats.zeroBaselineTitle");
+      if (review.comparisonMayBeIncomplete) {
+        elements.statsComparisonValue.title += ` ${t("stats.comparisonIncomplete")}`;
+      }
       elements.statsBars.classList.toggle("is-month-range", rangeMode === "month");
       elements.statsBars.style.gridTemplateColumns = rangeMode === "month"
         ? `repeat(${days.length}, minmax(2.45rem, 1fr))`
@@ -298,6 +444,8 @@
         elements.statsBars.appendChild(barWrap);
       });
 
+      renderFocusReview(review, state.settings.goals?.dailyFocusSeconds > 0);
+
       elements.statsRangeTodayBtn.classList.toggle("is-active", rangeMode === "today");
       elements.statsRangeWeekBtn.classList.toggle("is-active", rangeMode === "week");
       elements.statsRangeMonthBtn.classList.toggle("is-active", rangeMode === "month");
@@ -319,6 +467,7 @@
     function setStatsRange(mode) {
       const previousMode = rangeMode;
       rangeMode = mode === "today" || mode === "month" ? mode : "week";
+      reviewPage = 1;
       try {
         appStorage.update((state) => {
           state.settings.statsRange = rangeMode;

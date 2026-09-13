@@ -232,6 +232,8 @@ try {
         'tasksDrawer', 'tasksCloseBtn', 'taskAddForm', 'taskTitleInput',
         'openTasksList', 'completedTasksToggle', 'completedTasksList',
         'statsActiveDaysValue', 'statsStreakValue', 'statsComparisonValue',
+        'focusReviewRange', 'focusReviewSummary', 'focusReviewList',
+        'focusReviewPagination', 'focusReviewLimits',
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
@@ -368,6 +370,12 @@ try {
     node.role?.value === "dialog" && node.name?.value === "Tasks"
   );
   await evaluate("document.querySelector('#tasksCloseBtn').click(); true");
+  await evaluate("document.querySelector('#statsToggleBtn').click(); true");
+  const statsAccessibilityTree = await send("Accessibility.getFullAXTree");
+  accessibilityTreeResult.namedStatsDialog = statsAccessibilityTree.nodes.some((node) =>
+    node.role?.value === "dialog" && node.name?.value === "Focus Review (Last 7 Days)"
+  );
+  await evaluate("document.querySelector('#statsCloseBtn').click(); true");
 
   const responsiveLayouts = [];
   for (const [width, height] of [[720, 520], [800, 600], [899, 700], [901, 700], [1024, 677], [1440, 900], [1100, 760]]) {
@@ -761,11 +769,55 @@ try {
         .some((row) => row.textContent.includes('Alpha intention')),
       countLabel: document.querySelector('#sessionHistoryCount').textContent.trim(),
       activeDays: document.querySelector('#statsActiveDaysValue').textContent.trim(),
-      comparison: document.querySelector('#statsComparisonValue').textContent.trim()
+      comparison: document.querySelector('#statsComparisonValue').textContent.trim(),
+      comparisonTitle: document.querySelector('#statsComparisonValue').title,
+      heading: document.querySelector('#statsHeadingLabel').textContent.trim(),
+      weekLabel: document.querySelector('#statsRangeWeekBtn').textContent.trim(),
+      reviewRows: document.querySelectorAll('#focusReviewList .focus-review-row').length,
+      reviewSummary: document.querySelector('#focusReviewSummary').textContent.trim(),
+      deletedTaskVisible: document.querySelector('#focusReviewList').textContent.includes('Deleted'),
+      unassignedVisible: document.querySelector('#focusReviewList').textContent.includes('Unassigned'),
+      reconciliationNoteHidden: document.querySelector('#focusReviewRounding').classList.contains('hidden'),
+      retentionCopy: document.querySelector('#focusReviewLimits').textContent.trim()
     };
     document.querySelector('#statsCloseBtn').click();
     return result;
   })()`);
+  await evaluate("document.querySelector('#statsToggleBtn').click(); true");
+  const populatedStatsAccessibilityTree = await send("Accessibility.getFullAXTree");
+  accessibilityTreeResult.namedReviewList = populatedStatsAccessibilityTree.nodes.some((node) =>
+    node.role?.value === "list" && node.name?.value === "Recorded time by intention"
+  );
+  accessibilityTreeResult.reviewItems = populatedStatsAccessibilityTree.nodes.filter((node) =>
+    node.role?.value === "listitem"
+  ).length;
+  await evaluate("document.querySelector('#statsCloseBtn').click(); true");
+
+  const statsResponsiveLayouts = [];
+  for (const [width, height] of [[720, 520], [800, 600], [899, 700], [901, 700], [1100, 760], [1440, 900]]) {
+    await setWindowSize(width, height);
+    statsResponsiveLayouts.push(await evaluate(`(async () => {
+      document.querySelector('#statsToggleBtn').click();
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      const drawer = document.querySelector('#statsDrawer');
+      const panel = document.querySelector('#statsPanel');
+      const close = document.querySelector('#statsCloseBtn');
+      const bounds = panel.getBoundingClientRect();
+      const result = {
+        width: innerWidth,
+        height: innerHeight,
+        open: drawer.classList.contains('is-open'),
+        inside: bounds.left >= -4 && bounds.top >= -4 && bounds.right <= innerWidth + 4 && bounds.bottom <= innerHeight + 4,
+        scrollable: panel.scrollHeight >= panel.clientHeight,
+        rangeButtonHeight: document.querySelector('#statsRangeWeekBtn').getBoundingClientRect().height,
+        reviewVisible: document.querySelector('#focusReviewTitle').getBoundingClientRect().height > 0,
+        closeVisible: close.getBoundingClientRect().height > 0
+      };
+      close.click();
+      return result;
+    })()`));
+  }
+  await setWindowSize(1100, 760);
 
   const notesResult = await evaluate(`(() => {
     const before = document.querySelectorAll('#noteTabs > *').length;
@@ -974,6 +1026,7 @@ try {
     const percentile95 = (values) => [...values].sort((left, right) => left - right)[Math.ceil(values.length * 0.95) - 1];
     const openDurations = [];
     const actionDurations = [];
+    const rangeDurations = [];
     const trigger = document.querySelector('#tasksToggleBtn');
     for (let index = 0; index < 30; index += 1) {
       const startedAt = performance.now();
@@ -992,18 +1045,33 @@ try {
       await nextFrame();
       actionDurations.push(performance.now() - startedAt);
     }
+    document.querySelector('#tasksCloseBtn').click();
+    document.querySelector('#statsToggleBtn').click();
+    await nextFrame();
+    for (let index = 0; index < 30; index += 1) {
+      const button = document.querySelector(index % 2 === 0 ? '#statsRangeMonthBtn' : '#statsRangeWeekBtn');
+      const startedAt = performance.now();
+      button.click();
+      await nextFrame();
+      rangeDurations.push(performance.now() - startedAt);
+    }
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     const result = {
       fixtureTasks: state.tasks.items.length,
       fixtureSessions: state.stats.focusSessions.length,
       repetitions: 30,
       renderedOpenRows: document.querySelectorAll('#openTasksList .task-row').length,
+      renderedReviewRows: document.querySelectorAll('#focusReviewList .focus-review-row').length,
+      reviewPaginationButtons: document.querySelectorAll('#focusReviewPagination button').length,
+      retentionBoundaryVisible: document.querySelector('#focusReviewLimits').textContent.includes('boundary'),
       openP95Ms: percentile95(openDurations),
       actionP95Ms: percentile95(actionDurations),
+      rangeP95Ms: percentile95(rangeDurations),
       openMaxMs: Math.max(...openDurations),
-      actionMaxMs: Math.max(...actionDurations)
+      actionMaxMs: Math.max(...actionDurations),
+      rangeMaxMs: Math.max(...rangeDurations)
     };
-    document.querySelector('#tasksCloseBtn').click();
+    document.querySelector('#statsCloseBtn').click();
     return result;
   })()`);
 
@@ -1053,7 +1121,7 @@ try {
   if (Object.values(contrastResult).some((ratio) => !Number.isFinite(ratio) || ratio < 4.5)) {
     failures.push("core dark or light theme text contrast fell below WCAG AA");
   }
-  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.liveStatusPresent) {
+  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.namedStatsDialog || !accessibilityTreeResult.namedReviewList || accessibilityTreeResult.reviewItems < 2 || !accessibilityTreeResult.liveStatusPresent) {
     failures.push("dialog or live status was missing from the accessibility tree");
   }
   if (!expandableRegionResult.queueFocused || !expandableRegionResult.queueClosed || !expandableRegionResult.queueFocusRestored) {
@@ -1139,8 +1207,21 @@ try {
     !sessionHistoryResult.taskSnapshotVisible ||
     !sessionHistoryResult.countLabel.startsWith("2 ") ||
     !sessionHistoryResult.activeDays.startsWith("1 ") ||
-    sessionHistoryResult.comparison !== "New"
+    sessionHistoryResult.comparison !== "No baseline" ||
+    !sessionHistoryResult.comparisonTitle.includes("no recorded time") ||
+    sessionHistoryResult.heading !== "Focus Review (Last 7 Days)" ||
+    sessionHistoryResult.weekLabel !== "Last 7 Days" ||
+    sessionHistoryResult.reviewRows !== 2 ||
+    sessionHistoryResult.reviewSummary !== "1h 5m recorded across 1 active day." ||
+    !sessionHistoryResult.deletedTaskVisible ||
+    !sessionHistoryResult.unassignedVisible ||
+    !sessionHistoryResult.reconciliationNoteHidden ||
+    !sessionHistoryResult.retentionCopy.includes("5000")
   ) failures.push("session history editing or trend summaries failed");
+  if (statsResponsiveLayouts.some((layout) =>
+    !layout.open || !layout.inside || !layout.scrollable ||
+    layout.rangeButtonHeight < 42 || !layout.reviewVisible || !layout.closeVisible
+  )) failures.push("responsive Focus Review layout failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.statsFocusRestored || !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored) failures.push("drawer interaction or focus restoration failed");
   if (
@@ -1188,13 +1269,14 @@ try {
   ) failures.push("expired focus recovery did not attribute and record exactly once");
   if (
     performanceResult.fixtureTasks !== 100 || performanceResult.fixtureSessions !== 5000 || performanceResult.repetitions !== 30 ||
-    performanceResult.renderedOpenRows !== 20 ||
-    (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100))
+    performanceResult.renderedOpenRows !== 20 || performanceResult.renderedReviewRows !== 8 ||
+    performanceResult.reviewPaginationButtons !== 2 || !performanceResult.retentionBoundaryVisible ||
+    (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100 || performanceResult.rangeP95Ms >= 100))
   ) failures.push("reference fixture pagination or p95 performance target failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

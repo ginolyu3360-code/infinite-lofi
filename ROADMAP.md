@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11; Phase 4B, 4C1, and 4C2 remain unstarted. This section supersedes the 2026-09-09 draft.
+Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B is implemented and locally verified on its feature branch; PR delivery evidence is pending. Phase 4C1 and 4C2 remain unstarted. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -305,11 +305,13 @@ Status: completed through [PR #18](https://github.com/ginolyu3360-code/infinite-
 - [x] Keep language names stable and recognizable in their own scripts regardless of the currently selected interface language.
 - [x] Cover the language catalog, normalization, interpolation, document language, persistence, all seven live switches, restart restore, focus retention, development Electron, and Universal packaged Electron.
 
-This maintenance feature does not implement or change Phase 4B, 4C1, or 4C2.
+This maintenance feature did not itself implement or change Phase 4B, 4C1, or 4C2; Phase 4B was implemented later as the separate slice below.
 
 ### Phase 4B — Focus Review
 
 Goal: explain recorded time with modest, transparent summaries. This is a narrower replacement for the original Focus Insights proposal, not an intelligence or productivity-scoring feature.
+
+Implementation status: implemented and locally verified on `codex/phase4b-focus-review` on 2026-09-13. Feature PR, final-commit CI, squash merge, and exact-merge `main` CI remain pending.
 
 #### Scope and interpretation
 
@@ -338,6 +340,19 @@ Goal: explain recorded time with modest, transparent summaries. This is a narrow
 - Test aggregate reconciliation and CSV escaping if the extra export is shipped. Explain a zero denominator instead of displaying Infinity or misleading percentages.
 - Give charts readable text summaries and accessible labels, support keyboard/trackpad navigation, preserve responsive Stats behavior, and pass all existing size/theme checks in development and Universal packaged Electron.
 - This slice needs its own feature PR, final-commit CI, squash merge, main CI, and handoff entry. Review its exact presentation before implementation; do not expand into the deferred insights.
+
+#### Phase 4B release-independent acceptance checklist
+
+- [x] Today, Last 7 Days, and Last 30 Days are explicitly rolling stored-day ranges; total time, active recorded days, and equal-period comparison read the canonical ledger.
+- [x] Stable task IDs group identifiable history, current task titles label live tasks, latest retained snapshots label deleted tasks, and same-title/different-ID tasks remain distinct.
+- [x] Snapshot-only entries remain separate, unassigned/imported time stays visible, integer-second groups reconcile with the range total, and displayed rounding differences are explained.
+- [x] Covered dates, retention limits, imported-total semantics, absence-of-record semantics, current-target goal scope, zero baselines, and retention-limited comparisons are stated without speculative insights.
+- [x] Pure model and controller tests cover empty, sparse, dense, all-unassigned, imported, renamed, deleted, snapshot-only, same-title/different-ID, edits, deletion, retention, local-calendar/DST, and persistence-failure paths. Daily CSV remains unchanged; no task CSV was added.
+- [x] Rendering is bounded to eight breakdown groups per page and no review selector runs on timer ticks. At the 5,000-session cap, local development range-switch p95 measured 75.8 ms and packaged p95 measured 84.5 ms over 30 repetitions on the reference M2.
+- [x] Development and Universal packaged Electron checks cover named accessibility nodes, keyboard focus, all seven interface languages, every built-in scene's existing AA palette, reduced motion, Notes/timer/task/player/history/backup regressions, and responsive Stats at 720 × 520, 800 × 600, 899/901 × 700, 1100 × 760, and the display maximum of 1440 × 794.
+- [ ] Exact native 1440 × 900 remains unavailable on the reference display and is not claimed as passed.
+- [x] `npm run check` passes with 82 tests; the unsigned Universal application contains `x86_64` and `arm64`, and isolated development plus packaged smoke pass without renderer exceptions.
+- [ ] Final feature-commit CI, squash merge, exact-merge `main` CI, and follow-up delivery evidence are pending. No version bump, tag, Release, signing, notarization, Phase 4C1, or Phase 4C2 work is implicit.
 
 ### Phase 4C1 — Ambient Layer
 

@@ -191,6 +191,13 @@ const statsPeakValue = document.getElementById("statsPeakValue");
 const statsActiveDaysValue = document.getElementById("statsActiveDaysValue");
 const statsStreakValue = document.getElementById("statsStreakValue");
 const statsComparisonValue = document.getElementById("statsComparisonValue");
+const focusReviewRange = document.getElementById("focusReviewRange");
+const focusReviewSummary = document.getElementById("focusReviewSummary");
+const focusReviewEmpty = document.getElementById("focusReviewEmpty");
+const focusReviewList = document.getElementById("focusReviewList");
+const focusReviewPagination = document.getElementById("focusReviewPagination");
+const focusReviewRounding = document.getElementById("focusReviewRounding");
+const focusReviewLimits = document.getElementById("focusReviewLimits");
 const sessionHistoryCount = document.getElementById("sessionHistoryCount");
 const sessionHistoryDateInput = document.getElementById("sessionHistoryDateInput");
 const sessionHistoryMinutesInput = document.getElementById("sessionHistoryMinutesInput");
@@ -374,6 +381,13 @@ const statsController = createStatsController({
     statsActiveDaysValue,
     statsStreakValue,
     statsComparisonValue,
+    focusReviewRange,
+    focusReviewSummary,
+    focusReviewEmpty,
+    focusReviewList,
+    focusReviewPagination,
+    focusReviewRounding,
+    focusReviewLimits,
     sessionHistoryCount,
     sessionHistoryDateInput,
     sessionHistoryMinutesInput,

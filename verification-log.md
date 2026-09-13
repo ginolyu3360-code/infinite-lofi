@@ -1,5 +1,41 @@
 # Verification Log
 
+## 2026-09-13 — Phase 4B Focus Review implementation
+
+### Baseline revalidation
+
+- Read the complete README, audited Phase 4 specification, handoff, verification log, UI refresh plan, and user profile. No repository `AGENTS.md` exists.
+- Confirmed the canonical checkout was clean on `main` at `24adb4b66c0e1ec11873ddb88d0e815d8ecc330c`, with only one registered worktree. Fetched origin and confirmed live `origin/main` matched.
+- Confirmed package version 1.3.0 and annotated `v1.3.0` resolving to release commit `2e90dbdc2767861714c0effe4b580a1e03700379`.
+- Confirmed exact-head [main CI run 34701605670](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701605670) passed before implementation, then created `codex/phase4b-focus-review` directly in the canonical checkout.
+
+### Implemented
+
+- Reframed the existing Stats ranges as Today, Last 7 Days, and Last 30 Days rolling stored-day windows in all seven interface languages.
+- Added a pure canonical-ledger Focus Review selector for exact-second totals, active recorded days, previous equal-period comparison, imported duration, retention state, and task-time reconciliation. No aggregate is persisted and schema remains v5.
+- Grouped identifiable history by stable task ID. Live tasks use their current title; deleted tasks use the latest retained snapshot and a deleted marker. Visible stable IDs distinguish same-title tasks.
+- Kept snapshot-only entries separate by ledger identity and included an explicit unassigned group. Imported daily totals contribute duration but are not presented as real individual sessions.
+- Added covered-date, retention, absence-of-record, current-target goal, zero-baseline, comparison-completeness, and display-rounding explanations. Daily CSV remains unchanged and full JSON backup remains the loss-preserving export; no additional CSV was added.
+- Added a responsive, text-readable breakdown with accessible row summaries, keyboard focus, 44 px range controls, and eight groups per page. Review selectors do not run on timer ticks.
+- Deliberately excluded time-of-day reconstruction, historical goal claims, predictions, productivity scores, attribution editing, Phase 4C1 ambience, and Phase 4C2 transitions.
+
+### Local verification
+
+- `npm run check`: passed with 82 tests, all JavaScript syntax checks, and a minified stylesheet rebuild.
+- New model/controller coverage includes empty, sparse, dense, all-unassigned, imported, renamed, deleted, snapshot-only, and same-title/different-ID histories; stored-day and duration edits; deletion; retention caps; local-midnight/DST boundaries; exact reconciliation; rounding; zero previous totals; and stats-range storage persistence failure.
+- Isolated development Electron smoke passed without renderer exceptions. It covered live ledger edits, deleted/snapshot/unassigned rendering, readable summaries, named accessibility nodes, keyboard focus, seven-language regression switching, responsive Stats, and all existing timer/task/Notes/player/scene/backup/recovery paths.
+- Universal packaging passed with electron-builder 26.15.3; `file` and `lipo` confirmed an `x86_64 arm64` Mach-O Universal executable, and `app.asar` contains the changed stats, controller, renderer, i18n, HTML, and generated CSS files.
+- Isolated Universal packaged-app smoke passed the same complete path with no renderer exceptions.
+- Responsive Focus Review passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and this display's maximum 1440 × 794 viewport. Range controls measured 44 px; the drawer and review remained reachable and scrollable.
+- The 5,000-session/100-task performance fixture ran 30 repetitions. Development range-switch p95 was 75.8 ms; packaged p95 was 84.5 ms. Each review page rendered 8 rows with keyboard-accessible pagination, below the 100 ms M2 reference target.
+- Existing pause/resume, live auto-start, automatic focus start, local completion, restored expiry across two reloads, atomic/idempotent recording, Mini 420 × 250 and 360 × 200, 900 px Notes breakpoint, scene contrast, reduced motion, native Media Session, and storage/backup checks remained green. Every Electron run used a disposable profile, so normal application data was not read or modified.
+
+### Delivery state and limits
+
+- Feature PR, final-commit PR CI, squash merge, exact-merge `main` CI, and post-merge documentation evidence are pending.
+- The exact 1440 × 900 native viewport remains unavailable and unverified; the current display exposed at most 1440 × 794. This is not recorded as a pass.
+- The Universal app remains intentionally unsigned and not notarized. Package version stays 1.3.0; no version tag, GitHub Release, signing, notarization, Phase 4C1, or Phase 4C2 work was performed.
+
 ## 2026-09-12 — Seven-language display settings
 
 ### Implemented

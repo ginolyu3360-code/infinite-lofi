@@ -188,14 +188,17 @@
     "player.started": "Music playback started.",
     "player.paused": "Music playback paused.",
     "stats.review": "Review",
-    "stats.headingToday": "Focus Stats (Today)",
-    "stats.headingWeek": "Focus Stats (This Week)",
-    "stats.headingMonth": "Focus Stats (This Month)",
+    "stats.headingToday": "Focus Review (Today)",
+    "stats.headingWeek": "Focus Review (Last 7 Days)",
+    "stats.headingMonth": "Focus Review (Last 30 Days)",
     "stats.close": "Close Stats",
     "stats.range": "Statistics range",
     "stats.today": "Today",
-    "stats.week": "Week",
-    "stats.month": "Month",
+    "stats.week": "Last 7 Days",
+    "stats.month": "Last 30 Days",
+    "stats.showToday": "Show today stats",
+    "stats.showWeek": "Show the last 7 days",
+    "stats.showMonth": "Show the last 30 days",
     "stats.csv": "CSV",
     "stats.backup": "Backup",
     "stats.restore": "Restore",
@@ -229,7 +232,7 @@
     "stats.goalComplete": " · Goal complete",
     "stats.goalAria": "{current} of {goal} focus minutes completed today",
     "stats.goalOffAria": "{current} focus minutes completed today; daily goal is off",
-    "stats.dayGoalTitle": "{count} days reached the daily goal in this range",
+    "stats.dayGoalTitle": "Using today's current target, {count} recorded days met it in this range; historical goals are not stored",
     "stats.activeTitle": "Days with recorded focus in this range",
     "stats.new": "New",
     "stats.previousTitle": "{duration} in the previous matching period",
@@ -249,6 +252,33 @@
     "stats.unknownBackupError": "Unknown backup error",
     "stats.clearConfirm": "Clear all focus stats? This cannot be undone.",
     "stats.cleared": "All focus statistics cleared.",
+    "stats.breakdownEyebrow": "Focus Review",
+    "stats.breakdownTitle": "Time by intention",
+    "stats.breakdownList": "Recorded time by intention",
+    "stats.breakdownPages": "Task-time breakdown pages",
+    "stats.coveredRange": "{start} – {end}",
+    "stats.reviewSummary": "{duration} recorded across {days} active days.",
+    "stats.reviewSummaryOne": "{duration} recorded across 1 active day.",
+    "stats.noBreakdown": "No recorded time in this range.",
+    "stats.deletedTask": "Deleted",
+    "stats.taskIdentity": "ID {id}",
+    "stats.fullTaskIdentity": "Stable task ID: {id}",
+    "stats.snapshotOnly": "Snapshot only · no stable task ID",
+    "stats.unknownDeletedTask": "Deleted task without a retained title",
+    "stats.unassignedDetail": "No task attribution",
+    "stats.breakdownAria": "{title}. {detail}. {duration}, {percent}% of recorded time.",
+    "stats.breakdownPage": "Page {page} of {pages} · {count} groups",
+    "stats.previousBreakdownPage": "Previous task-time breakdown page",
+    "stats.nextBreakdownPage": "Next task-time breakdown page",
+    "stats.roundingNote": "Rounded group values differ from the rounded total by {difference} minute(s); exact seconds reconcile.",
+    "stats.retentionPolicy": "The ledger retains at most {days} recorded dates and {sessions} entries.",
+    "stats.retentionBoundary": "A retention boundary is reached ({days} dates / {sessions} entries maximum); the earlier comparison may be incomplete.",
+    "stats.absenceNote": "No retained record means no recorded time, not proof of inactivity.",
+    "stats.importedIncluded": "Imported daily totals contribute duration, not individual-session claims.",
+    "stats.currentGoalScope": "Past goal comparisons apply today's current target because historical targets are not stored.",
+    "stats.noBaseline": "No baseline",
+    "stats.zeroBaselineTitle": "The previous equal period has no recorded time, so no percentage is shown.",
+    "stats.comparisonIncomplete": "Retention limits may make this comparison incomplete.",
     "weather.title": "Weather",
     "weather.offOption": "Off",
     "weather.autoOption": "Automatic (IP)",
@@ -332,8 +362,8 @@
     "keys.togglePlaylist": "Toggle Playlist",
     "keys.toggleStats": "Toggle Stats Drawer",
     "keys.statsToday": "Stats Range: Today",
-    "keys.statsWeek": "Stats Range: Week",
-    "keys.statsMonth": "Stats Range: Month",
+    "keys.statsWeek": "Stats Range: Last 7 Days",
+    "keys.statsMonth": "Stats Range: Last 30 Days",
     "keys.closePanels": "Close Panels / Help",
     "keys.focusNotes": "Focus Notes Input",
     "keys.saveNotes": "Save Notes Now",
@@ -496,7 +526,47 @@
     "weather.autoPrivacy":"El modo automático envía tu IP a ipapi.co y después las coordenadas a Open-Meteo.","weather.cityPrivacy":"El modo ciudad solo envía el nombre y las coordenadas resultantes a Open-Meteo.","weather.offPrivacy":"El tiempo está desactivado. No se envían solicitudes del tiempo ni de ubicación."
   });
 
-  Object.assign(TRANSLATIONS["zh-CN"], { "tray.startTimer":"开始计时","tray.pauseTimer":"暂停计时","tray.resetTimer":"重置计时","tray.showWindow":"显示窗口","tray.hideWindow":"隐藏窗口","tray.quit":"退出" });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "tray.startTimer":"开始计时","tray.pauseTimer":"暂停计时","tray.resetTimer":"重置计时","tray.showWindow":"显示窗口","tray.hideWindow":"隐藏窗口","tray.quit":"退出",
+    "stats.headingToday":"专注回顾（今天）","stats.headingWeek":"专注回顾（最近 7 天）","stats.headingMonth":"专注回顾（最近 30 天）","stats.week":"最近 7 天","stats.month":"最近 30 天","stats.dayGoalTitle":"按今天的当前目标计算，此范围内有 {count} 个记录日达到目标；历史目标未保存",
+    "stats.breakdownEyebrow":"专注回顾","stats.breakdownTitle":"按意图统计时间","stats.breakdownList":"按意图统计的记录时间","stats.breakdownPages":"任务时间明细分页","stats.coveredRange":"{start} – {end}","stats.reviewSummary":"共记录 {duration}，分布在 {days} 个活跃日。","stats.noBreakdown":"此范围内没有记录时间。","stats.deletedTask":"已删除","stats.taskIdentity":"ID {id}","stats.fullTaskIdentity":"稳定任务 ID：{id}","stats.snapshotOnly":"仅快照 · 无稳定任务 ID","stats.unknownDeletedTask":"已删除且没有保留标题的任务","stats.unassignedDetail":"未指定及导入时间","stats.breakdownAria":"{title}。{detail}。{duration}，占记录时间 {percent}%。","stats.breakdownPage":"第 {page}/{pages} 页 · 共 {count} 组","stats.previousBreakdownPage":"任务时间明细上一页","stats.nextBreakdownPage":"任务时间明细下一页","stats.roundingNote":"各组取整后与总计相差 {difference} 分钟；精确秒数可以对账。","stats.retentionPolicy":"账本最多保留 {days} 个记录日期和 {sessions} 条记录。","stats.retentionBoundary":"已达到保留边界（最多 {days} 个日期 / {sessions} 条记录）；较早周期的对比可能不完整。","stats.absenceNote":"没有保留记录只表示没有已记录时间，并不能证明未活动。","stats.importedIncluded":"导入的每日总计计入时长，但不作为单次时段。","stats.currentGoalScope":"过去目标对比使用今天的当前目标，因为历史目标并未保存。","stats.noBaseline":"无基线","stats.zeroBaselineTitle":"上一相同周期没有记录时间，因此不显示百分比。","stats.comparisonIncomplete":"保留限制可能令此对比不完整。",
+    "keys.statsWeek":"统计范围：最近 7 天","keys.statsMonth":"统计范围：最近 30 天"
+  });
+  Object.assign(JAPANESE, {
+    "stats.headingToday":"集中レビュー（今日）","stats.headingWeek":"集中レビュー（過去7日間）","stats.headingMonth":"集中レビュー（過去30日間）","stats.week":"過去7日間","stats.month":"過去30日間","stats.dayGoalTitle":"今日の現在の目標を適用すると、この期間の記録日のうち{count}日が達成。過去の目標は保存されていません",
+    "stats.breakdownEyebrow":"集中レビュー","stats.breakdownTitle":"意図別の時間","stats.breakdownList":"意図別の記録時間","stats.breakdownPages":"タスク時間内訳のページ","stats.coveredRange":"{start} – {end}","stats.reviewSummary":"{days}活動日に{duration}を記録。","stats.noBreakdown":"この期間に記録された時間はありません。","stats.deletedTask":"削除済み","stats.taskIdentity":"ID {id}","stats.fullTaskIdentity":"安定タスクID：{id}","stats.snapshotOnly":"スナップショットのみ · 安定IDなし","stats.unknownDeletedTask":"保存タイトルのない削除済みタスク","stats.unassignedDetail":"未指定および取り込み時間","stats.breakdownAria":"{title}。{detail}。{duration}、記録時間の{percent}%。","stats.breakdownPage":"{page}/{pages}ページ · {count}グループ","stats.previousBreakdownPage":"タスク時間内訳の前ページ","stats.nextBreakdownPage":"タスク時間内訳の次ページ","stats.roundingNote":"各グループの丸め値と合計に{difference}分の差があります。正確な秒数は一致します。","stats.retentionPolicy":"記録は最大{days}日、{sessions}件まで保持されます。","stats.retentionBoundary":"保持上限（{days}日／{sessions}件）に達しています。以前の期間比較は不完全な場合があります。","stats.absenceNote":"保持記録がないことは未記録を示すだけで、活動がなかった証明ではありません。","stats.importedIncluded":"取り込んだ日別合計は時間に含まれますが、個別セッションとして数えません。","stats.currentGoalScope":"過去の目標が保存されていないため、目標比較には今日の現在の目標を使います。","stats.noBaseline":"基準なし","stats.zeroBaselineTitle":"前の同期間に記録時間がないため、割合は表示しません。","stats.comparisonIncomplete":"保持上限により比較が不完全な場合があります。",
+    "keys.statsWeek":"統計範囲：過去7日間","keys.statsMonth":"統計範囲：過去30日間"
+  });
+  Object.assign(FRENCH, {
+    "stats.headingToday":"Bilan de concentration (aujourd’hui)","stats.headingWeek":"Bilan de concentration (7 derniers jours)","stats.headingMonth":"Bilan de concentration (30 derniers jours)","stats.week":"7 derniers jours","stats.month":"30 derniers jours","stats.dayGoalTitle":"Avec l’objectif actuel d’aujourd’hui, {count} jours enregistrés l’atteignent ; les anciens objectifs ne sont pas conservés",
+    "stats.breakdownEyebrow":"Bilan de concentration","stats.breakdownTitle":"Temps par intention","stats.breakdownList":"Temps enregistré par intention","stats.breakdownPages":"Pages de répartition du temps","stats.coveredRange":"{start} – {end}","stats.reviewSummary":"{duration} enregistrées sur {days} jours actifs.","stats.noBreakdown":"Aucun temps enregistré sur cette période.","stats.deletedTask":"Supprimée","stats.taskIdentity":"ID {id}","stats.fullTaskIdentity":"ID stable de la tâche : {id}","stats.snapshotOnly":"Instantané seul · aucun ID stable","stats.unknownDeletedTask":"Tâche supprimée sans titre conservé","stats.unassignedDetail":"Temps non attribué et importé","stats.breakdownAria":"{title}. {detail}. {duration}, {percent} % du temps enregistré.","stats.breakdownPage":"Page {page} sur {pages} · {count} groupes","stats.previousBreakdownPage":"Page précédente de la répartition","stats.nextBreakdownPage":"Page suivante de la répartition","stats.roundingNote":"Les groupes arrondis diffèrent du total de {difference} minute(s) ; les secondes exactes concordent.","stats.retentionPolicy":"Le journal conserve au plus {days} dates et {sessions} entrées.","stats.retentionBoundary":"Une limite de conservation est atteinte ({days} dates / {sessions} entrées) ; la comparaison antérieure peut être incomplète.","stats.absenceNote":"L’absence d’enregistrement conservé signifie seulement qu’aucun temps n’est enregistré, pas qu’il n’y a eu aucune activité.","stats.importedIncluded":"Les totaux quotidiens importés comptent dans la durée, pas comme sessions individuelles.","stats.currentGoalScope":"Les comparaisons passées utilisent l’objectif actuel d’aujourd’hui car les anciens objectifs ne sont pas conservés.","stats.noBaseline":"Aucune référence","stats.zeroBaselineTitle":"La période précédente n’a aucun temps enregistré ; aucun pourcentage n’est affiché.","stats.comparisonIncomplete":"Les limites de conservation peuvent rendre cette comparaison incomplète.",
+    "keys.statsWeek":"Période : 7 derniers jours","keys.statsMonth":"Période : 30 derniers jours"
+  });
+  Object.assign(KOREAN, {
+    "stats.headingToday":"집중 검토(오늘)","stats.headingWeek":"집중 검토(최근 7일)","stats.headingMonth":"집중 검토(최근 30일)","stats.week":"최근 7일","stats.month":"최근 30일","stats.dayGoalTitle":"오늘의 현재 목표를 적용하면 기록된 날 중 {count}일이 달성했습니다. 과거 목표는 저장되지 않습니다",
+    "stats.breakdownEyebrow":"집중 검토","stats.breakdownTitle":"의도별 시간","stats.breakdownList":"의도별 기록 시간","stats.breakdownPages":"작업 시간 내역 페이지","stats.coveredRange":"{start} – {end}","stats.reviewSummary":"활동일 {days}일에 {duration} 기록.","stats.noBreakdown":"이 범위에 기록된 시간이 없습니다.","stats.deletedTask":"삭제됨","stats.taskIdentity":"ID {id}","stats.fullTaskIdentity":"안정적인 작업 ID: {id}","stats.snapshotOnly":"스냅샷만 있음 · 안정 ID 없음","stats.unknownDeletedTask":"보관된 제목이 없는 삭제된 작업","stats.unassignedDetail":"미지정 및 가져온 시간","stats.breakdownAria":"{title}. {detail}. {duration}, 기록 시간의 {percent}%.","stats.breakdownPage":"{page}/{pages}페이지 · {count}개 그룹","stats.previousBreakdownPage":"작업 시간 내역 이전 페이지","stats.nextBreakdownPage":"작업 시간 내역 다음 페이지","stats.roundingNote":"그룹 반올림 합계가 총계와 {difference}분 차이 나지만 정확한 초 단위는 일치합니다.","stats.retentionPolicy":"기록은 최대 {days}개 날짜와 {sessions}개 항목을 보관합니다.","stats.retentionBoundary":"보관 한도({days}개 날짜 / {sessions}개 항목)에 도달해 이전 기간 비교가 불완전할 수 있습니다.","stats.absenceNote":"보관된 기록이 없다는 것은 기록 시간이 없다는 뜻일 뿐, 활동이 없었다는 증거는 아닙니다.","stats.importedIncluded":"가져온 일일 합계는 시간에 포함되지만 개별 세션으로 세지 않습니다.","stats.currentGoalScope":"과거 목표가 저장되지 않으므로 과거 목표 비교에는 오늘의 현재 목표를 적용합니다.","stats.noBaseline":"기준 없음","stats.zeroBaselineTitle":"이전 동일 기간에 기록 시간이 없어 백분율을 표시하지 않습니다.","stats.comparisonIncomplete":"보관 한도로 인해 비교가 불완전할 수 있습니다.",
+    "keys.statsWeek":"통계 범위: 최근 7일","keys.statsMonth":"통계 범위: 최근 30일"
+  });
+  Object.assign(SPANISH, {
+    "stats.headingToday":"Revisión de concentración (hoy)","stats.headingWeek":"Revisión de concentración (últimos 7 días)","stats.headingMonth":"Revisión de concentración (últimos 30 días)","stats.week":"Últimos 7 días","stats.month":"Últimos 30 días","stats.dayGoalTitle":"Aplicando el objetivo actual de hoy, {count} días registrados lo alcanzan; los objetivos históricos no se guardan",
+    "stats.breakdownEyebrow":"Revisión de concentración","stats.breakdownTitle":"Tiempo por intención","stats.breakdownList":"Tiempo registrado por intención","stats.breakdownPages":"Páginas del desglose de tiempo","stats.coveredRange":"{start} – {end}","stats.reviewSummary":"{duration} registradas en {days} días activos.","stats.noBreakdown":"No hay tiempo registrado en este intervalo.","stats.deletedTask":"Eliminada","stats.taskIdentity":"ID {id}","stats.fullTaskIdentity":"ID estable de tarea: {id}","stats.snapshotOnly":"Solo instantánea · sin ID estable","stats.unknownDeletedTask":"Tarea eliminada sin título conservado","stats.unassignedDetail":"Tiempo sin asignar e importado","stats.breakdownAria":"{title}. {detail}. {duration}, {percent} % del tiempo registrado.","stats.breakdownPage":"Página {page} de {pages} · {count} grupos","stats.previousBreakdownPage":"Página anterior del desglose","stats.nextBreakdownPage":"Página siguiente del desglose","stats.roundingNote":"Los grupos redondeados difieren del total en {difference} minuto(s); los segundos exactos coinciden.","stats.retentionPolicy":"El registro conserva como máximo {days} fechas y {sessions} entradas.","stats.retentionBoundary":"Se alcanzó un límite de conservación ({days} fechas / {sessions} entradas); la comparación anterior puede estar incompleta.","stats.absenceNote":"Que no haya un registro conservado solo significa que no hay tiempo registrado, no demuestra inactividad.","stats.importedIncluded":"Los totales diarios importados aportan duración, no cuentan como sesiones individuales.","stats.currentGoalScope":"Las comparaciones pasadas usan el objetivo actual de hoy porque los objetivos históricos no se guardan.","stats.noBaseline":"Sin referencia","stats.zeroBaselineTitle":"El período anterior no tiene tiempo registrado, así que no se muestra porcentaje.","stats.comparisonIncomplete":"Los límites de conservación pueden hacer que la comparación esté incompleta.",
+    "keys.statsWeek":"Intervalo: últimos 7 días","keys.statsMonth":"Intervalo: últimos 30 días"
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "stats.showToday":"显示今天的统计","stats.showWeek":"显示最近 7 天","stats.showMonth":"显示最近 30 天","stats.reviewSummaryOne":"共记录 {duration}，分布在 1 个活跃日。","stats.unassignedDetail":"没有任务归属"
+  });
+  Object.assign(JAPANESE, {
+    "stats.showToday":"今日の統計を表示","stats.showWeek":"過去7日間を表示","stats.showMonth":"過去30日間を表示","stats.reviewSummaryOne":"1活動日に{duration}を記録。","stats.unassignedDetail":"タスク帰属なし"
+  });
+  Object.assign(FRENCH, {
+    "stats.showToday":"Afficher les statistiques du jour","stats.showWeek":"Afficher les 7 derniers jours","stats.showMonth":"Afficher les 30 derniers jours","stats.reviewSummaryOne":"{duration} enregistrées sur 1 jour actif.","stats.unassignedDetail":"Aucune tâche attribuée"
+  });
+  Object.assign(KOREAN, {
+    "stats.showToday":"오늘 통계 표시","stats.showWeek":"최근 7일 표시","stats.showMonth":"최근 30일 표시","stats.reviewSummaryOne":"활동일 1일에 {duration} 기록.","stats.unassignedDetail":"작업 지정 없음"
+  });
+  Object.assign(SPANISH, {
+    "stats.showToday":"Mostrar las estadísticas de hoy","stats.showWeek":"Mostrar los últimos 7 días","stats.showMonth":"Mostrar los últimos 30 días","stats.reviewSummaryOne":"{duration} registradas en 1 día activo.","stats.unassignedDetail":"Sin atribución de tarea"
+  });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(
     Object.entries(TRANSLATIONS["zh-CN"]).map(([key, value]) => [key, toTraditionalChinese(value)])

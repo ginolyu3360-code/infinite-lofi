@@ -26,9 +26,11 @@ const {
 const {
   buildDailyCsv,
   buildRangeDays,
+  paginateFocusReview,
   recordFocusSession,
   removeFocusSession,
   summarizeDailyGoal,
+  summarizeFocusReview,
   summarizeFocusRows,
   summarizeFocusTrends,
   upsertFocusSession
@@ -467,6 +469,150 @@ test("summarizes bounded trends against the previous matching period", () => {
     comparisonPercent: 400,
     previousTotalMinutes: 30
   });
+});
+
+test("reconciles focus review groups without matching task titles", () => {
+  const days = buildRangeDays(new Date(2026, 8, 12, 12), "week", "en-US");
+  const sessions = [
+    { id: "live-old", day: "2026-09-10", focusSeconds: 125, source: "timer", taskId: "task-live", taskTitle: "Old name" },
+    { id: "same-a", day: "2026-09-11", focusSeconds: 65, source: "timer", taskId: "task-a", taskTitle: "Same title" },
+    { id: "same-b", day: "2026-09-11", focusSeconds: 70, source: "timer", taskId: "task-b", taskTitle: "Same title" },
+    { id: "deleted-old", day: "2026-09-09", focusSeconds: 40, source: "timer", taskId: "task-deleted", taskTitle: "Earlier snapshot" },
+    { id: "deleted-new", day: "2026-09-12", focusSeconds: 80, source: "timer", taskId: "task-deleted", taskTitle: "Latest snapshot" },
+    { id: "snapshot-one", day: "2026-09-12", focusSeconds: 31, source: "timer", taskId: null, taskTitle: "Same title" },
+    { id: "snapshot-two", day: "2026-09-12", focusSeconds: 32, source: "timer", taskId: null, taskTitle: "Same title" },
+    { id: "manual", day: "2026-09-12", focusSeconds: 33, source: "manual", taskId: null, taskTitle: "" },
+    { id: "imported", day: "2026-09-08", focusSeconds: 34, source: "migrated", taskId: null, taskTitle: "" },
+    { id: "previous", day: "2026-09-05", focusSeconds: 60, source: "manual", taskId: null, taskTitle: "" }
+  ];
+  const review = summarizeFocusReview(sessions, [
+    { id: "task-live", title: "Current name" },
+    { id: "task-a", title: "Same title" },
+    { id: "task-b", title: "Same title" }
+  ], days);
+
+  assert.equal(review.totalSeconds, 510);
+  assert.equal(review.groupedSeconds, 510);
+  assert.equal(review.reconciles, true);
+  assert.equal(review.activeDays, 5);
+  assert.equal(review.previousTotalSeconds, 60);
+  assert.equal(review.comparisonPercent, 750);
+  assert.equal(review.importedSeconds, 34);
+  assert.equal(review.roundingDifferenceMinutes, 0);
+  assert.equal(review.groups.filter((group) => group.type === "snapshot").length, 2);
+  assert.deepEqual(
+    review.groups.filter((group) => group.taskId === "task-live")[0],
+    {
+      key: "task:task-live",
+      type: "task",
+      taskId: "task-live",
+      title: "Current name",
+      seconds: 125,
+      deleted: false,
+      missingSnapshot: false
+    }
+  );
+  assert.equal(
+    review.groups.find((group) => group.taskId === "task-deleted").title,
+    "Latest snapshot"
+  );
+  assert.equal(review.groups.find((group) => group.taskId === "task-deleted").deleted, true);
+  assert.deepEqual(
+    review.groups.filter((group) => group.title === "Same title").map((group) => group.key).sort(),
+    ["snapshot:snapshot-one", "snapshot:snapshot-two", "task:task-a", "task:task-b"]
+  );
+  assert.equal(review.groups.find((group) => group.type === "unassigned").seconds, 67);
+
+  const roundingReview = summarizeFocusReview([
+    { id: "round-a", day: "2026-09-12", focusSeconds: 31, source: "timer", taskId: null, taskTitle: "A" },
+    { id: "round-b", day: "2026-09-12", focusSeconds: 31, source: "timer", taskId: null, taskTitle: "B" }
+  ], [], days);
+  assert.equal(roundingReview.displayedTotalMinutes, 1);
+  assert.equal(roundingReview.roundingDifferenceMinutes, 1);
+});
+
+test("focus review uses stored days, explains zero baselines, and exposes retention boundaries", () => {
+  const days = buildRangeDays(new Date(2026, 10, 1, 12), "today", "en-US");
+  const moved = upsertFocusSession([
+    {
+      id: "edited-day",
+      day: "2026-10-31",
+      focusSeconds: 120,
+      completedAt: "2026-10-31T23:30:00.000Z",
+      source: "timer",
+      taskId: "deleted-without-title",
+      taskTitle: ""
+    }
+  ], {
+    id: "edited-day",
+    day: "2026-11-01",
+    focusSeconds: 180
+  });
+  const sparse = summarizeFocusReview(moved, [], days);
+  assert.equal(sparse.totalSeconds, 180);
+  assert.equal(sparse.previousTotalSeconds, 0);
+  assert.equal(sparse.comparisonPercent, null);
+  assert.equal(sparse.groups[0].missingSnapshot, true);
+  assert.equal(moved[0].completedAt, "2026-10-31T23:30:00.000Z");
+
+  const capped = Array.from({ length: 5000 }, (_, index) => ({
+    id: `cap-${index}`,
+    day: "2026-11-01",
+    focusSeconds: 1,
+    source: index % 2 ? "timer" : "manual",
+    taskId: null,
+    taskTitle: ""
+  }));
+  const bounded = summarizeFocusReview(capped, [], days);
+  assert.equal(bounded.totalSeconds, 5000);
+  assert.equal(bounded.retentionLimitReached, true);
+  assert.equal(bounded.comparisonMayBeIncomplete, true);
+  assert.equal(bounded.retainedSessionCount, 5000);
+});
+
+test("paginates dense focus review output without rendering the full ledger", () => {
+  const groups = Array.from({ length: 21 }, (_, index) => ({
+    key: `task:${index}`,
+    seconds: 60
+  }));
+  assert.deepEqual(paginateFocusReview(groups, 2), {
+    items: groups.slice(8, 16),
+    page: 2,
+    totalPages: 3,
+    totalItems: 21
+  });
+  assert.equal(paginateFocusReview(groups, 99).page, 3);
+  assert.equal(paginateFocusReview([], 1).totalPages, 1);
+});
+
+test("handles empty, all-unassigned, edited, and deleted review ledgers", () => {
+  const days = buildRangeDays(new Date(2026, 8, 12, 12), "today", "en-US");
+  const empty = summarizeFocusReview([], [], days);
+  assert.equal(empty.totalSeconds, 0);
+  assert.equal(empty.activeDays, 0);
+  assert.equal(empty.comparisonPercent, null);
+  assert.deepEqual(empty.groups, []);
+
+  const unassigned = [
+    { id: "manual", day: "2026-09-12", focusSeconds: 60, source: "manual" },
+    { id: "imported", day: "2026-09-12", focusSeconds: 120, source: "migrated" }
+  ];
+  const initial = summarizeFocusReview(unassigned, [], days);
+  assert.equal(initial.groups.length, 1);
+  assert.equal(initial.groups[0].type, "unassigned");
+  assert.equal(initial.groups[0].seconds, 180);
+  assert.equal(initial.importedSeconds, 120);
+
+  const edited = upsertFocusSession(unassigned, {
+    id: "manual",
+    day: "2026-09-12",
+    focusSeconds: 180
+  });
+  assert.equal(summarizeFocusReview(edited, [], days).totalSeconds, 300);
+  const deleted = removeFocusSession(edited, "imported");
+  const afterDelete = summarizeFocusReview(deleted, [], days);
+  assert.equal(afterDelete.totalSeconds, 180);
+  assert.equal(afterDelete.importedSeconds, 0);
 });
 
 test("normalizes weather labels, payloads, and cache age", () => {
