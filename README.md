@@ -10,13 +10,15 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3；仓库源码另含尚未单独发布的 Phase 4A Focus Intent 与 Phase 4B Focus Review。
+当前发布版本：**v1.4.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 4，以及快捷键面板中的七语言即时切换。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
 ## 主要特性
 - 番茄专注 / 短休息 / 长休息计时器，支持可配置循环、独立自动开始选项、每日目标、开始/暂停/重置与托盘显示
 - 可选的 Focus Intent：最多保存 100 个短标题任务，选择下一轮意图，并以冻结快照记录本轮与历史归属
+- Focus Review：按今天、最近 7 天和最近 30 天，以稳定任务身份解释账本中的专注时间
+- 三种原创 MIT 离线环境音，可在音乐旁独立播放一种，并可选择启用有界、可取消的音频淡入淡出
 - Quiet Studio 响应式界面，以及可独立切换并恢复完整窗口大小的 Mini Mode
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹、稳定保存队列、重连移动后的文件夹并明确恢复缺失曲目
@@ -193,13 +195,14 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The release contains the complete Phase 3; the repository source also contains the not-yet-released Phase 4A Focus Intent, Phase 4B Focus Review, Phase 4C1 Ambient Layer, and Phase 4C2 Audio Transitions.
+Current release: **v1.4.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. This release contains the complete Phase 4 plus immediate seven-language switching in Keys.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
 ## Key features
 - Pomodoro-style focus, short-break, and long-break timer with configurable cycles, independent auto-start options, an optional daily goal, start/pause/reset, and tray display
 - Optional Focus Intent with up to 100 short-title tasks, a next-session choice, and immutable current/history attribution snapshots
+- Exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days, grouped by stable task identity
 - Responsive Quiet Studio interface with an explicit Mini Mode that restores the previous full-window bounds
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks, stable saved queues, local-folder reconnect/rescan recovery, and explicit missing-track handling

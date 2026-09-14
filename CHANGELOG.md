@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 — 2026-09-14
+
+- Added optional title-only Focus Intent tasks with next-session selection and immutable in-session/history snapshots
+- Added stable focus-session IDs and atomic, idempotent completion persistence across live completion and expired recovery
+- Upgraded local state to schema v5 with v1–v4 migration, strict backup validation, and write-failure rollback
+- Added exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days with stable task identity and bounded pagination
+- Added immediate interface switching for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish
+- Added three original MIT-licensed offline ambient loops with one independently controlled layer beside music
+- Added optional bounded and cancellable audio fades for play, pause, and sequential music or ambient source changes
+- Preserved exact mute, paused startup, music-only native play, combined native pause/stop, and existing Notes, timer, playlist, history, and scene behavior
+- Added 98 automated checks plus isolated development/Universal packaged smoke coverage for migration, recovery, IME, accessibility, responsive layouts, audio races, and maximum retained data
+
 ## 1.3.0 — 2026-09-09
 
 - Added configurable short and long breaks with a focus-cycle counter

@@ -7,12 +7,12 @@ Updated: 2026-09-14
 1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not recreate the removed `/Users/lvjunhao/Documents/ChatGPT/infinite lofi` checkout or create an extra worktree.
 2. Read `README.md`, the complete Phase 4 specification in `ROADMAP.md`, this file, `verification-log.md`, `UI-REFRESH-PLAN.md`, and repository `AGENTS.md` if one appears.
 3. Check the working tree, branch, recent commits, tags, live remote state, and latest exact-commit GitHub Actions result before changing or releasing anything.
-4. Keep the package version at 1.3.0 unless a later user instruction explicitly authorizes a release. Do not infer permission to create a tag, GitHub Release, signing, or notarization work.
+4. Package version 1.4.0 and its release are explicitly authorized. Do not create later tags, releases, signing, or notarization work without a new instruction.
 
 ## Current project state
 
-- Published release: v1.3.0; package version remains 1.3.0.
-- Phase 0 through Phase 3E are complete. The public v1.3.0 release contains Phase 3.
+- Release candidate/package version: v1.4.0. The latest published release remains v1.3.0 until the v1.4.0 tag workflow succeeds.
+- Phase 0 through Phase 4C2 are complete in source. v1.4.0 packages complete Phase 4 plus the seven-language display setting.
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B Focus Review is locally committed as `5123207` on `codex/phase4-focus-depth`.
@@ -102,4 +102,4 @@ Updated: 2026-09-14
 
 ## Next product boundary
 
-No additional Phase 4 product slice is authorized or pending. Merge this delivery-evidence documentation through its own PR and confirm that documentation merge's main CI. Keep version 1.3.0 and do not tag, release, sign, or notarize without a separate instruction. Optional human checks for subjective loop/fade quality and physical OS media buttons remain documented above.
+No additional Phase 4 product slice is authorized or pending. Complete the authorized v1.4.0 release through a release-preparation PR, final-head CI, squash merge, exact-merge main CI, annotated tag, and successful Release workflow. Verify the uploaded Universal DMG/ZIP and authoritative checksums, then record the evidence through a documentation PR. Signing and notarization remain excluded. Optional human checks for subjective loop/fade quality and physical OS media buttons remain documented above.

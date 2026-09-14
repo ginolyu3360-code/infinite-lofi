@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.3.0 is the current release, delivering the complete Phase 3 product pass on top of the v1.2.0 security, distribution, and refreshed UI foundation.
+Version 1.4.0 is the current release candidate, delivering the complete Phase 4 Focus Depth pass and seven-language display settings on top of the v1.3.0 Phase 3 foundation.
 
-Version 1.3.0 includes configurable focus cycles and goals, editable session history and trends, resilient playlist persistence with native media controls, expanded accessibility, and curated scenes. It has been published with an unsigned Universal DMG, Universal ZIP, and SHA-256 checksums after successful `main` CI and Release workflow runs. Every future release must still be based on a passing `main` CI result.
+Version 1.4.0 adds optional Focus Intent tasks with immutable attribution, transparent Focus Review summaries, one bundled offline ambient layer, bounded cancellable audio transitions, and seven immediate interface languages. Publishing still requires a passing release-preparation PR, exact-merge `main` CI, annotated `v1.4.0` tag, and successful Release workflow. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
 
 ## Phase 0 — Stabilize the core
 
