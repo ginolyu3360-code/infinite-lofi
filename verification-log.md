@@ -1,5 +1,14 @@
 # Verification Log
 
+## 2026-09-14 — Phase 4B/C1/C2 delivery and repair completed
+
+- Combined feature [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) retained the requested separate local phase commits (`5123207` for 4B, `e7aa161` for 4C1, and `185138c` for 4C2). Final PR head `8393f7cc32ca79ad04dd124c110d82f4b68a31cd` passed [CI 34794492670](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34794492670), including 98 tests, development smoke, Universal packaging, and packaged smoke, then squash-merged as `c36e325f4d7751a9bfb6cacbeffa55d2b5451f75`.
+- Exact-merge [main CI 34794688203](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34794688203) exposed a CI-only muted rapid-reversal timing race after the feature merge. It did not pass and is retained as failure evidence rather than being treated as completion.
+- Minimal repair [PR #21](https://github.com/ginolyu3360-code/infinite-lofi/pull/21) was based directly on the failed merge commit and contained one smoke adjustment plus accurate handoff records. Final head `7b16c2b190ff6b385402b2b76b92f92c7c0b6029` passed [CI 34794996675](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34794996675), including development and packaged smoke, and was squash-merged as `b52be3470c2a562a98ae9d84035b8d12be7557bf`.
+- Exact repair-merge [main CI 34795181140](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34795181140) passed checks, development smoke, Universal packaging, and packaged smoke. This is the authoritative green Phase 4B/C1/C2 delivery state.
+- Phase 4 product implementation is complete in source. Exact native 1440 × 900, subjective audible loop/fade quality, and physical operating-system Media Session button exercise remain explicitly unverified human checks; all automated substitutes and available viewport checks are recorded below.
+- Package version remains 1.3.0. No tag, GitHub Release, signing, notarization, installer release, Phase 4B/C1/C2 scope expansion, or Phase 4D work was performed.
+
 ## 2026-09-13 — Phase 4C2 Audio Transitions and combined local acceptance
 
 ### Implemented

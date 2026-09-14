@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B/C1/C2 final head `8393f7c` passed PR CI `34794492670` and [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) was squash-merged as `c36e325`. Exact-merge main CI `34794688203` exposed one remaining smoke timing race; a minimal follow-up fix and passing exact-head main CI remain required. This section supersedes the 2026-09-09 draft.
+Status: Phase 4 is complete in source. Phase 4A was delivered through PR #16 and exact-merge main CI in 2026-09-11. Phase 4B/C1/C2 final head `8393f7c` passed PR CI `34794492670`, [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) was squash-merged as `c36e325`, and the remaining smoke-runner race was repaired through [PR #21](https://github.com/ginolyu3360-code/infinite-lofi/pull/21) as `b52be34`. The exact repair merge passed main CI `34795181140` on 2026-09-14. Human listening/physical media-button checks and exact native 1440 × 900 remain explicitly unverified; no product scope is left partially implemented. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -431,7 +431,8 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 - [x] `npm run check` passes with 98 tests; isolated development and final Universal packaged smoke pass without renderer exceptions. The final package contains both `x86_64` and `arm64` and adds no C2 audio assets or runtime dependency.
 - [ ] Exact native 1440 × 900 remains unavailable on the reference display; the maximum tested renderer viewport is 1440 × 794. OS Media Session button exercise and subjective audible loop/fade quality remain human checks.
 - [x] Combined [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) final head `8393f7c` passed CI `34794492670` and was squash-merged as `c36e325`.
-- [ ] Exact-merge main CI `34794688203` failed only the transition smoke because the muted rapid-reversal probe could let the pause settle before issuing play on a heavily loaded runner. A minimal follow-up issues mute/replay synchronously before any animation frame; passing repair-PR and exact-head main CI plus final delivery evidence remain pending. Package version stays 1.3.0; no tag, Release, signing, or notarization is authorized.
+- [x] Exact-merge main CI `34794688203` failed only the transition smoke because the muted rapid-reversal probe could let the pause settle before issuing play on a heavily loaded runner. Repair [PR #21](https://github.com/ginolyu3360-code/infinite-lofi/pull/21) head `7b16c2b` passed CI `34794996675`, was squash-merged as `b52be34`, and exact-head main CI `34795181140` passed the complete workflow.
+- [x] Feature delivery, repair, and exact-head main verification are complete. Package version stays 1.3.0; no tag, Release, signing, or notarization was performed.
 
 ### Phase 4 execution and handoff rules
 
