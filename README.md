@@ -12,6 +12,8 @@
 
 当前发布版本：**v1.4.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 4，以及快捷键面板中的七语言即时切换。
 
+当前源码还包含尚未发布的反馈改进：大曲库 Queue 管理、单曲循环/随机播放、Mini 播放控制、更大的响应式计时器，以及多项交互修复。源码版本号仍为 1.4.0，这些改进不应被误认为已经进入 v1.4.0 Release。
+
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
 ## 主要特性
@@ -19,9 +21,9 @@
 - 可选的 Focus Intent：最多保存 100 个短标题任务，选择下一轮意图，并以冻结快照记录本轮与历史归属
 - Focus Review：按今天、最近 7 天和最近 30 天，以稳定任务身份解释账本中的专注时间
 - 三种原创 MIT 离线环境音，可在音乐旁独立播放一种，并可选择启用有界、可取消的音频淡入淡出
-- Quiet Studio 响应式界面，以及可独立切换并恢复完整窗口大小的 Mini Mode
+- Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
-- 音乐播放器：内置示例曲目 + 支持异步扫描已授权的本地音乐文件夹、稳定保存队列、重连移动后的文件夹并明确恢复缺失曲目
+- 音乐播放器：内置示例曲目、本地文件夹异步扫描、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
@@ -158,7 +160,7 @@ electron-builder 的关键配置（来自 package.json）：
 - Phase 4A Focus Intent 已完成于源码：schema v5 保存标题任务、下一轮选择和当前轮冻结快照；完成记账与下一计时状态原子写入，任务改名、完成或删除不会重写进行中或历史快照。
 - Phase 4B Focus Review 已完成于源码：Stats 明确使用今天、最近 7 天和最近 30 天滚动范围，按稳定任务 ID 汇总账本时间，并分别标识已删除任务、仅快照与未指定记录；界面同时解释零基线、取整、导入数据及保留边界。
 - Phase 4C1 Ambient Layer 已完成于源码：Scene 提供三种原创 MIT 离线环境音，可与音乐独立控制且同一时间最多播放一种；选择与独立音量保存在 schema v5，但启动、恢复和异常恢复后始终暂停。
-- Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 500 ms 的音乐与环境声淡入淡出；用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
+- Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 3000 ms 的音乐与环境声淡入淡出；默认仍为 200 ms，用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
@@ -174,7 +176,7 @@ Q: 我运行 npm run dev 后窗口一片空白怎么办？
 A: 先运行 `npm ci` 和 `npm run check`；确认通过后再运行 `npm start`，并查看终端中的 Electron 错误信息。
 
 Q: 如何加载本地音乐？
-A: 应用通过托盘或 UI 调用 `selectMusicFolder`（由 preload.js 暴露）选择本地目录，主进程会扫描音频文件并返回带封面信息的 track 列表。
+A: 在 Queue 中选择 **Load Folder**，然后选择本地音乐目录。应用会保存已授权目录及 Queue 顺序；目录内容变化后可选择 **Rescan**。
 
 Q: 我想在 CI 中打包并自动签名 mac 应用，需哪些准备？
 A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私钥）、并在构建机上配置证书或使用钥匙串；若要自动 notarize，还需将 API key/凭据配置到构建流程。是否需要我为你写一个 CI 示例（GitHub Actions）？
@@ -197,18 +199,20 @@ A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player
 
 Current release: **v1.4.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. This release contains the complete Phase 4 plus immediate seven-language switching in Keys.
 
+The current source also contains unreleased feedback work: large-library Queue management, Repeat One and Shuffle, Mini transport controls, a larger responsive timer, and interaction fixes. The package version remains 1.4.0, so these changes must not be described as part of the published v1.4.0 Release.
+
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
 ## Key features
 - Pomodoro-style focus, short-break, and long-break timer with configurable cycles, independent auto-start options, an optional daily goal, start/pause/reset, and tray display
 - Optional Focus Intent with up to 100 short-title tasks, a next-session choice, and immutable current/history attribution snapshots
 - Exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days, grouped by stable task identity
-- Responsive Quiet Studio interface with an explicit Mini Mode that restores the previous full-window bounds
+- Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
-- Music player with bundled sample tracks, stable saved queues, local-folder reconnect/rescan recovery, and explicit missing-track handling
+- Music player with bundled tracks, local-folder recovery, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
 - Native Media Session metadata, playback, track navigation, stop, and seeking controls
 - Three original bundled offline ambient loops with a single independent playback layer and volume
-- Optional bounded, cancellable audio fades for playback and sequential source changes
+- Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
 - Versioned local storage with legacy migration and validated backup restore
 - Four built-in scene presets—Quiet Studio, Midnight, Moss, and Paper—plus wallpaper, image, video, and track-cover sources
 - Native OS window controls, standard macOS close/quit behavior, and a tray menu

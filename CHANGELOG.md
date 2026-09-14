@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Added scrollable and full-size Queue management, retained drag reorder, and added click-to-swap plus double-click playback
+- Added persisted Repeat One and non-repeating-cycle Shuffle playback modes
+- Added previous/next and seeking to Mini Mode, enlarged responsive timer typography, and simplified the Queue-open timer surface
+- Raised the optional audio-fade limit from 500 ms to 3000 ms and prevented redundant music restarts/fades when focus starts during playback
+- Made the Show-mode timer card more transparent, enabled backdrop-click closing for large drawers, and reset Notes Delete All to one empty `Note 1`
+- Corrected the neutral release-tag example in the distribution guide
+- Enlarged the usable top window-drag region while keeping header buttons interactive
+
 ## 1.4.0 — 2026-09-14
 
 - Added optional title-only Focus Intent tasks with next-session selection and immutable in-session/history snapshots

@@ -173,6 +173,7 @@
         folderPath: "",
         queue: [],
         activeTrackKey: "",
+        playbackMode: "sequential",
         ambience: { ...ambience.DEFAULT_AMBIENCE_SETTINGS },
         audioTransitions: { ...audioTransition.DEFAULT_AUDIO_TRANSITIONS }
       },
@@ -220,6 +221,9 @@
       : migrateLegacyPlayer(playerSource);
     const normalizedPlayer = {
       ...normalizedPlayerBase,
+      playbackMode: ["sequential", "repeat-one", "shuffle"].includes(playerSource.playbackMode)
+        ? playerSource.playbackMode
+        : "sequential",
       ambience: ambience.normalizeAmbienceSettings(playerSource.ambience),
       audioTransitions: audioTransition.normalizeAudioTransitions(playerSource.audioTransitions)
     };

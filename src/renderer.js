@@ -127,6 +127,8 @@ const lofiPlayer = document.getElementById("lofiPlayer");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const nextTrackBtn = document.getElementById("nextTrackBtn");
 const prevTrackBtn = document.getElementById("prevTrackBtn");
+const repeatModeBtn = document.getElementById("repeatModeBtn");
+const shuffleModeBtn = document.getElementById("shuffleModeBtn");
 const progressSlider = document.getElementById("progressSlider");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const durationLabel = document.getElementById("durationLabel");
@@ -238,6 +240,7 @@ const loadMusicFolderBtn = document.getElementById("loadMusicFolderBtn");
 const rescanMusicFolderBtn = document.getElementById("rescanMusicFolderBtn");
 const removeMissingTracksBtn = document.getElementById("removeMissingTracksBtn");
 const useDefaultTracksBtn = document.getElementById("useDefaultTracksBtn");
+const showAllQueueBtn = document.getElementById("showAllQueueBtn");
 const musicFolderDisplay = document.getElementById("musicFolderDisplay");
 const bgToggleBtn = document.getElementById("bgToggleBtn");
 const backgroundDrawer = document.getElementById("backgroundDrawer");
@@ -323,7 +326,11 @@ const playerController = createPlayerController({
     loadMusicFolderBtn,
     rescanMusicFolderBtn,
     removeMissingTracksBtn,
-    useDefaultTracksBtn
+    useDefaultTracksBtn,
+    showAllQueueBtn,
+    repeatModeBtn,
+    shuffleModeBtn,
+    drawerBackdrop
   },
   onArtworkChange: (artwork) => {
     currentTrackArtwork = artwork;
@@ -331,6 +338,7 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: mediaSessionController.updateMetadata,
+  onLayoutChange: () => requestAnimationFrame(adjustTimerFont),
   getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
   setDisclosureState,
@@ -338,6 +346,7 @@ const playerController = createPlayerController({
 });
 const {
   getUserVolume: getMusicUserVolume,
+  handleTrackEnded,
   loadMusicFolder,
   pause: pauseMusic,
   persistState: persistPlayerState,
@@ -350,8 +359,11 @@ const {
   settleTransition: settleMusicTransition,
   switchTrack,
   stop: stopMusic,
+  toggleExpandedQueue,
   togglePlayback,
   togglePlaylistPanel,
+  toggleRepeatMode,
+  toggleShuffleMode,
   updateTrack,
   updateVolume,
   useDefaultTracks
@@ -1242,16 +1254,38 @@ function adjustTimerFont() {
   const cardRect = timerCard.getBoundingClientRect();
   if (!cardRect.width || !cardRect.height) return;
   const isMiniMode = document.body.classList.contains("is-mini-mode");
-  const availableWidth = Math.max(120, cardRect.width - (isMiniMode ? 32 : 80));
-  const availableHeight = Math.max(42, cardRect.height * (isMiniMode ? 0.48 : 0.34));
+  const isQueueOpen = document.body.classList.contains("is-queue-open") && !isMiniMode;
+  const actionWidth = isMiniMode
+    ? Math.ceil(document.getElementById("timerActions")?.getBoundingClientRect?.().width || 82)
+    : 0;
+  const availableWidth = Math.max(120, cardRect.width - (isMiniMode ? actionWidth + 38 : 64));
+  const timerContent = timerDisplay.parentElement;
+  const visibleSiblings = [...(timerContent?.children || [])].filter((child) => {
+    if (child === timerDisplay) return false;
+    if (isMiniMode && child.id === "timerActions") return false;
+    const style = getComputedStyle(child);
+    return style.display !== "none" && style.visibility !== "hidden";
+  });
+  const contentStyle = timerContent ? getComputedStyle(timerContent) : null;
+  const gap = Number.parseFloat(isMiniMode ? contentStyle?.rowGap : contentStyle?.gap) || 0;
+  const occupiedHeight = visibleSiblings.reduce(
+    (total, child) => total + child.getBoundingClientRect().height,
+    0
+  );
+  const measuredFreeHeight = Math.max(
+    42,
+    (timerContent?.clientHeight || cardRect.height) - occupiedHeight - gap * visibleSiblings.length - 4
+  );
+  const desiredHeight = cardRect.height * (isMiniMode ? 0.66 : isQueueOpen ? 0.64 : 0.4);
+  const availableHeight = Math.max(42, Math.min(measuredFreeHeight, desiredHeight));
 
   const text = timerDisplay.textContent || "00:00";
   const cs = getComputedStyle(timerDisplay);
   const fontFamily = cs.fontFamily || "IBM Plex Mono, monospace";
   const fontWeight = cs.fontWeight || "700";
 
-  const maxCandidate = Math.min(isMiniMode ? 88 : 190, Math.round(availableHeight));
-  const minCandidate = isMiniMode ? 38 : 48;
+  const maxCandidate = Math.min(isMiniMode ? 112 : 220, Math.round(availableHeight));
+  const minCandidate = isMiniMode ? 32 : 48;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -1810,11 +1844,14 @@ async function init() {
       playPauseBtn,
       nextTrackBtn,
       prevTrackBtn,
+      repeatModeBtn,
+      shuffleModeBtn,
       playlistToggleBtn,
       loadMusicFolderBtn,
       rescanMusicFolderBtn,
       removeMissingTracksBtn,
       useDefaultTracksBtn,
+      showAllQueueBtn,
       shortcutHelpCloseBtn,
       shortcutHelpOverlay,
       shortcutHelpPanel,
@@ -1863,7 +1900,11 @@ async function init() {
       togglePlayback,
       switchTrack,
       prevTrack,
+      handleTrackEnded,
       togglePlaylistPanel,
+      toggleExpandedQueue,
+      toggleRepeatMode,
+      toggleShuffleMode,
       loadMusicFolder,
       rescanMusicFolder,
       removeMissingTracks,

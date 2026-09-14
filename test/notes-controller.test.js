@@ -81,3 +81,40 @@ test("notes report quota failure and restore the last committed content", () => 
   assert.equal(notesInput.value, "Committed note");
   assert.deepEqual(errors, ["quota exceeded"]);
 });
+
+test("clearing notes recreates one empty Note 1 instead of keeping the old name", () => {
+  const storage = createMemoryStorage();
+  const repository = createRepository(storage, () => 100);
+  repository.update((state) => {
+    state.notes.files = [
+      { id: "alpha", name: "alpha", content: "first", pinned: false, updatedAt: 1 },
+      { id: "beta", name: "Note 2", content: "second", pinned: false, updatedAt: 2 }
+    ];
+    state.notes.activeId = "beta";
+  });
+  const notesInput = new FakeElement("textarea");
+  const controller = createNotesController({
+    appStorage: repository,
+    noteModel,
+    sanitizeNoteFiles: (files) => Array.isArray(files) ? files.map((file) => ({ ...file })) : [],
+    elements: {
+      document: { createElement: (tagName) => new FakeElement(tagName), getElementById: () => null },
+      notesInput,
+      noteTabs: new FakeElement(),
+      notePinBtn: new FakeElement("button")
+    },
+    confirm: () => true,
+    now: () => 200,
+    random: () => 0.5,
+    requestAnimationFrame: (callback) => callback()
+  });
+  controller.loadNotes();
+  controller.clearNotesWithConfirm();
+
+  const notes = repository.getState().notes;
+  assert.equal(notes.files.length, 1);
+  assert.equal(notes.files[0].name, "Note 1");
+  assert.equal(notes.files[0].content, "");
+  assert.equal(notes.activeId, notes.files[0].id);
+  assert.equal(notesInput.value, "");
+});

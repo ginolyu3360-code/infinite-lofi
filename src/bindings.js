@@ -258,6 +258,7 @@
       a.toggleBackgroundDrawer(false);
       a.toggleStatsDrawer(false);
       a.toggleFocusPlanDrawer(false);
+      a.togglePlaylistPanel(false);
     });
     on(e.bgBlackBtn, "click", () => a.setBackgroundPreset("quiet-studio"));
     on(e.bgMidnightBtn, "click", () => a.setBackgroundPreset("midnight"));
@@ -284,11 +285,14 @@
     on(e.playPauseBtn, "click", a.togglePlayback);
     on(e.nextTrackBtn, "click", a.switchTrack);
     on(e.prevTrackBtn, "click", a.prevTrack);
+    on(e.repeatModeBtn, "click", a.toggleRepeatMode);
+    on(e.shuffleModeBtn, "click", a.toggleShuffleMode);
     on(e.playlistToggleBtn, "click", a.togglePlaylistPanel);
     on(e.loadMusicFolderBtn, "click", a.loadMusicFolder);
     on(e.rescanMusicFolderBtn, "click", a.rescanMusicFolder);
     on(e.removeMissingTracksBtn, "click", a.removeMissingTracks);
     on(e.useDefaultTracksBtn, "click", a.useDefaultTracks);
+    on(e.showAllQueueBtn, "click", a.toggleExpandedQueue);
 
     on(e.shortcutHelpCloseBtn, "click", () => a.toggleShortcutHelp(false));
     on(e.shortcutHelpOverlay, "click", (event) => {
@@ -340,7 +344,7 @@
       e.progressSlider.value = String(Math.round((e.lofiPlayer.currentTime / duration) * 1000));
       e.currentTimeLabel.textContent = formatTime(Math.floor(e.lofiPlayer.currentTime));
     });
-    on(e.lofiPlayer, "ended", a.switchTrack);
+    on(e.lofiPlayer, "ended", a.handleTrackEnded);
     on(e.lofiPlayer, "pause", () => {
       e.playPauseBtn.textContent = t("player.play");
     });

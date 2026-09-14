@@ -5,12 +5,13 @@ Updated: 2026-09-14
 ## Start of the next session
 
 1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not recreate the removed `/Users/lvjunhao/Documents/ChatGPT/infinite lofi` checkout or create an extra worktree.
-2. Read `README.md`, the complete Phase 4 specification in `ROADMAP.md`, this file, `verification-log.md`, `UI-REFRESH-PLAN.md`, and repository `AGENTS.md` if one appears.
-3. Check the working tree, branch, recent commits, tags, live remote state, and latest exact-commit GitHub Actions result before changing or releasing anything.
+2. For an ordinary continuation, read the post-v1.4 implementation summary and remaining boundary near the end of this handoff, then inspect only changes since the recorded baseline. Do not repeatedly reread the complete historical roadmap, verification log, and UI plan unless planning a release/migration, resolving a contradiction, or changing the relevant subsystem.
+3. Recorded audit baseline: local and remote `main` were clean and synchronized at `c536bc0b068f47e7eaedcf0a36136e8b310abe37`; exact-head CI `34798817855` passed. Before making changes, fetch and compare the working tree, `main`, tags, and latest exact-commit CI against this baseline.
 4. Package version 1.4.0 is published. Do not create later tags or releases, or begin signing/notarization work, without a new instruction.
 
 ## Current project state
 
+- After the release evidence and repository-file cleanup PRs, current local/remote `main` is `c536bc0`; [exact-head CI `34798817855`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34798817855) passed checks, development smoke, Universal packaging, and packaged smoke. The only remote branch is `main`, with no open PRs or Issues at the recorded audit.
 - Current package and latest published release: v1.4.0. Release-preparation [PR #23](https://github.com/ginolyu3360-code/infinite-lofi/pull/23) final head `c8df170` passed CI `34796227646`, was squash-merged as `a55cb73`, and passed exact-merge [main CI `34796418446`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796418446).
 - Annotated tag `v1.4.0` resolves to `a55cb73`. [Release workflow `34796559509`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796559509) published the latest non-draft, non-prerelease [GitHub Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.0) with unsigned Universal DMG/ZIP and SHA-256 checksums.
 - Phase 0 through Phase 4C2 are complete in source. v1.4.0 packages complete Phase 4 plus the seven-language display setting.
@@ -95,12 +96,29 @@ Updated: 2026-09-14
 
 ## Explicit limitations and boundaries
 
-- The current Phase 4B/C1/C2 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The exact 1440 × 900 native target could not be provided and remains unverified; this is not recorded as a pass.
+- Automated Phase 4B/C1/C2 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The user subsequently confirmed native 1440 × 900 verification passed on 2026-09-14; keep the older automated limitation as provenance rather than treating it as the current acceptance state.
 - Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop buttons require human interaction and remain pending. Automated action-handler delegation, waveform seam bounds, actual decode/playback, final state, and native Media Session state all pass; those checks are not mislabeled as subjective listening.
 - The v1.4.0 Universal build is intentionally unsigned and not notarized. Its version tag and GitHub Release were a separate explicitly authorized release step, not part of Phase 4B implementation.
 - Tray menu rendering and OS notification presentation are not directly introspected by the renderer smoke; their unchanged IPC paths were exercised without exceptions, and existing main-process behavior was not modified.
 - Tasks remain title-only and optional. Phase 4B/C1/C2 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, multiple ambient layers, crossfades, phase ducking, or sleep timers.
 
-## Next product boundary
+## Post-v1.4 feedback implementation
 
-No additional product slice or later release is authorized or pending. v1.4.0 is published and its downloaded Universal artifacts match the release checksums. Signing and notarization remain excluded. Optional human checks for subjective loop/fade quality, exact native 1440 × 900, and physical OS media buttons remain documented above.
+Implementation branch: `codex/post-v1.4-feedback`, based on `c536bc0`. Package version remains 1.4.0; no tag, Release, signing, or notarization work is part of this branch.
+
+- Implemented responsive large timer sizing in full, Queue, and Mini layouts. Queue-open timer content is reduced to time plus Start/Pause and Reset; Mini retains previous/next and seeking at 360 × 200 without overflow.
+- Implemented vertically scrollable compact Queue plus a large in-app `Show All` manager for folders with more than six tracks. Drag reorder remains; single-click selects and swaps, repeat-click or Escape cancels, double-click plays, and Shift+Enter is the keyboard play action.
+- Implemented persisted, mutually exclusive Single Track Repeat and non-repeating-cycle Shuffle modes, including shuffle history for Previous and safe reset when the queue changes.
+- Raised the bounded audio-transition maximum from 500 to 3000 ms while retaining the 200 ms default and existing cancellation/exact-mute behavior. Starting focus while music is already playing is now a no-op for music transport, avoiding a redundant fade or restart.
+- Implemented a more transparent Show-mode timer card, backdrop-click closing/focus restoration for large drawers, and Notes Delete All recreation of one empty localized `Note 1`.
+- Moved the full Queue panel to the viewport layer while expanded so `Show All` is not constrained by the player's glass/backdrop-filter containing block. Expanded the draggable header surface across the non-interactive status area.
+- Corrected the neutral tag example in `DISTRIBUTION.md`; future handoffs should update only changed feature/version/tag/commit/CI evidence and limitations.
+- User-confirmed native 1440 × 900 remains accepted. Automated smoke also covers its available 1440-wide viewport plus 720 × 520 through 1100 × 760 and Mini 420 × 250 / 360 × 200.
+- Final local verification passed 102 tests, development smoke, Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions. Both smoke paths verify the Queue viewport portal/restoration and the enlarged header drag surface.
+
+### Remaining boundary
+
+- Do not add a persistent one-to-three-track audio-file cache without measured latency or availability evidence. Local media and the OS already buffer; if a real problem appears, evaluate bounded next-track/metadata/artwork preload first and define size, invalidation, cleanup, privacy, and missing-folder behavior before a disk cache.
+- Music Inbox was removed after direct user feedback that it was unnecessary. Continue using bundled defaults plus explicitly loaded local folders; do not restore an app-owned Inbox without a new request.
+- Subjective audio quality and physical OS media-key checks remain human checks.
+- A version bump, PR/merge, tag, Release, signing, or notarization requires its normal separate delivery decision. The previously recorded ambient-sound/signing reminder was explicitly removed from this feedback list; signing/notarization remains only the older distribution limitation, not near-term work.

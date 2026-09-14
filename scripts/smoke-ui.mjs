@@ -146,11 +146,26 @@ try {
       const cardRect = timerCard.getBoundingClientRect();
       const playerRect = player.getBoundingClientRect();
       const headerActionsRect = headerActions.getBoundingClientRect();
+      const timerContentRect = timerContent.getBoundingClientRect();
       const viewportTolerance = 4;
+      const timerChildOverflow = [...timerContent.children]
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+        })
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.left < timerContentRect.left - viewportTolerance ||
+            rect.right > timerContentRect.right + viewportTolerance ||
+            rect.top < timerContentRect.top - viewportTolerance ||
+            rect.bottom > timerContentRect.bottom + viewportTolerance;
+        })
+        .map((element) => element.id || element.className || element.tagName);
       return {
         width: innerWidth,
         height: innerHeight,
         timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+        timerChildOverflow,
         cardInsideViewport: cardRect.left >= -viewportTolerance && cardRect.right <= innerWidth + viewportTolerance && cardRect.top >= -viewportTolerance,
         playerInsideViewport: playerRect.left >= -viewportTolerance && playerRect.right <= innerWidth + viewportTolerance && playerRect.bottom <= innerHeight + viewportTolerance,
         headerActionsInsideViewport: headerActionsRect.left >= -viewportTolerance && headerActionsRect.right <= innerWidth + viewportTolerance,
@@ -164,7 +179,7 @@ try {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       state = await readLayoutState();
       if (
-        state.timerOverflow <= 4 &&
+        state.timerChildOverflow.length === 0 &&
         state.cardInsideViewport &&
         state.playerInsideViewport &&
         state.headerActionsInsideViewport &&
@@ -237,11 +252,21 @@ try {
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
-        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect',
+        'useDefaultTracksBtn', 'showAllQueueBtn',
+        'shuffleModeBtn', 'repeatModeBtn', 'a11yStatus', 'displayLanguageSelect',
         'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
         'ambienceVolumeSlider', 'ambienceStatus', 'audioTransitionsEnabled',
         'audioTransitionDuration'
-      ].every((id) => Boolean(document.getElementById(id)))
+      ].every((id) => Boolean(document.getElementById(id))),
+      dragRegion: (() => {
+        const status = document.querySelector('#statusWidget');
+        const bounds = status.getBoundingClientRect();
+        return {
+          appRegion: getComputedStyle(status).webkitAppRegion,
+          width: bounds.width,
+          height: bounds.height
+        };
+      })()
     };
   })()`);
 
@@ -405,10 +430,42 @@ try {
     queueTrigger.click();
     await new Promise((resolve) => requestAnimationFrame(resolve));
     const queueFocused = document.activeElement?.classList.contains('playlist-item');
+    const queueStyle = getComputedStyle(document.querySelector('#playlistItems'));
+    const queueUsesVerticalScroll = queueStyle.overflowY === 'auto' && queueStyle.maxHeight !== 'none';
+    const timerIsSimplified =
+      getComputedStyle(document.querySelector('#timerDisplay')).display !== 'none' &&
+      getComputedStyle(document.querySelector('#timerActions')).display !== 'none' &&
+      getComputedStyle(document.querySelector('#timerPhaseLabel')).display === 'none' &&
+      getComputedStyle(document.querySelector('#timerIntentSummary')).display === 'none' &&
+      getComputedStyle(document.querySelector('#timerConfigPanel')).display === 'none';
+    const showAll = document.querySelector('#showAllQueueBtn');
+    showAll.hidden = false;
+    showAll.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const expandedBounds = document.querySelector('#playlistPanel').getBoundingClientRect();
+    const showAllExpanded = document.querySelector('#playlistPanel').classList.contains('is-expanded');
+    const showAllViewportLayer = document.querySelector('#playlistPanel').parentNode === document.body;
+    const showAllInside = expandedBounds.left >= -4 && expandedBounds.top >= -4 && expandedBounds.right <= innerWidth + 4 && expandedBounds.bottom <= innerHeight + 4;
+    const showAllLarge = expandedBounds.width >= Math.min(640, innerWidth - 40) && expandedBounds.height >= Math.min(360, innerHeight - 80);
+    showAll.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const showAllRestored = document.querySelector('#playlistPanel').parentNode?.id === 'playerPanel' && !document.querySelector('#playlistPanel').classList.contains('is-expanded');
+    document.querySelector('#playlistItems .playlist-item')?.focus();
     document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     const queueClosed = document.querySelector('#playlistPanel').classList.contains('hidden');
     const queueFocusRestored = document.activeElement === queueTrigger;
-    return { queueFocused, queueClosed, queueFocusRestored };
+    return {
+      queueFocused,
+      queueUsesVerticalScroll,
+      timerIsSimplified,
+      showAllExpanded,
+      showAllViewportLayer,
+      showAllInside,
+      showAllLarge,
+      showAllRestored,
+      queueClosed,
+      queueFocusRestored
+    };
   })()`);
 
   await setWindowSize(800, 600);
@@ -543,6 +600,8 @@ try {
       frozenTitle: state.timerRuntime.focusSession?.taskTitle,
       timerStillRunning: state.timerRuntime.isRunning,
       removalFocusPredictable: document.activeElement?.id === 'taskTitleInput' || Boolean(document.activeElement?.dataset?.taskAction),
+      removalFocusId: document.activeElement?.id || '',
+      removalFocusAction: document.activeElement?.dataset?.taskAction || '',
       currentCopy: document.querySelector('#tasksCurrentValue').textContent.trim(),
       nextCopy: document.querySelector('#tasksNextValue').textContent.trim()
     };
@@ -603,15 +662,32 @@ try {
 
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
-  const miniMode420 = await evaluate(`(() => ({
-    enabled: document.body.classList.contains('is-mini-mode'),
-    width: innerWidth,
-    height: innerHeight,
-    timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
-    fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
-    notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none',
-    editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none'
-  }))()`);
+  const miniMode420 = await evaluate(`(() => {
+    const timerContent = document.querySelector('#timerContent');
+    const timerContentRect = timerContent.getBoundingClientRect();
+    const tolerance = 4;
+    const timerChildOverflow = [...timerContent.children]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+      })
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < timerContentRect.left - tolerance || rect.right > timerContentRect.right + tolerance ||
+          rect.top < timerContentRect.top - tolerance || rect.bottom > timerContentRect.bottom + tolerance;
+      })
+      .map((element) => element.id || element.className || element.tagName);
+    return {
+      enabled: document.body.classList.contains('is-mini-mode'),
+      width: innerWidth,
+      height: innerHeight,
+      timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+      timerChildOverflow,
+      fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
+      notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none',
+      editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none'
+    };
+  })()`);
   await evaluate(`(() => {
     window.__miniTimerText = document.querySelector('#timerDisplay').textContent;
     const intention = document.querySelector('#timerIntentValue');
@@ -626,7 +702,13 @@ try {
   })()`);
   await setWindowSize(360, 200);
   const miniMode360 = await evaluate(`(() => {
-    const ids = ['timerDisplay', 'timerToggle', 'timerReset', 'playPauseBtn', 'miniModeToggleBtn', 'timerIntentSummary'];
+    const timerContent = document.querySelector('#timerContent');
+    const timerContentRect = timerContent.getBoundingClientRect();
+    const ids = [
+      'timerDisplay', 'timerToggle', 'timerReset', 'playPauseBtn',
+      'prevTrackBtn', 'nextTrackBtn', 'progressSlider', 'miniModeToggleBtn',
+      'timerIntentSummary'
+    ];
     const tolerance = 4;
     const controls = Object.fromEntries(ids.map((id) => {
       const rect = document.getElementById(id).getBoundingClientRect();
@@ -635,11 +717,23 @@ try {
         inside: rect.left >= -tolerance && rect.right <= innerWidth + tolerance && rect.top >= -tolerance && rect.bottom <= innerHeight + tolerance
       }];
     }));
+    const timerChildOverflow = [...timerContent.children]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+      })
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < timerContentRect.left - tolerance || rect.right > timerContentRect.right + tolerance ||
+          rect.top < timerContentRect.top - tolerance || rect.bottom > timerContentRect.bottom + tolerance;
+      })
+      .map((element) => element.id || element.className || element.tagName);
     const intention = document.querySelector('#timerIntentValue');
     return {
       width: innerWidth,
       height: innerHeight,
-      timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
+      timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+      timerChildOverflow,
       timer: document.querySelector('#timerDisplay').textContent.trim(),
       titleAvailable: intention.getAttribute('aria-label')?.includes('界') && intention.title.includes('界'),
       editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none',
@@ -844,7 +938,11 @@ try {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     const statsVisible = visible('#statsDrawer');
     const statsFocused = document.activeElement?.id === 'statsCloseBtn';
-    document.querySelector('#statsCloseBtn').click();
+    const backdrop = document.querySelector('#drawerBackdrop');
+    const backdropVisible = visible('#drawerBackdrop') && backdrop.classList.contains('visible');
+    backdrop.click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const statsClosedByBackdrop = !document.querySelector('#statsDrawer').classList.contains('is-open');
     const statsFocusRestored = document.activeElement === statsTrigger;
     const sceneTrigger = document.querySelector('#bgToggleBtn');
     sceneTrigger.focus();
@@ -854,7 +952,32 @@ try {
     const backgroundFocused = document.activeElement?.id === 'backgroundCloseBtn';
     document.querySelector('#backgroundCloseBtn').click();
     const backgroundFocusRestored = document.activeElement === sceneTrigger;
-    return { statsVisible, statsFocused, statsFocusRestored, backgroundVisible, backgroundFocused, backgroundFocusRestored };
+    return {
+      statsVisible,
+      statsFocused,
+      backdropVisible,
+      statsClosedByBackdrop,
+      statsFocusRestored,
+      backgroundVisible,
+      backgroundFocused,
+      backgroundFocusRestored
+    };
+  })()`);
+
+  const showcaseResult = await evaluate(`(async () => {
+    const card = document.querySelector('#timerCard');
+    document.querySelector('#showcaseToggleBtn').click();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const style = getComputedStyle(card);
+    const result = {
+      enabled: document.body.classList.contains('is-showcase-mode'),
+      playerHidden: getComputedStyle(document.querySelector('#playerPanel')).display === 'none',
+      transparentCard: style.backgroundImage.includes('0.34') && style.backgroundImage.includes('0.2'),
+      timerVisible: card.getBoundingClientRect().width > 0 && document.querySelector('#timerDisplay').getBoundingClientRect().height > 0
+    };
+    card.click();
+    result.exited = !document.body.classList.contains('is-showcase-mode');
+    return result;
   })()`);
 
   const curatedScenesResult = await evaluate(`(async () => {
@@ -925,12 +1048,24 @@ try {
     const player = document.querySelector('#lofiPlayer');
     document.querySelector('#playPauseBtn').click();
     await new Promise((resolve) => setTimeout(resolve, 250));
+    document.querySelector('#repeatModeBtn').click();
+    const repeatState = JSON.parse(localStorage.getItem('infiniteLofiState')).player.playbackMode;
+    const repeatLoop = player.loop;
+    document.querySelector('#shuffleModeBtn').click();
+    const shuffleState = JSON.parse(localStorage.getItem('infiniteLofiState')).player.playbackMode;
+    const shufflePressed = document.querySelector('#shuffleModeBtn').getAttribute('aria-pressed');
+    const repeatPressed = document.querySelector('#repeatModeBtn').getAttribute('aria-pressed');
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     const result = {
       source: player.currentSrc || player.src,
       pausedAfterClick: player.paused,
       queueLength: state.player.queue.length,
       activeTrackKey: state.player.activeTrackKey,
+      repeatState,
+      repeatLoop,
+      shuffleState,
+      shufflePressed,
+      repeatPressed,
       mediaSessionSupported: Boolean(navigator.mediaSession),
       mediaSessionTitle: navigator.mediaSession?.metadata?.title || '',
       mediaPlaybackState: navigator.mediaSession?.playbackState || 'none'
@@ -1019,7 +1154,9 @@ try {
       finalPaused: music.paused,
       finalVolume: music.volume,
       checkboxLabelHeight: enabled.closest('label').getBoundingClientRect().height,
-      durationHeight: duration.getBoundingClientRect().height
+      durationHeight: duration.getBoundingClientRect().height,
+      durationMax: duration.max,
+      durationStep: duration.step
     };
   })()`);
 
@@ -1279,13 +1416,23 @@ try {
   if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.namedStatsDialog || !accessibilityTreeResult.namedReviewList || accessibilityTreeResult.reviewItems < 2 || !accessibilityTreeResult.liveStatusPresent) {
     failures.push("dialog or live status was missing from the accessibility tree");
   }
-  if (!expandableRegionResult.queueFocused || !expandableRegionResult.queueClosed || !expandableRegionResult.queueFocusRestored) {
+  if (baseline.dragRegion.appRegion !== 'drag' || baseline.dragRegion.width < 160 || baseline.dragRegion.height < 40) {
+    failures.push("top window drag region was not large enough");
+  }
+  if (
+    !expandableRegionResult.queueFocused || !expandableRegionResult.queueUsesVerticalScroll ||
+    !expandableRegionResult.timerIsSimplified || !expandableRegionResult.showAllExpanded ||
+    !expandableRegionResult.showAllViewportLayer || !expandableRegionResult.showAllInside ||
+    !expandableRegionResult.showAllLarge || !expandableRegionResult.showAllRestored ||
+    !expandableRegionResult.queueClosed ||
+    !expandableRegionResult.queueFocusRestored
+  ) {
     failures.push("playlist disclosure focus management failed");
   }
   if (!responsiveNotesResult.focusedOnOpen || !responsiveNotesResult.hiddenAfterEscape || !responsiveNotesResult.focusRestored) {
     failures.push("responsive notes focus management failed");
   }
-  if (responsiveLayouts.some((layout) => layout.timerOverflow > 4 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
+  if (responsiveLayouts.some((layout) => layout.timerChildOverflow.length > 0 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
   if (
@@ -1324,11 +1471,11 @@ try {
     completionDoesNotStopResult.resetContext !== null || !completionDoesNotStopResult.resetSelection ||
     completionDoesNotStopResult.resetSelectedTitle !== "Beta intention"
   ) failures.push("task completion changed the active timer or reset semantics");
-  if (!miniMode420.enabled || miniMode420.width > 480 || miniMode420.height > 280 || miniMode420.timerOverflow > 4 || miniMode420.fullLabel !== "Full" || !miniMode420.notesHidden || !miniMode420.editorHidden) {
+  if (!miniMode420.enabled || miniMode420.width > 480 || miniMode420.height > 280 || miniMode420.timerChildOverflow.length > 0 || miniMode420.fullLabel !== "Full" || !miniMode420.notesHidden || !miniMode420.editorHidden) {
     failures.push("Mini Mode layout or window sizing failed");
   }
   if (
-    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerOverflow > 4 || miniMode360.timer !== "360:00" ||
+    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerChildOverflow.length > 0 || miniMode360.timer !== "360:00" ||
     !miniMode360.titleAvailable || !miniMode360.editorHidden ||
     Object.values(miniMode360.controls).some((control) => !control.visible || !control.inside)
   ) failures.push("360x200 Mini Mode clipped maximum timer, intention, or primary controls");
@@ -1378,7 +1525,15 @@ try {
     layout.rangeButtonHeight < 42 || !layout.reviewVisible || !layout.closeVisible
   )) failures.push("responsive Focus Review layout failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
-  if (!drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.statsFocusRestored || !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored) failures.push("drawer interaction or focus restoration failed");
+  if (
+    !drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.backdropVisible ||
+    !drawersResult.statsClosedByBackdrop || !drawersResult.statsFocusRestored ||
+    !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored
+  ) failures.push("drawer backdrop interaction or focus restoration failed");
+  if (
+    !showcaseResult.enabled || !showcaseResult.playerHidden || !showcaseResult.transparentCard ||
+    !showcaseResult.timerVisible || !showcaseResult.exited
+  ) failures.push("Show mode transparency or exit behavior failed");
   if (
     !curatedScenesResult.midnight.enabled ||
     curatedScenesResult.midnight.pressed !== "true" ||
@@ -1411,6 +1566,8 @@ try {
     !playerResult.source ||
     playerResult.queueLength !== 3 ||
     !playerResult.activeTrackKey.startsWith('builtin:') ||
+    playerResult.repeatState !== 'repeat-one' || !playerResult.repeatLoop ||
+    playerResult.shuffleState !== 'shuffle' || playerResult.shufflePressed !== 'true' || playerResult.repeatPressed !== 'false' ||
     !playerResult.mediaSessionSupported ||
     !playerResult.mediaSessionTitle ||
     playerResult.mediaPlaybackState !== 'playing'
@@ -1428,7 +1585,8 @@ try {
     audioTransitionResult.sourceDuringFadeOut !== audioTransitionResult.sourceBeforeSwitch ||
     audioTransitionResult.sourceAfterSwitch === audioTransitionResult.sourceBeforeSwitch ||
     audioTransitionResult.finalPaused || Math.abs(audioTransitionResult.finalVolume - 0.6) > 0.02 ||
-    audioTransitionResult.checkboxLabelHeight < 42 || audioTransitionResult.durationHeight < 42
+    audioTransitionResult.checkboxLabelHeight < 42 || audioTransitionResult.durationHeight < 42 ||
+    audioTransitionResult.durationMax !== '3000' || audioTransitionResult.durationStep !== '50'
   ) failures.push("audio transition preference, gain separation, cancellation, or sequential switch failed");
   if (
     !ambienceResult.firstPlayed || !ambienceResult.firstSource.endsWith('/soft-rain.wav') ||
@@ -1456,7 +1614,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");
