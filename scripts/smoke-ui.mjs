@@ -983,7 +983,6 @@ try {
     const rapidFinal = { paused: music.paused, volume: music.volume };
 
     document.querySelector('#playPauseBtn').click();
-    await wait(60);
     userVolume.value = '0';
     userVolume.dispatchEvent(new Event('input', { bubbles: true }));
     const muteDuringFade = {
