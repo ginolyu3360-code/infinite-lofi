@@ -1,5 +1,15 @@
 # Verification Log
 
+## 2026-09-15 — v1.4.1 release completed
+
+- User authorized complete delivery, release, and merged-branch cleanup. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) final head `1bf40f3` passed [CI `34861869716`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34861869716) and squash-merged as `5bb67c6cdd937921400f17bd0dc5bd46057c5689`; exact-merge main CI `34863054603` passed.
+- Release-preparation [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) updated package/lock to 1.4.1 and finalized the changelog and bilingual README. Final head `a99e64f` passed [CI `34865115885`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34865115885) and squash-merged as `089bdf65ba30a1a386477ca3aafa1814cee868d5`.
+- Exact-release-commit [main CI `34865480996`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34865480996) passed checks, development smoke, Universal packaging, and packaged smoke on its second attempt. The first attempt's only failure was `Inspected target navigated or closed` during packaged smoke, with no product assertion failure; the identical rerun passed completely.
+- Created annotated tag `v1.4.1`; remote peeled target, local tag target, and release commit are exactly `089bdf65ba30a1a386477ca3aafa1814cee868d5`. [Release workflow `34866263548`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34866263548) passed tag/package matching, locked install, 102 tests, unsigned Universal build, architecture verification, checksums, and upload.
+- Confirmed [Infinite Lo-Fi v1.4.1](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.1) is the latest non-draft, non-prerelease Release. Assets are `Infinite-Lo-Fi-1.4.1-universal.dmg` (206,951,929 bytes), `Infinite-Lo-Fi-1.4.1-universal.zip` (206,889,865 bytes), and `SHA256SUMS.txt` (212 bytes).
+- Independently downloaded all three published assets and verified their SHA-256 values against both `SHA256SUMS.txt` and GitHub asset digests: DMG `d7721e3ae50ecc6a5ba6bee9d3644135f4366c0a09a14c00ed8b5fb050d1ab7e`; ZIP `26456d8c261bcf41a04e558e4c25a955216f1d14e830278ecf2db9b7f3d70b8f`; checksum file `0158061a6b96a5ecba8c93f0ea0e9ac2ea01b52a153466b900eb10ab5bccce85`.
+- Distribution remains unsigned and not notarized. No user application data was touched during isolated verification.
+
 ## 2026-09-14 — Post-v1.4 feedback implementation completed locally
 
 - Implemented on `codex/post-v1.4-feedback` from the recorded synchronized `main` baseline `c536bc0b068f47e7eaedcf0a36136e8b310abe37`. Package version remains 1.4.0; no commit delivery, PR, merge, tag, Release, signing, or notarization was performed as part of this local implementation.
