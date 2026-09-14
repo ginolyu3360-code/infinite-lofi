@@ -1,5 +1,16 @@
 # Verification Log
 
+## 2026-09-14 — v1.4.0 release preparation
+
+- The user explicitly authorized publishing v1.4.0 after complete Phase 4B/C1/C2 delivery and exact-head main CI.
+- Revalidated a clean canonical checkout with local/remote `main` at `db082c25a1f11acab4ab599acb5b813b447ca588` and exact-head [main CI 34795630402](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34795630402) passing before release preparation.
+- Confirmed no local/remote `v1.4.0` tag and no GitHub v1.4.0 Release existed before preparation. Existing annotated `v1.3.0` remains unchanged.
+- Updated package/lock versions and release-facing documentation to 1.4.0, and added the complete Phase 4 plus seven-language changelog.
+- `npm ci`, production/full `npm audit`, and `npm run check` passed for the 1.4.0 candidate: both audits report zero vulnerabilities and all 98 tests, syntax checks, and the stylesheet build pass.
+- At the user's direction, the already-passing isolated development smoke, Universal package, and packaged smoke were not redundantly repeated locally for the version-only release commit. The release PR CI and tag-triggered release build remain authoritative gates.
+- PR CI, squash merge, exact-merge main CI, annotated tag creation, Release workflow, uploaded assets, and authoritative checksums remain pending and must not be recorded as passed before they complete.
+- Distribution remains an unsigned Universal macOS DMG/ZIP. Signing and notarization are still outside scope.
+
 ## 2026-09-14 — Phase 4B/C1/C2 delivery and repair completed
 
 - Combined feature [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) retained the requested separate local phase commits (`5123207` for 4B, `e7aa161` for 4C1, and `185138c` for 4C2). Final PR head `8393f7cc32ca79ad04dd124c110d82f4b68a31cd` passed [CI 34794492670](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34794492670), including 98 tests, development smoke, Universal packaging, and packaged smoke, then squash-merged as `c36e325f4d7751a9bfb6cacbeffa55d2b5451f75`.
