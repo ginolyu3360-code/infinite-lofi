@@ -1,6 +1,6 @@
 (function exposeInfiniteLofiAudioTransition(globalScope) {
   const DEFAULT_AUDIO_TRANSITIONS = Object.freeze({ enabled: false, durationMs: 200 });
-  const MAX_AUDIO_TRANSITION_MS = 500;
+  const MAX_AUDIO_TRANSITION_MS = 3000;
 
   function clampUnit(value, fallback = 1) {
     const numeric = Number(value);

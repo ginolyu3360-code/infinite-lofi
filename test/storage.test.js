@@ -227,7 +227,7 @@ test("adds and preserves additive schema v5 ambience preferences", () => {
   });
   assert.deepEqual(normalizeState(defaults, 4202).player.audioTransitions, {
     enabled: true,
-    durationMs: 500
+    durationMs: 900
   });
 });
 
@@ -316,6 +316,7 @@ test("imports old backups and rejects unrelated or newer files", () => {
       { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true }
     ],
     activeTrackKey: "local:two.mp3",
+    playbackMode: "sequential",
     ambience: { soundId: null, volume: 0.35 },
     audioTransitions: { enabled: false, durationMs: 200 }
   });

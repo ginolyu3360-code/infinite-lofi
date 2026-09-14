@@ -129,9 +129,11 @@
             </div>
 
             <div class="player-transport">
+              <button id="shuffleModeBtn" class="transport-btn playback-mode-btn" type="button" aria-pressed="false" title="Toggle shuffle" aria-label="Toggle shuffle" data-i18n-title="player.shuffle" data-i18n-aria-label="player.shuffle">⤨</button>
               <button id="prevTrackBtn" class="transport-btn" title="Previous track" aria-label="Previous track" data-i18n-title="player.previousTrack" data-i18n-aria-label="player.previousTrack">‹</button>
               <button id="playPauseBtn" class="transport-btn transport-primary" title="Play or pause music" data-i18n="player.play" data-i18n-title="player.playPauseTitle">Play</button>
               <button id="nextTrackBtn" class="transport-btn" title="Next track" aria-label="Next track" data-i18n-title="player.nextTrack" data-i18n-aria-label="player.nextTrack">›</button>
+              <button id="repeatModeBtn" class="transport-btn playback-mode-btn" type="button" aria-pressed="false" title="Toggle single track repeat" aria-label="Toggle single track repeat" data-i18n-title="player.repeatOne" data-i18n-aria-label="player.repeatOne">↻</button>
             </div>
 
             <div class="player-progress">
@@ -159,6 +161,7 @@
                   <button id="loadMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Load or reconnect a local music folder" data-i18n="player.loadFolder" data-i18n-title="player.loadFolder">Load Folder</button>
                   <button id="rescanMusicFolderBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Check the current folder for restored or new tracks" hidden data-i18n="player.rescan" data-i18n-title="player.rescan">Rescan</button>
                   <button id="useDefaultTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Return to the bundled offline playlist" hidden data-i18n="player.useDefaults" data-i18n-title="player.useDefaults">Use Defaults</button>
+                  <button id="showAllQueueBtn" class="control-btn h-8 px-3 text-[0.6rem]" type="button" aria-expanded="false" aria-controls="playlistPanel" hidden data-i18n="player.showAll" data-i18n-title="player.showAllTitle">Show All</button>
                   <button id="removeMissingTracksBtn" class="control-btn h-8 px-3 text-[0.6rem]" title="Remove unavailable tracks from the saved queue" hidden data-i18n="player.clearMissing" data-i18n-title="player.clearMissing">Clear Missing</button>
                 </div>
                 <span id="musicFolderDisplay" class="playlist-folder-label" data-i18n="common.default">Default</span>
@@ -454,7 +457,7 @@
               </label>
               <label class="ambience-field audio-transition-duration" for="audioTransitionDuration">
                 <span data-i18n="audioTransitions.duration">Fade duration (ms)</span>
-                <input id="audioTransitionDuration" type="number" min="0" max="500" step="10" value="200" aria-label="Fade duration in milliseconds" data-i18n-aria-label="audioTransitions.duration" />
+                <input id="audioTransitionDuration" type="number" min="0" max="3000" step="50" value="200" aria-label="Fade duration in milliseconds" data-i18n-aria-label="audioTransitions.duration" />
               </label>
             </div>
             <p id="ambienceStatus" class="ambience-status" role="status" aria-live="polite" data-i18n="ambience.offStatus">Ambient sound is off.</p>

@@ -21,17 +21,37 @@ function createElement(tagName = "div") {
     classList: {
       add(...names) { names.forEach((name) => classes.add(name)); },
       remove(...names) { names.forEach((name) => classes.delete(name)); },
-      toggle(name) {
-        if (classes.has(name)) classes.delete(name);
-        else classes.add(name);
+      toggle(name, force) {
+        const enabled = force === undefined ? !classes.has(name) : Boolean(force);
+        if (enabled) classes.add(name);
+        else classes.delete(name);
+        return enabled;
       },
       contains(name) { return classes.has(name) || element.className.split(/\s+/).includes(name); }
     },
-    appendChild(child) { this.children.push(child); },
+    appendChild(child) {
+      if (child.parentNode) child.parentNode.children = child.parentNode.children.filter((entry) => entry !== child);
+      child.parentNode = this;
+      this.children.push(child);
+      return child;
+    },
+    insertBefore(child, reference) {
+      if (child.parentNode) child.parentNode.children = child.parentNode.children.filter((entry) => entry !== child);
+      child.parentNode = this;
+      const index = this.children.indexOf(reference);
+      if (index < 0) this.children.push(child);
+      else this.children.splice(index, 0, child);
+      return child;
+    },
     addEventListener(name, handler) { listeners.set(name, handler); },
     setAttribute(name, value) { this.attributes[name] = String(value); },
     removeAttribute(name) { delete this.attributes[name]; },
-    async click() { return listeners.get("click")?.({}); }
+    contains() { return false; },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    async click(event = { detail: 0 }) { return listeners.get("click")?.(event); },
+    async dblclick() { return listeners.get("dblclick")?.({ detail: 2 }); },
+    async keydown(event) { return listeners.get("keydown")?.(event); }
   };
   Object.defineProperty(element, "innerHTML", {
     get() { return ""; },
@@ -50,11 +70,12 @@ function createHarness(playerState, desktopApp, controllerOptions = {}) {
   audio.duration = 120;
   audio.currentTime = 0;
   audio.volume = 1;
+  let playCount = 0;
   audio.pause = () => { audio.paused = true; };
-  audio.play = () => { audio.paused = false; return Promise.resolve(); };
+  audio.play = () => { playCount += 1; audio.paused = false; audio.ended = false; return Promise.resolve(); };
   audio.load = () => {};
   const elements = {
-    document: { createElement },
+    document: { createElement, body: createElement("body"), activeElement: null },
     lofiPlayer: audio,
     playPauseBtn: createElement("button"),
     playlistPanel: createElement(),
@@ -66,8 +87,14 @@ function createHarness(playerState, desktopApp, controllerOptions = {}) {
     loadMusicFolderBtn: createElement("button"),
     rescanMusicFolderBtn: createElement("button"),
     removeMissingTracksBtn: createElement("button"),
-    useDefaultTracksBtn: createElement("button")
+    useDefaultTracksBtn: createElement("button"),
+    showAllQueueBtn: createElement("button"),
+    repeatModeBtn: createElement("button"),
+    shuffleModeBtn: createElement("button"),
+    drawerBackdrop: createElement()
   };
+  const playerPanel = createElement("footer");
+  playerPanel.appendChild(elements.playlistPanel);
   const controller = createPlayerController({
     appStorage: {
       getState: () => structuredClone(state),
@@ -86,7 +113,7 @@ function createHarness(playerState, desktopApp, controllerOptions = {}) {
     logger: { error() {} },
     ...controllerOptions
   });
-  return { controller, elements, getState: () => state };
+  return { controller, elements, getState: () => state, getPlayCount: () => playCount };
 }
 
 test("keeps an unavailable folder queue visible and reconnects it by relative track keys", async () => {
@@ -139,6 +166,94 @@ test("playlist persistence preserves ambient player preferences", () => {
   });
   controller.persistState();
   assert.deepEqual(getState().player.ambience, { soundId: "brown-noise", volume: 0 });
+});
+
+test("single-click swaps queue positions while double-click plays the chosen track", async () => {
+  const { controller, elements, getState } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: ""
+  }, undefined, {
+    defaultTracks: [
+      { key: "builtin:one", label: "One", src: "one.wav" },
+      { key: "builtin:two", label: "Two", src: "two.wav" },
+      { key: "builtin:three", label: "Three", src: "three.wav" }
+    ]
+  });
+  await controller.restorePersistedPlayer();
+
+  await elements.playlistItems.children[0].click();
+  assert.equal(elements.playlistItems.children[0].attributes["aria-pressed"], "true");
+  await elements.playlistItems.children[2].click();
+  assert.deepEqual(getState().player.queue.map((track) => track.key), [
+    "builtin:three", "builtin:two", "builtin:one"
+  ]);
+
+  await elements.playlistItems.children[1].dblclick();
+  await Promise.resolve();
+  assert.equal(getState().player.activeTrackKey, "builtin:two");
+  assert.equal(elements.lofiPlayer.paused, false);
+});
+
+test("supports repeat-one, non-repeating shuffle, and no-op play for music already playing", async () => {
+  const { controller, elements, getState, getPlayCount } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: ""
+  }, undefined, {
+    random: () => 0,
+    defaultTracks: [
+      { key: "builtin:one", label: "One", src: "one.wav" },
+      { key: "builtin:two", label: "Two", src: "two.wav" },
+      { key: "builtin:three", label: "Three", src: "three.wav" }
+    ]
+  });
+  await controller.restorePersistedPlayer();
+  await controller.play();
+  const firstPlayCount = getPlayCount();
+  await controller.play();
+  assert.equal(getPlayCount(), firstPlayCount);
+
+  controller.toggleShuffleMode();
+  const firstKey = getState().player.activeTrackKey;
+  await controller.switchTrack();
+  const secondKey = getState().player.activeTrackKey;
+  await controller.switchTrack();
+  const thirdKey = getState().player.activeTrackKey;
+  assert.equal(new Set([firstKey, secondKey, thirdKey]).size, 3);
+  assert.equal(getState().player.playbackMode, "shuffle");
+
+  controller.toggleRepeatMode();
+  assert.equal(getState().player.playbackMode, "repeat-one");
+  elements.lofiPlayer.currentTime = 120;
+  elements.lofiPlayer.ended = true;
+  await controller.handleTrackEnded();
+  assert.equal(elements.lofiPlayer.currentTime, 0);
+  assert.equal(elements.lofiPlayer.paused, false);
+});
+
+test("expands and closes the full queue manager without losing the compact queue", async () => {
+  const defaultTracks = Array.from({ length: 7 }, (_, index) => ({
+    key: `builtin:${index + 1}`,
+    label: `Track ${index + 1}`,
+    src: `${index + 1}.wav`
+  }));
+  const { controller, elements } = createHarness(
+    { folderPath: "", queue: [], activeTrackKey: "" },
+    undefined,
+    { defaultTracks }
+  );
+  await controller.restorePersistedPlayer();
+  assert.equal(elements.showAllQueueBtn.hidden, false);
+  controller.togglePlaylistPanel(true);
+  controller.toggleExpandedQueue(true);
+  assert.equal(elements.playlistPanel.classList.contains("is-expanded"), true);
+  assert.equal(elements.drawerBackdrop.classList.contains("visible"), true);
+  assert.equal(elements.playlistPanel.parentNode, elements.document.body);
+  controller.toggleExpandedQueue(false);
+  assert.equal(elements.playlistPanel.classList.contains("hidden"), false);
+  assert.equal(elements.playlistPanel.classList.contains("is-expanded"), false);
+  assert.equal(elements.playlistPanel.parentNode.tagName, "FOOTER");
 });
 
 test("a late folder rescan cannot override a newer pause intent", async () => {

@@ -1,5 +1,17 @@
 # Verification Log
 
+## 2026-09-14 — Post-v1.4 feedback implementation completed locally
+
+- Implemented on `codex/post-v1.4-feedback` from the recorded synchronized `main` baseline `c536bc0b068f47e7eaedcf0a36136e8b310abe37`. Package version remains 1.4.0; no commit delivery, PR, merge, tag, Release, signing, or notarization was performed as part of this local implementation.
+- Music Inbox was removed after direct user review. The player keeps bundled defaults plus explicitly loaded local folders; no persistent local-audio disk cache was added because there is no measured latency or availability problem justifying file duplication.
+- Added Queue vertical scrolling and an in-app full manager, preserved drag reorder, added single-click swap/double-click play/Shift+Enter play, and added persisted Repeat One plus non-repeating-cycle Shuffle.
+- Added responsive large timer sizing, the reduced Queue-open timer surface, Mini previous/next/seek controls, a more transparent Show-mode timer card, Notes Delete All reset to one empty `Note 1`, backdrop-click closing/focus return for large drawers, and a larger header drag surface.
+- Raised audio transitions from a 500 ms to 3000 ms maximum while retaining the 200 ms default, cancellation, exact mute, and no-overlap behavior. Starting a focus session while music is already active now leaves the current transport and fade state unchanged.
+- `npm run check` passed with 102 tests, all JavaScript syntax checks, and the stylesheet build. Coverage includes Queue swap/double-click, repeat/shuffle/history, no-op playback, full Queue viewport-layer restoration, Notes reset, fade clamping, and legacy player normalization.
+- Isolated development Electron smoke passed with no renderer exceptions. It verified all new elements, playback-mode persistence, real backdrop closing/focus return, zero-overflow full layouts from 720 × 520 through the available 1440-wide viewport, and Mini 420 × 250 / 360 × 200 including `360:00`, previous/next, progress, and all primary controls. The repaired `Show All` view is attached directly to the document viewport while expanded, remains fully inside the window, and restores to the player when compacted; the header status drag surface measured about 702 × 41 px with Electron's `drag` region active.
+- `npm run pack:universal` completed with electron-builder 26.15.3 / Electron 41.10.7. `file` and `lipo` confirmed the executable contains `x86_64 arm64`; isolated packaged-app smoke then passed the same Queue viewport-layer, header-drag, UI, playback, persistence, accessibility, responsive, and 100-task/5,000-session regression paths.
+- The user separately confirmed native 1440 × 900. Subjective audible quality and physical OS media-button exercise remain human checks.
+
 ## 2026-09-14 — v1.4.0 release completed
 
 - The user explicitly authorized publishing v1.4.0 after complete Phase 4B/C1/C2 delivery and exact-head main CI.

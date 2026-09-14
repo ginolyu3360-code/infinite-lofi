@@ -13,9 +13,13 @@
       defaultTracks,
       onArtworkChange = () => {},
       onTrackChange = () => {},
+      onLayoutChange = () => {},
       announce = () => {},
       getAudioTransitionSettings = () => audioTransition.DEFAULT_AUDIO_TRANSITIONS,
       gainEnvelopeFactory = audioTransition.createGainEnvelope,
+      random = Math.random,
+      scheduleDelayed = globalScope.setTimeout?.bind(globalScope) || setTimeout,
+      cancelDelayed = globalScope.clearTimeout?.bind(globalScope) || clearTimeout,
       t = defaultTranslate,
       setDisclosureState = (trigger, expanded) => trigger?.setAttribute?.("aria-expanded", String(expanded)),
       alert: showAlert = globalScope.alert?.bind(globalScope) || (() => {}),
@@ -26,15 +30,37 @@
     let playlist = bundledTracks.map((track) => ({ ...track }));
     let currentTrackIndex = 0;
     let draggedItem = null;
+    let swapSourceKey = "";
+    let pendingSingleClick = null;
     let localMusicFolder = null;
     let folderUnavailable = false;
     let isScanning = false;
+    let playbackMode = "sequential";
+    let shuffleRemainingKeys = [];
+    let shuffleHistoryKeys = [];
     let playbackCommandVersion = 0;
     let desiredPlaying = false;
     const musicEnvelope = gainEnvelopeFactory({
       audio: elements.lofiPlayer,
       userVolume: Number(elements.volumeSlider.value) / 100
     });
+    const compactPlaylistParent = elements.playlistPanel.parentNode || null;
+    const compactPlaylistNextSibling = elements.playlistPanel.nextSibling || null;
+
+    function movePlaylistToViewportLayer() {
+      const target = elements.document.body;
+      if (!compactPlaylistParent || !target?.appendChild || elements.playlistPanel.parentNode === target) return;
+      target.appendChild(elements.playlistPanel);
+    }
+
+    function restorePlaylistToPlayer() {
+      if (!compactPlaylistParent?.appendChild || elements.playlistPanel.parentNode === compactPlaylistParent) return;
+      if (compactPlaylistNextSibling?.parentNode === compactPlaylistParent && compactPlaylistParent.insertBefore) {
+        compactPlaylistParent.insertBefore(elements.playlistPanel, compactPlaylistNextSibling);
+      } else {
+        compactPlaylistParent.appendChild(elements.playlistPanel);
+      }
+    }
 
     function transitionSettings() {
       return audioTransition.normalizeAudioTransitions(getAudioTransitionSettings());
@@ -55,9 +81,49 @@
           ...state.player,
           folderPath: localMusicFolder || "",
           queue: playerModel.createQueueSnapshot(playlist),
-          activeTrackKey: playerModel.getTrackKey(activeTrack)
+          activeTrackKey: playerModel.getTrackKey(activeTrack),
+          playbackMode
         };
       });
+    }
+
+    function resetShuffleState() {
+      shuffleRemainingKeys = [];
+      shuffleHistoryKeys = [];
+    }
+
+    function renderPlaybackMode() {
+      if (elements.repeatModeBtn) {
+        const active = playbackMode === "repeat-one";
+        elements.repeatModeBtn.classList.toggle("is-active", active);
+        elements.repeatModeBtn.setAttribute("aria-pressed", String(active));
+      }
+      if (elements.shuffleModeBtn) {
+        const active = playbackMode === "shuffle";
+        elements.shuffleModeBtn.classList.toggle("is-active", active);
+        elements.shuffleModeBtn.setAttribute("aria-pressed", String(active));
+      }
+      elements.lofiPlayer.loop = playbackMode === "repeat-one";
+    }
+
+    function setPlaybackMode(nextMode) {
+      playbackMode = ["repeat-one", "shuffle"].includes(nextMode) ? nextMode : "sequential";
+      resetShuffleState();
+      renderPlaybackMode();
+      persistState();
+      announce(t(playbackMode === "repeat-one"
+        ? "player.repeatOneEnabled"
+        : playbackMode === "shuffle"
+        ? "player.shuffleEnabled"
+        : "player.sequentialEnabled"));
+    }
+
+    function toggleRepeatMode() {
+      setPlaybackMode(playbackMode === "repeat-one" ? "sequential" : "repeat-one");
+    }
+
+    function toggleShuffleMode() {
+      setPlaybackMode(playbackMode === "shuffle" ? "sequential" : "shuffle");
     }
 
     function updateFolderStatus() {
@@ -82,24 +148,65 @@
       if (elements.loadMusicFolderBtn) {
         elements.loadMusicFolderBtn.textContent = t(folderUnavailable ? "player.reconnectFolder" : "player.loadFolder");
       }
-      if (elements.rescanMusicFolderBtn) elements.rescanMusicFolderBtn.hidden = !localMusicFolder;
+      if (elements.rescanMusicFolderBtn) elements.rescanMusicFolderBtn.hidden = false;
       if (elements.removeMissingTracksBtn) elements.removeMissingTracksBtn.hidden = missingCount === 0;
       if (elements.useDefaultTracksBtn) elements.useDefaultTracksBtn.hidden = !localMusicFolder;
+      if (elements.showAllQueueBtn) elements.showAllQueueBtn.hidden = playlist.length <= 6;
+    }
+
+    function cancelPendingSingleClick() {
+      if (pendingSingleClick !== null) cancelDelayed(pendingSingleClick);
+      pendingSingleClick = null;
+    }
+
+    function swapPlaylistPositions(fromIndex, toIndex) {
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= playlist.length || toIndex >= playlist.length) return false;
+      const activeKey = playerModel.getTrackKey(getActiveTrack());
+      [playlist[fromIndex], playlist[toIndex]] = [playlist[toIndex], playlist[fromIndex]];
+      currentTrackIndex = playerModel.findActiveTrackIndex(playlist, activeKey);
+      resetShuffleState();
+      renderPlaylist();
+      persistState();
+      return true;
+    }
+
+    function handleSwapSelection(trackKey) {
+      if (!trackKey) return;
+      if (!swapSourceKey) {
+        swapSourceKey = trackKey;
+        renderPlaylist();
+        announce(t("player.swapSelected"));
+        return;
+      }
+      if (swapSourceKey === trackKey) {
+        swapSourceKey = "";
+        renderPlaylist();
+        announce(t("player.swapCancelled"));
+        return;
+      }
+      const fromIndex = playlist.findIndex((track) => playerModel.getTrackKey(track) === swapSourceKey);
+      const toIndex = playlist.findIndex((track) => playerModel.getTrackKey(track) === trackKey);
+      swapSourceKey = "";
+      if (swapPlaylistPositions(fromIndex, toIndex)) announce(t("player.swapComplete"));
     }
 
     function renderPlaylist() {
       elements.playlistItems.innerHTML = "";
       playlist.forEach((track, index) => {
+        const trackKey = playerModel.getTrackKey(track);
         const itemButton = elements.document.createElement("button");
         itemButton.type = "button";
         itemButton.className = [
           "playlist-item",
           index === currentTrackIndex ? "is-active" : "",
+          trackKey === swapSourceKey ? "is-swap-source" : "",
           track.isMissing === true ? "is-missing" : ""
         ].filter(Boolean).join(" ");
         itemButton.draggable = true;
         itemButton.dataset.index = String(index);
+        itemButton.dataset.trackKey = trackKey;
         itemButton.setAttribute("aria-disabled", String(track.isMissing === true));
+        itemButton.setAttribute("aria-pressed", String(trackKey === swapSourceKey));
         if (index === currentTrackIndex) itemButton.setAttribute("aria-current", "true");
 
         const label = elements.document.createElement("span");
@@ -115,15 +222,48 @@
 
         itemButton.title = track.isMissing === true
           ? t("player.trackUnavailableTitle", { title: track.label })
-          : t("player.playTrackTitle", { title: track.label });
-        itemButton.addEventListener("click", () => {
-          if (track.isMissing === true) {
-            showAlert(t("player.trackMissingAlert"));
+          : t("player.queueTrackTitle", { title: track.label });
+        itemButton.addEventListener("click", (event = {}) => {
+          const detail = Number(event.detail);
+          if (Number.isFinite(detail) && detail > 1) return;
+          cancelPendingSingleClick();
+          if (!Number.isFinite(detail) || detail === 0) {
+            handleSwapSelection(trackKey);
             return;
           }
-          playSelectedTrack(index);
+          pendingSingleClick = scheduleDelayed(() => {
+            pendingSingleClick = null;
+            handleSwapSelection(trackKey);
+          }, 220);
+        });
+        itemButton.addEventListener("dblclick", () => {
+          cancelPendingSingleClick();
+          swapSourceKey = "";
+          if (track.isMissing === true) {
+            showAlert(t("player.trackMissingAlert"));
+            renderPlaylist();
+            return;
+          }
+          const selectedIndex = playlist.findIndex((candidate) => playerModel.getTrackKey(candidate) === trackKey);
+          playSelectedTrack(selectedIndex);
+        });
+        itemButton.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && swapSourceKey) {
+            event.preventDefault();
+            swapSourceKey = "";
+            renderPlaylist();
+            announce(t("player.swapCancelled"));
+          } else if (event.key === "Enter" && event.shiftKey && track.isMissing !== true) {
+            event.preventDefault();
+            cancelPendingSingleClick();
+            swapSourceKey = "";
+            const selectedIndex = playlist.findIndex((candidate) => playerModel.getTrackKey(candidate) === trackKey);
+            playSelectedTrack(selectedIndex);
+          }
         });
         itemButton.addEventListener("dragstart", (event) => {
+          cancelPendingSingleClick();
+          swapSourceKey = "";
           draggedItem = itemButton;
           itemButton.classList.add("is-dragging");
           event.dataTransfer.effectAllowed = "move";
@@ -147,6 +287,7 @@
         });
         elements.playlistItems.appendChild(itemButton);
       });
+      renderPlaybackMode();
       updateFolderStatus();
     }
 
@@ -182,7 +323,17 @@
       playlist = playerModel.mergePlaylistTracks(tracks, savedQueue);
       currentTrackIndex = playerModel.findActiveTrackIndex(playlist, activeTrackKey);
       folderUnavailable = false;
+      swapSourceKey = "";
+      resetShuffleState();
       updateTrack();
+    }
+
+    function loadDefaultLibrary(savedQueue = [], activeTrackKey = "", { shouldStop = true } = {}) {
+      if (shouldStop) stop();
+      localMusicFolder = null;
+      folderUnavailable = false;
+      setPlaylistFromScan(bundledTracks, savedQueue, activeTrackKey);
+      persistState();
     }
 
     async function scanCurrentFolder(savedQueue, activeTrackKey) {
@@ -229,13 +380,12 @@
     async function restorePersistedPlayer() {
       const saved = appStorage.getState().player;
       const savedQueue = Array.isArray(saved.queue) ? saved.queue : [];
+      playbackMode = ["repeat-one", "shuffle"].includes(saved.playbackMode)
+        ? saved.playbackMode
+        : "sequential";
+      renderPlaybackMode();
       if (!saved.folderPath) {
-        localMusicFolder = null;
-        folderUnavailable = false;
-        playlist = playerModel.mergePlaylistTracks(bundledTracks, savedQueue);
-        currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackKey);
-        updateTrack();
-        persistState();
+        loadDefaultLibrary(savedQueue, saved.activeTrackKey, { shouldStop: false });
         return;
       }
 
@@ -272,20 +422,17 @@
     }
 
     async function rescanMusicFolder() {
-      if (!localMusicFolder) return;
       const queue = playerModel.createQueueSnapshot(playlist);
       const activeTrackKey = playerModel.getTrackKey(getActiveTrack());
+      if (!localMusicFolder) {
+        loadDefaultLibrary(queue, activeTrackKey, { shouldStop: false });
+        return;
+      }
       await scanCurrentFolder(queue, activeTrackKey);
     }
 
     function useDefaultTracks() {
-      stop();
-      localMusicFolder = null;
-      folderUnavailable = false;
-      playlist = bundledTracks.map((track) => ({ ...track }));
-      currentTrackIndex = 0;
-      updateTrack();
-      persistState();
+      loadDefaultLibrary([], "", { shouldStop: true });
     }
 
     function removeMissingTracks() {
@@ -304,6 +451,7 @@
       if (currentTrackIndex === fromIndex) currentTrackIndex = toIndex;
       else if (fromIndex < currentTrackIndex && toIndex >= currentTrackIndex) currentTrackIndex -= 1;
       else if (fromIndex > currentTrackIndex && toIndex <= currentTrackIndex) currentTrackIndex += 1;
+      resetShuffleState();
       renderPlaylist();
       persistState();
     }
@@ -333,6 +481,9 @@
     function play(options = {}) {
       if (!elements.lofiPlayer.src) updateTrack();
       if (!elements.lofiPlayer.src) return Promise.resolve(false);
+      if (desiredPlaying && !elements.lofiPlayer.paused && !elements.lofiPlayer.ended) {
+        return Promise.resolve(true);
+      }
       const version = ++playbackCommandVersion;
       desiredPlaying = true;
       return startPlayback(version, options);
@@ -386,6 +537,12 @@
     }
 
     function playSelectedTrack(index) {
+      if (playbackMode === "shuffle" && index !== currentTrackIndex) {
+        const currentKey = playerModel.getTrackKey(getActiveTrack());
+        if (currentKey) shuffleHistoryKeys.push(currentKey);
+        const selectedKey = playerModel.getTrackKey(playlist[index]);
+        shuffleRemainingKeys = shuffleRemainingKeys.filter((key) => key !== selectedKey);
+      }
       return changeTrack(index, true);
     }
 
@@ -397,9 +554,47 @@
         : play({ announcePlayback: true });
     }
 
+    function shuffleKeys(keys) {
+      const shuffled = [...keys];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.max(0, Math.min(0.999999, Number(random()) || 0)) * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+      return shuffled;
+    }
+
+    function nextShuffleIndex(direction) {
+      const playableKeys = playlist.filter(playerModel.isTrackPlayable).map(playerModel.getTrackKey);
+      const currentKey = playerModel.getTrackKey(getActiveTrack());
+      if (direction < 0) {
+        while (shuffleHistoryKeys.length > 0) {
+          const previousKey = shuffleHistoryKeys.pop();
+          const previousIndex = playlist.findIndex((track) => playerModel.getTrackKey(track) === previousKey && playerModel.isTrackPlayable(track));
+          if (previousIndex >= 0) {
+            if (currentKey) shuffleRemainingKeys.unshift(currentKey);
+            return previousIndex;
+          }
+        }
+        return playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, -1);
+      }
+      shuffleRemainingKeys = shuffleRemainingKeys.filter((key) => playableKeys.includes(key) && key !== currentKey);
+      if (shuffleRemainingKeys.length === 0) {
+        shuffleRemainingKeys = shuffleKeys(playableKeys.filter((key) => key !== currentKey));
+      }
+      const nextKey = shuffleRemainingKeys.shift();
+      const nextIndex = playlist.findIndex((track) => playerModel.getTrackKey(track) === nextKey);
+      if (nextIndex >= 0 && nextIndex !== currentTrackIndex) {
+        if (currentKey) shuffleHistoryKeys.push(currentKey);
+        return nextIndex;
+      }
+      return playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, 1);
+    }
+
     function moveToAdjacentTrack(direction) {
       const shouldResume = desiredPlaying || !elements.lofiPlayer.paused || elements.lofiPlayer.ended;
-      const nextIndex = playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, direction);
+      const nextIndex = playbackMode === "shuffle"
+        ? nextShuffleIndex(direction)
+        : playerModel.findAdjacentPlayableIndex(playlist, currentTrackIndex, direction);
       if (nextIndex < 0) return;
       return changeTrack(nextIndex, shouldResume);
     }
@@ -412,19 +607,58 @@
       return moveToAdjacentTrack(-1);
     }
 
+    function handleTrackEnded() {
+      if (playbackMode === "repeat-one") {
+        elements.lofiPlayer.currentTime = 0;
+        desiredPlaying = false;
+        return play();
+      }
+      return switchTrack();
+    }
+
     function togglePlaylistPanel(forceOpen) {
       const nextOpen = typeof forceOpen === "boolean"
         ? forceOpen
         : elements.playlistPanel.classList.contains("hidden");
       elements.playlistPanel.classList.toggle("hidden", !nextOpen);
+      if (!nextOpen) {
+        elements.playlistPanel.classList.remove("is-expanded");
+        restorePlaylistToPlayer();
+      }
       elements.playlistPanel.setAttribute("aria-hidden", String(!nextOpen));
       setDisclosureState(elements.playlistToggleBtn, nextOpen);
+      elements.document.body?.classList?.toggle("is-queue-open", nextOpen);
+      elements.document.body?.classList?.toggle("is-queue-expanded", nextOpen && elements.playlistPanel.classList.contains("is-expanded"));
+      if (!nextOpen) {
+        setDisclosureState(elements.showAllQueueBtn, false);
+        elements.drawerBackdrop?.classList?.remove("visible");
+      }
       if (nextOpen) {
         const firstTrack = elements.playlistItems.querySelector?.(".playlist-item:not([aria-disabled='true'])");
         firstTrack?.focus?.({ preventScroll: true });
       } else if (elements.playlistPanel.contains?.(elements.document.activeElement)) {
         elements.playlistToggleBtn?.focus?.({ preventScroll: true });
       }
+      onLayoutChange();
+    }
+
+    function toggleExpandedQueue(forceExpanded) {
+      if (forceExpanded === false && elements.playlistPanel.classList.contains("hidden")) return;
+      if (elements.playlistPanel.classList.contains("hidden")) togglePlaylistPanel(true);
+      const nextExpanded = typeof forceExpanded === "boolean"
+        ? forceExpanded
+        : !elements.playlistPanel.classList.contains("is-expanded");
+      if (nextExpanded) movePlaylistToViewportLayer();
+      elements.playlistPanel.classList.toggle("is-expanded", nextExpanded);
+      if (!nextExpanded) restorePlaylistToPlayer();
+      elements.document.body?.classList?.toggle("is-queue-expanded", nextExpanded);
+      setDisclosureState(elements.showAllQueueBtn, nextExpanded);
+      elements.drawerBackdrop?.classList?.toggle("visible", nextExpanded);
+      if (elements.showAllQueueBtn) {
+        elements.showAllQueueBtn.textContent = t(nextExpanded ? "player.compactQueue" : "player.showAll");
+        elements.showAllQueueBtn.title = t(nextExpanded ? "player.compactQueueTitle" : "player.showAllTitle");
+      }
+      onLayoutChange();
     }
 
     function updateVolume() {
@@ -440,11 +674,17 @@
 
     function refreshLanguage() {
       elements.playPauseBtn.textContent = t(elements.lofiPlayer.paused ? "player.play" : "player.pause");
+      if (elements.showAllQueueBtn) {
+        const expanded = elements.playlistPanel.classList.contains("is-expanded");
+        elements.showAllQueueBtn.textContent = t(expanded ? "player.compactQueue" : "player.showAll");
+        elements.showAllQueueBtn.title = t(expanded ? "player.compactQueueTitle" : "player.showAllTitle");
+      }
       renderPlaylist();
     }
 
     return {
       getUserVolume: () => musicEnvelope.getState().userVolume,
+      handleTrackEnded,
       loadMusicFolder,
       pause,
       persistState,
@@ -457,7 +697,10 @@
       settleTransition,
       switchTrack,
       stop,
+      toggleExpandedQueue,
       togglePlayback,
+      toggleRepeatMode,
+      toggleShuffleMode,
       togglePlaylistPanel,
       updateTrack,
       updateVolume,

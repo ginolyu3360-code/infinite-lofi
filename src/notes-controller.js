@@ -224,12 +224,12 @@
         clearTimeout(saveTimer);
         saveTimer = null;
       }
-      const active = getActiveNoteFile();
-      if (active) {
-        active.content = "";
-        active.updatedAt = now();
-        persist();
-      }
+      const cleanNote = createNoteFile(t("notes.defaultName", { number: 1 }), "");
+      noteFiles = [cleanNote];
+      activeNoteId = cleanNote.id;
+      renamingNoteId = "";
+      renderTabs();
+      persist();
     }
 
     function deleteActiveNoteFile() {

@@ -31,7 +31,11 @@ test("normalizes an opt-in bounded audio transition preference", () => {
   assert.deepEqual(normalizeAudioTransitions(), { enabled: false, durationMs: 200 });
   assert.deepEqual(normalizeAudioTransitions({ enabled: true, durationMs: 900 }), {
     enabled: true,
-    durationMs: 500
+    durationMs: 900
+  });
+  assert.deepEqual(normalizeAudioTransitions({ enabled: true, durationMs: 9000 }), {
+    enabled: true,
+    durationMs: 3000
   });
   assert.deepEqual(normalizeAudioTransitions({ enabled: 1, durationMs: -20 }), {
     enabled: false,

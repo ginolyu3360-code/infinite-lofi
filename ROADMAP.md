@@ -445,6 +445,43 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 7. No signing/notarization, framework rewrite, accounts, cloud sync, backend, subscription, project hierarchy, deadlines, reminders, tags, task search, task descriptions, Notes bidirectional linkage, mid-session split attribution, or partial-time accounting in these slices.
 8. Creating a version tag, publishing a GitHub Release, or changing the unsigned distribution policy requires a separate explicit instruction. A passing feature CI is not release authorization.
 
+## Post-v1.4.0 candidate backlog
+
+Status: implementation completed locally on `codex/post-v1.4-feedback`; delivery/release is not yet performed. `HANDOFF.md` is the concise canonical summary.
+
+### Recommended first slice — correctness and timer layout
+
+- [x] Prevent an already-playing track from being restarted or redundantly faded in when a new focus session begins.
+- [x] Make Notes Delete All recreate a clean selected `Note 1` instead of retaining the final deleted note's name.
+- [x] Repair timer-card deformation while Queue is open by reducing the constrained timer surface to time, Start/Pause, and Reset.
+- [x] Make timer typography strongly responsive to available width and height in Mini and full layouts, maximizing readable size without overflow at long durations.
+
+### Separate UI/audio candidates
+
+- [x] Add previous/next and playback progress/seek controls to Mini Mode while preserving timer priority and minimum-window usability.
+- [x] Increase the bounded audio-transition maximum to 3000 ms while retaining the 200 ms default and cancellation/source-concurrency guarantees.
+- [x] Reduce the upper-right timer-card opacity in Show mode while preserving readable text.
+- [x] Add persisted, mutually exclusive Single Track Repeat and non-repeating-cycle Shuffle modes with Previous history and safe queue-mutation resets.
+- [x] Make Stats and equivalent large overlay drawers close on a true backdrop click and restore focus to the opener.
+
+### Music-library candidate and evaluation gate
+
+- Music Inbox was implemented in the first draft, then removed after user review because it added no useful value. Keep bundled defaults plus explicitly loaded folders.
+- Persistent one-to-three-track local-file caching remains deliberately unimplemented. First measure a reproducible problem; if needed, prefer bounded next-track and metadata/artwork preloading. A disk cache requires explicit size, invalidation, cleanup, privacy, and missing-folder semantics.
+
+### Large Queue management candidate
+
+- [x] Give the compact Queue a vertical scrollbar for loaded folders whose tracks exceed the available panel height.
+- [x] Add `Show All` beside `Use Default` as a large in-app queue-management view sharing live player/queue state.
+- [x] Retain drag reorder and add click-to-swap; repeat-click or Escape cancels, double-click plays, and Shift+Enter provides a keyboard play action.
+
+### Deferred and process items
+
+- [x] Native 1440 × 900 is user-confirmed passed; retain the older automated viewport ceiling only as test provenance.
+- [x] Replace the stale tag example in `DISTRIBUTION.md` with `vX.Y.Z`.
+- [x] Use incremental handoffs: update only current feature, version/tag, peeled commit, `main`, PR/commit, exact CI/Release evidence, and changed limitations.
+- [x] Expand the usable top drag region across the non-interactive status area while preserving clickable header controls.
+
 ### Pre-Phase 3 hardening
 
 Status: completed, merged, released in v1.2.0, and verified by the successful `main` and Release workflows.

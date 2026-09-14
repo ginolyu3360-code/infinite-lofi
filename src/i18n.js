@@ -187,6 +187,19 @@
     "player.folderUnreadable": "Folder unreadable · Try another",
     "player.started": "Music playback started.",
     "player.paused": "Music playback paused.",
+    "player.repeatOne": "Single track repeat",
+    "player.shuffle": "Shuffle",
+    "player.repeatOneEnabled": "Single track repeat enabled.",
+    "player.shuffleEnabled": "Shuffle enabled.",
+    "player.sequentialEnabled": "Sequential playback enabled.",
+    "player.showAll": "Show All",
+    "player.showAllTitle": "Open the full queue manager",
+    "player.compactQueue": "Compact",
+    "player.compactQueueTitle": "Return to the compact queue",
+    "player.queueTrackTitle": "Click to choose {title} for a swap; double-click to play; Shift+Enter also plays",
+    "player.swapSelected": "Track selected for position swap.",
+    "player.swapCancelled": "Track position swap cancelled.",
+    "player.swapComplete": "Track positions swapped.",
     "ambience.title": "Ambient sound",
     "ambience.description": "Layer one bundled offline sound beside your music. It always starts paused after launch.",
     "ambience.sound": "Ambient sound",
@@ -601,6 +614,21 @@
   });
   Object.assign(SPANISH, {
     "stats.showToday":"Mostrar las estadísticas de hoy","stats.showWeek":"Mostrar los últimos 7 días","stats.showMonth":"Mostrar los últimos 30 días","stats.reviewSummaryOne":"{duration} registradas en 1 día activo.","stats.unassignedDetail":"Sin atribución de tarea"
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "player.repeatOne":"单曲循环","player.shuffle":"随机播放","player.repeatOneEnabled":"已启用单曲循环。","player.shuffleEnabled":"已启用随机播放。","player.sequentialEnabled":"已启用顺序播放。","player.showAll":"显示全部","player.showAllTitle":"打开完整队列管理器","player.compactQueue":"紧凑显示","player.compactQueueTitle":"返回紧凑队列","player.queueTrackTitle":"单击选择 {title} 进行换位；双击播放；Shift+Enter 也可播放","player.swapSelected":"已选择要交换位置的曲目。","player.swapCancelled":"已取消曲目换位。","player.swapComplete":"曲目位置已交换。"
+  });
+  Object.assign(JAPANESE, {
+    "player.repeatOne":"1曲リピート","player.shuffle":"シャッフル","player.repeatOneEnabled":"1曲リピートを有効にしました。","player.shuffleEnabled":"シャッフルを有効にしました。","player.sequentialEnabled":"順番再生を有効にしました。","player.showAll":"すべて表示","player.showAllTitle":"完全なキュー管理画面を開く","player.compactQueue":"コンパクト","player.compactQueueTitle":"コンパクトキューに戻る","player.queueTrackTitle":"{title}をクリックして入替選択、ダブルクリックまたはShift+Enterで再生","player.swapSelected":"位置を入れ替える曲を選択しました。","player.swapCancelled":"曲の入替をキャンセルしました。","player.swapComplete":"曲の位置を入れ替えました。"
+  });
+  Object.assign(FRENCH, {
+    "player.repeatOne":"Répéter une piste","player.shuffle":"Lecture aléatoire","player.repeatOneEnabled":"Répétition d’une piste activée.","player.shuffleEnabled":"Lecture aléatoire activée.","player.sequentialEnabled":"Lecture séquentielle activée.","player.showAll":"Tout afficher","player.showAllTitle":"Ouvrir le gestionnaire complet de file","player.compactQueue":"Compact","player.compactQueueTitle":"Revenir à la file compacte","player.queueTrackTitle":"Cliquez pour sélectionner {title} à permuter ; double-cliquez ou Maj+Entrée pour lire","player.swapSelected":"Piste sélectionnée pour permutation.","player.swapCancelled":"Permutation annulée.","player.swapComplete":"Positions des pistes permutées."
+  });
+  Object.assign(KOREAN, {
+    "player.repeatOne":"한 곡 반복","player.shuffle":"셔플","player.repeatOneEnabled":"한 곡 반복을 켰습니다.","player.shuffleEnabled":"셔플을 켰습니다.","player.sequentialEnabled":"순차 재생을 켰습니다.","player.showAll":"모두 보기","player.showAllTitle":"전체 대기열 관리자 열기","player.compactQueue":"간단히","player.compactQueueTitle":"간단한 대기열로 돌아가기","player.queueTrackTitle":"{title}을 클릭해 교환 선택, 두 번 클릭 또는 Shift+Enter로 재생","player.swapSelected":"위치를 바꿀 트랙을 선택했습니다.","player.swapCancelled":"트랙 위치 교환을 취소했습니다.","player.swapComplete":"트랙 위치를 교환했습니다."
+  });
+  Object.assign(SPANISH, {
+    "player.repeatOne":"Repetir una pista","player.shuffle":"Aleatorio","player.repeatOneEnabled":"Repetición de una pista activada.","player.shuffleEnabled":"Reproducción aleatoria activada.","player.sequentialEnabled":"Reproducción secuencial activada.","player.showAll":"Mostrar todo","player.showAllTitle":"Abrir el gestor completo de la cola","player.compactQueue":"Compacta","player.compactQueueTitle":"Volver a la cola compacta","player.queueTrackTitle":"Haz clic para seleccionar {title} e intercambiar; doble clic o Mayús+Entrar para reproducir","player.swapSelected":"Pista seleccionada para intercambiar.","player.swapCancelled":"Intercambio cancelado.","player.swapComplete":"Posiciones de pistas intercambiadas."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(
