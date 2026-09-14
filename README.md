@@ -52,7 +52,7 @@ DISTRIBUTION.md
 LICENSE
 README.md
 ROADMAP.md
-inifinite_lofi.code-workspace
+infinite_lofi.code-workspace
 main.js                 # Electron 主进程入口，托盘、IPC、音乐扫描等逻辑都在这里
 preload.js              # contextBridge：主进程与 renderer 的安全桥
 package.json            # 脚本、依赖、打包配置
