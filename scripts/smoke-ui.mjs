@@ -945,6 +945,13 @@ try {
     const enabled = document.querySelector('#audioTransitionsEnabled');
     const duration = document.querySelector('#audioTransitionDuration');
     const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    const waitFor = async (predicate) => {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (predicate()) return true;
+        await wait(50);
+      }
+      return false;
+    };
     const before = {
       saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions,
       checked: enabled.checked,
@@ -963,16 +970,16 @@ try {
     userVolume.dispatchEvent(new Event('input', { bubbles: true }));
 
     document.querySelector('#playPauseBtn').click();
-    await wait(70);
+    await waitFor(() => music.volume > 0.02 && music.volume < 0.58);
     const playMidVolume = music.volume;
-    await wait(220);
+    await waitFor(() => !music.paused && Math.abs(music.volume - 0.6) < 0.000001);
     const playFinal = { paused: music.paused, volume: music.volume };
 
     document.querySelector('#playPauseBtn').click();
-    await wait(70);
+    await waitFor(() => music.volume > 0.02 && music.volume < 0.58);
     const pauseMidVolume = music.volume;
     document.querySelector('#playPauseBtn').click();
-    await wait(250);
+    await waitFor(() => !music.paused && Math.abs(music.volume - 0.6) < 0.000001);
     const rapidFinal = { paused: music.paused, volume: music.volume };
 
     document.querySelector('#playPauseBtn').click();
@@ -984,16 +991,18 @@ try {
       saved: JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.volume
     };
     document.querySelector('#playPauseBtn').click();
-    await wait(250);
+    await waitFor(() => !music.paused);
     const mutedReplay = { paused: music.paused, volume: music.volume };
     userVolume.value = '60';
     userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitFor(() => Math.abs(music.volume - 0.6) < 0.000001);
 
     const sourceBeforeSwitch = music.currentSrc || music.src;
     document.querySelector('#nextTrackBtn').click();
-    await wait(80);
     const sourceDuringFadeOut = music.currentSrc || music.src;
-    await wait(380);
+    await waitFor(() =>
+      (music.currentSrc || music.src) !== sourceBeforeSwitch && Math.abs(music.volume - 0.6) < 0.000001
+    );
     const sourceAfterSwitch = music.currentSrc || music.src;
     const saved = JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions;
     return {

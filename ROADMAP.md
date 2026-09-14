@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B and Phase 4C1 have separate local commits; Phase 4C2 and the combined local acceptance pass are complete on `codex/phase4-focus-depth`. The shared feature PR, final-commit CI, squash merge, and exact-merge `main` CI remain pending. This section supersedes the 2026-09-09 draft.
+Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B and Phase 4C1 have separate local commits; Phase 4C2 and the combined local acceptance pass are complete on `codex/phase4-focus-depth`. The slices share [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20); final-commit CI, squash merge, and exact-merge `main` CI remain pending. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -430,7 +430,7 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 - [x] Fake-clock model/controller tests and real development/packaged Electron checks cover mid-fade gain, final playing/paused state, rapid reversal, exact mute, old-source non-resurrection, sequential switches, persisted settings, paused restart, accessibility, all layouts/themes, Notes/timer/task/history/backup regressions, and Media Session state.
 - [x] `npm run check` passes with 98 tests; isolated development and final Universal packaged smoke pass without renderer exceptions. The final package contains both `x86_64` and `arm64` and adds no C2 audio assets or runtime dependency.
 - [ ] Exact native 1440 × 900 remains unavailable on the reference display; the maximum tested renderer viewport is 1440 × 794. OS Media Session button exercise and subjective audible loop/fade quality remain human checks.
-- [ ] The combined feature PR, final-head CI, squash merge, exact-merge `main` CI, and follow-up documentation evidence remain pending. Package version stays 1.3.0; no tag, Release, signing, or notarization is authorized.
+- [ ] Combined [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) is open; final-head CI, squash merge, exact-merge `main` CI, and follow-up documentation evidence remain pending. Package version stays 1.3.0; no tag, Release, signing, or notarization is authorized.
 
 ### Phase 4 execution and handoff rules
 

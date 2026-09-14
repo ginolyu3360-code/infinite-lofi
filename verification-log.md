@@ -25,7 +25,8 @@
 ### Pending delivery and human checks
 
 - Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop button exercise remain human checks. Automated handler delegation, deterministic hashes, PCM/loop-boundary analysis, actual decode/playback, final playback state, and Media Session state pass, but are not claimed as subjective evidence.
-- Phase 4B is locally committed as `5123207` and Phase 4C1 as `e7aa161`; Phase 4C2 receives its own local commit after this final record. Per explicit user direction, the three phases then share one PR, final-head CI, squash merge, and exact-merge `main` CI verification.
+- Phase 4B is locally committed as `5123207`, Phase 4C1 as `e7aa161`, and Phase 4C2 as `185138c`. Per explicit user direction, the three phases share [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20), final-head CI, squash merge, and exact-merge `main` CI verification.
+- Initial PR CI run [34731366370](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34731366370) passed checks but exposed a smoke-only timing assumption on the slower runner: a fixed 250 ms read observed a correct 200 ms fade before its delayed animation frames settled. The follow-up keeps an intermediate-gain assertion but uses a bounded poll for the exact final gain/source, so genuine failures still fail without treating runner scheduling delay as product behavior.
 - The package remains version 1.3.0 and intentionally unsigned/unnotarized. No version tag, GitHub Release, installer release, signing, or notarization action was performed.
 
 ## 2026-09-13 — Phase 4C1 Ambient Layer local implementation

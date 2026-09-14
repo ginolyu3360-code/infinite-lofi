@@ -17,7 +17,7 @@ Updated: 2026-09-13
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B Focus Review is locally committed as `5123207` on `codex/phase4-focus-depth`.
 - Phase 4C1 Ambient Layer is locally committed as `e7aa161` on the same branch. Its combined Universal playback, packaging, and 60-second performance evidence is now complete; only explicitly human OS-control/listening checks remain pending.
-- Phase 4C2 Audio Transitions is implemented and locally verified on the same branch, including the combined final acceptance pass. Its dedicated phase commit contains this handoff. By user direction, 4B, 4C1, and 4C2 retain separate local commits but share one pending PR, CI, squash merge, and exact-merge `main` CI verification.
+- Phase 4C2 Audio Transitions is implemented and locally verified on the same branch, including the combined final acceptance pass. Its dedicated phase commit contains this handoff. By user direction, 4B, 4C1, and 4C2 retain separate local commits and share [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20), whose final-head CI, squash merge, and exact-merge `main` CI remain pending.
 - Post-4A display-language settings are complete through [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). Final head `0d4b9723841d235375b60509f782cc967bfffcff` passed [PR CI run 34701126047](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701126047), was squash-merged as `500865184756a7288fa7baee31dcb040259a31b5`, and passed exact-merge [main CI run 34701318256](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701318256). It adds seven immediate interface languages in Keys while keeping schema v5 and package version 1.3.0.
 
 ## Display language behavior
@@ -102,4 +102,4 @@ Updated: 2026-09-13
 
 ## Next product boundary
 
-Create the dedicated Phase 4C2 local commit, then deliver the existing 4B + 4C1 + 4C2 commits through one PR as explicitly requested. Wait for final-head CI, squash merge, and exact-merge `main` CI. Record those identifiers in a follow-up documentation PR and verify its `main` CI too. Do not tag, release, sign, or notarize.
+Push the bounded-wait smoke correction to PR #20, then wait for final-head CI, squash merge, and exact-merge `main` CI. Record those identifiers in a follow-up documentation PR and verify its `main` CI too. Do not tag, release, sign, or notarize.
