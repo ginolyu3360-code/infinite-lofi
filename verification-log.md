@@ -1,6 +1,6 @@
 # Verification Log
 
-## 2026-09-14 — v1.4.0 release preparation
+## 2026-09-14 — v1.4.0 release completed
 
 - The user explicitly authorized publishing v1.4.0 after complete Phase 4B/C1/C2 delivery and exact-head main CI.
 - Revalidated a clean canonical checkout with local/remote `main` at `db082c25a1f11acab4ab599acb5b813b447ca588` and exact-head [main CI 34795630402](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34795630402) passing before release preparation.
@@ -8,7 +8,10 @@
 - Updated package/lock versions and release-facing documentation to 1.4.0, and added the complete Phase 4 plus seven-language changelog.
 - `npm ci`, production/full `npm audit`, and `npm run check` passed for the 1.4.0 candidate: both audits report zero vulnerabilities and all 98 tests, syntax checks, and the stylesheet build pass.
 - At the user's direction, the already-passing isolated development smoke, Universal package, and packaged smoke were not redundantly repeated locally for the version-only release commit. The release PR CI and tag-triggered release build remain authoritative gates.
-- PR CI, squash merge, exact-merge main CI, annotated tag creation, Release workflow, uploaded assets, and authoritative checksums remain pending and must not be recorded as passed before they complete.
+- Release-preparation [PR #23](https://github.com/ginolyu3360-code/infinite-lofi/pull/23) final head `c8df170abc507b796bf35b8b9b9423cadf6539cf` passed [CI `34796227646`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796227646), was squash-merged as `a55cb73f3ceb6178ea25cc710348f15b8ffb599e`, and the exact merge commit passed [main CI `34796418446`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796418446), including development smoke, Universal packaging, and packaged smoke.
+- Created annotated tag `v1.4.0`; its remote peeled target is exactly `a55cb73f3ceb6178ea25cc710348f15b8ffb599e`. [Release workflow `34796559509`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796559509) passed tag/package version matching, locked install, all checks, unsigned Universal build, architecture verification, checksums, and upload.
+- Confirmed [Infinite Lo-Fi v1.4.0](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.0) is the latest published release and is neither draft nor prerelease. Assets are `Infinite-Lo-Fi-1.4.0-universal.dmg` (206,955,560 bytes), `Infinite-Lo-Fi-1.4.0-universal.zip` (206,885,467 bytes), and `SHA256SUMS.txt` (212 bytes).
+- Independently downloaded all three published assets into an isolated temporary directory. After accounting for the checksum file's build-relative `dist/` prefix, both hashes verified: DMG `dd29ed6d3839048ae7f4ea4ef43130231f0f64c2dccfd74c876d5ecd030793fa`; ZIP `deb6d15e7682cf8c7e2fa52f69fbb6a6bae0333dc14277300ec2e41197c581aa`. These match GitHub's uploaded-asset digests.
 - Distribution remains an unsigned Universal macOS DMG/ZIP. Signing and notarization are still outside scope.
 
 ## 2026-09-14 — Phase 4B/C1/C2 delivery and repair completed
