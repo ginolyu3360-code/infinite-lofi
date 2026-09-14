@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.1 — 2026-09-14
 
 - Added scrollable and full-size Queue management, retained drag reorder, and added click-to-swap plus double-click playback
 - Added persisted Repeat One and non-repeating-cycle Shuffle playback modes
