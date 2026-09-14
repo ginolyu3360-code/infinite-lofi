@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.4.0 is the current release candidate, delivering the complete Phase 4 Focus Depth pass and seven-language display settings on top of the v1.3.0 Phase 3 foundation.
+Version 1.4.0 is the current published release, delivering the complete Phase 4 Focus Depth pass and seven-language display settings on top of the v1.3.0 Phase 3 foundation.
 
-Version 1.4.0 adds optional Focus Intent tasks with immutable attribution, transparent Focus Review summaries, one bundled offline ambient layer, bounded cancellable audio transitions, and seven immediate interface languages. Publishing still requires a passing release-preparation PR, exact-merge `main` CI, annotated `v1.4.0` tag, and successful Release workflow. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
+Version 1.4.0 adds optional Focus Intent tasks with immutable attribution, transparent Focus Review summaries, one bundled offline ambient layer, bounded cancellable audio transitions, and seven immediate interface languages. Release-preparation [PR #23](https://github.com/ginolyu3360-code/infinite-lofi/pull/23) passed CI, was squash-merged as `a55cb73`, and passed exact-merge `main` CI before the annotated `v1.4.0` tag triggered successful Release workflow `34796559509`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
 
 ## Phase 0 — Stabilize the core
 
@@ -311,7 +311,7 @@ This maintenance feature did not itself implement or change Phase 4B, 4C1, or 4C
 
 Goal: explain recorded time with modest, transparent summaries. This is a narrower replacement for the original Focus Insights proposal, not an intelligence or productivity-scoring feature.
 
-Implementation status: implemented and locally verified in commit `5123207` on `codex/phase4-focus-depth` on 2026-09-13. By explicit user direction, 4B, 4C1, and 4C2 share the pending feature PR and delivery checks.
+Implementation status: implemented in local phase commit `5123207` on `codex/phase4-focus-depth` on 2026-09-13, then delivered with 4C1 and 4C2 through combined PR #20 and its documented repair/main verification.
 
 #### Scope and interpretation
 
@@ -352,7 +352,7 @@ Implementation status: implemented and locally verified in commit `5123207` on `
 - [x] Development and Universal packaged Electron checks cover named accessibility nodes, keyboard focus, all seven interface languages, every built-in scene's existing AA palette, reduced motion, Notes/timer/task/player/history/backup regressions, and responsive Stats at 720 × 520, 800 × 600, 899/901 × 700, 1100 × 760, and the display maximum of 1440 × 794.
 - [ ] Exact native 1440 × 900 remains unavailable on the reference display and is not claimed as passed.
 - [x] `npm run check` passes with 82 tests; the unsigned Universal application contains `x86_64` and `arm64`, and isolated development plus packaged smoke pass without renderer exceptions.
-- [ ] Final feature-commit CI, squash merge, exact-merge `main` CI, and follow-up delivery evidence are pending. By explicit user direction on 2026-09-13, 4B, 4C1, and 4C2 will share one PR after retaining separate local phase commits; no version bump, tag, Release, signing, or notarization is implicit.
+- [x] Combined feature PR #20 retained separate local phase commits, passed final-head CI, and was squash-merged; repair PR #21 and exact-head main CI completed delivery, with follow-up evidence recorded through PR #22.
 
 ### Phase 4C1 — Ambient Layer
 
@@ -432,14 +432,14 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 - [ ] Exact native 1440 × 900 remains unavailable on the reference display; the maximum tested renderer viewport is 1440 × 794. OS Media Session button exercise and subjective audible loop/fade quality remain human checks.
 - [x] Combined [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) final head `8393f7c` passed CI `34794492670` and was squash-merged as `c36e325`.
 - [x] Exact-merge main CI `34794688203` failed only the transition smoke because the muted rapid-reversal probe could let the pause settle before issuing play on a heavily loaded runner. Repair [PR #21](https://github.com/ginolyu3360-code/infinite-lofi/pull/21) head `7b16c2b` passed CI `34794996675`, was squash-merged as `b52be34`, and exact-head main CI `34795181140` passed the complete workflow.
-- [x] Feature delivery, repair, and exact-head main verification are complete. Package version stays 1.3.0; no tag, Release, signing, or notarization was performed.
+- [x] Feature delivery, repair, and exact-head main verification completed while the package still remained 1.3.0; the later explicitly authorized v1.4.0 release is now published. Signing and notarization were not performed.
 
 ### Phase 4 execution and handoff rules
 
 1. Use only `/Users/lvjunhao/Documents/GitHub/infinite_lofi`. Work directly in this checkout; never create another worktree or use/rebuild the removed ChatGPT-folder checkout.
 2. Read README, this roadmap, HANDOFF, verification-log, UI-REFRESH-PLAN, and repository AGENTS if present. Check working changes, current branch, recent commits, tags, real remote main, and latest main CI. Preserve user changes.
 3. The user will direct GPT-5.6 sol to execute. Do not create another task, switch models, or start implementation merely because this plan is saved. Obtain the user's instruction for the next slice; do not treat approval of A as approval of B/C1/C2.
-4. Each implemented slice normally uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. For this run, the user explicitly directed separate local commits for 4B, 4C1, and 4C2 followed by one combined PR and merge. Never commit directly to main. Keep package version 1.3.0 until a separate version/release instruction.
+4. Each implemented slice normally uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. For this run, the user explicitly directed separate local commits for 4B, 4C1, and 4C2 followed by one combined PR and merge. No direct main commit was used. Package version stayed 1.3.0 until the separate explicit v1.4.0 release instruction.
 5. After each merge, check main CI for that exact merge commit, then record PR, commit, CI links/results, checks, limitations, and next boundary in HANDOFF and verification-log. Merge evidence that could not exist before the feature merge goes in a follow-up documentation PR; verify its main CI too. Do not bypass the PR rule to write post-merge notes.
 6. Local checks must use isolated profiles. Do not mutate the user's installed app data or restore real backups just to test. Report unperformed checks accurately and provide numbered Chinese instructions when user interface operation is necessary.
 7. No signing/notarization, framework rewrite, accounts, cloud sync, backend, subscription, project hierarchy, deadlines, reminders, tags, task search, task descriptions, Notes bidirectional linkage, mid-session split attribution, or partial-time accounting in these slices.
