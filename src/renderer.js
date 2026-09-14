@@ -38,6 +38,9 @@ if (
   !window.InfiniteLofiPlayer ||
   !window.InfiniteLofiMediaSession ||
   !window.InfiniteLofiPlayerController ||
+  !window.InfiniteLofiAmbience ||
+  !window.InfiniteLofiAmbienceController ||
+  !window.InfiniteLofiAudioTransition ||
   !window.InfiniteLofiBackgrounds ||
   !window.InfiniteLofiStats ||
   !window.InfiniteLofiFocusSession ||
@@ -75,6 +78,8 @@ const {
 } = window.InfiniteLofiTimer;
 const { createNotesController } = window.InfiniteLofiNotesController;
 const { createPlayerController } = window.InfiniteLofiPlayerController;
+const { createAmbienceController } = window.InfiniteLofiAmbienceController;
+const { normalizeAudioTransitions } = window.InfiniteLofiAudioTransition;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
@@ -131,6 +136,13 @@ const playlistPanel = document.getElementById("playlistPanel");
 const playlistItems = document.getElementById("playlistItems");
 const playlistStatus = document.getElementById("playlistStatus");
 const volumeSlider = document.getElementById("volumeSlider");
+const ambiencePlayer = document.getElementById("ambiencePlayer");
+const ambienceSoundSelect = document.getElementById("ambienceSoundSelect");
+const ambienceToggleBtn = document.getElementById("ambienceToggleBtn");
+const ambienceVolumeSlider = document.getElementById("ambienceVolumeSlider");
+const ambienceStatus = document.getElementById("ambienceStatus");
+const audioTransitionsEnabled = document.getElementById("audioTransitionsEnabled");
+const audioTransitionDuration = document.getElementById("audioTransitionDuration");
 const brightnessSlider = document.getElementById("brightnessSlider");
 const shortcutHelpBtn = document.getElementById("shortcutHelpBtn");
 const focusPlanToggleBtn = document.getElementById("focusPlanToggleBtn");
@@ -191,6 +203,13 @@ const statsPeakValue = document.getElementById("statsPeakValue");
 const statsActiveDaysValue = document.getElementById("statsActiveDaysValue");
 const statsStreakValue = document.getElementById("statsStreakValue");
 const statsComparisonValue = document.getElementById("statsComparisonValue");
+const focusReviewRange = document.getElementById("focusReviewRange");
+const focusReviewSummary = document.getElementById("focusReviewSummary");
+const focusReviewEmpty = document.getElementById("focusReviewEmpty");
+const focusReviewList = document.getElementById("focusReviewList");
+const focusReviewPagination = document.getElementById("focusReviewPagination");
+const focusReviewRounding = document.getElementById("focusReviewRounding");
+const focusReviewLimits = document.getElementById("focusReviewLimits");
 const sessionHistoryCount = document.getElementById("sessionHistoryCount");
 const sessionHistoryDateInput = document.getElementById("sessionHistoryDateInput");
 const sessionHistoryMinutesInput = document.getElementById("sessionHistoryMinutesInput");
@@ -273,6 +292,7 @@ let timerGoalSummary = null;
 let completionSaveErrorShown = false;
 let tasksController = null;
 let weatherController = null;
+let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().player?.audioTransitions);
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -311,19 +331,25 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: mediaSessionController.updateMetadata,
+  getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
   setDisclosureState,
   t
 });
 const {
+  getUserVolume: getMusicUserVolume,
   loadMusicFolder,
+  pause: pauseMusic,
   persistState: persistPlayerState,
+  play: playMusic,
   prevTrack,
   removeMissingTracks,
   refreshLanguage: refreshPlayerLanguage,
   rescanMusicFolder,
   restorePersistedPlayer,
+  settleTransition: settleMusicTransition,
   switchTrack,
+  stop: stopMusic,
   togglePlayback,
   togglePlaylistPanel,
   updateTrack,
@@ -331,7 +357,62 @@ const {
   useDefaultTracks
 } = playerController;
 
+const ambienceController = createAmbienceController({
+  appStorage,
+  elements: {
+    document,
+    audio: ambiencePlayer,
+    soundSelect: ambienceSoundSelect,
+    toggleButton: ambienceToggleBtn,
+    volumeSlider: ambienceVolumeSlider,
+    status: ambienceStatus
+  },
+  announce: announceStatus,
+  getAudioTransitionSettings: () => audioTransitionSettings,
+  onError: (error) => {
+    console.warn("Ambient audio action failed:", error);
+    announceStatus(t("ambience.error"));
+  },
+  t
+});
+
+function renderAudioTransitionSettings() {
+  audioTransitionsEnabled.checked = audioTransitionSettings.enabled;
+  audioTransitionDuration.value = String(audioTransitionSettings.durationMs);
+  audioTransitionDuration.disabled = !audioTransitionSettings.enabled;
+}
+
+function saveAudioTransitionSettings(nextSettings) {
+  const previous = audioTransitionSettings;
+  const normalized = normalizeAudioTransitions(nextSettings);
+  try {
+    const committed = appStorage.update((state) => {
+      state.player.audioTransitions = normalized;
+    });
+    audioTransitionSettings = normalizeAudioTransitions(committed.player.audioTransitions);
+  } catch (error) {
+    audioTransitionSettings = previous;
+    renderAudioTransitionSettings();
+    showStorageFailure(error, t("audioTransitions.saveError"));
+    return false;
+  }
+  renderAudioTransitionSettings();
+  settleMusicTransition();
+  ambienceController.settleTransition();
+  announceStatus(t(audioTransitionSettings.enabled ? "audioTransitions.enabled" : "audioTransitions.disabled"));
+  return true;
+}
+
 mediaSessionController.installActionHandlers({
+  play: playMusic,
+  pause: () => {
+    pauseMusic();
+    ambienceController.pause();
+  },
+  stop: () => {
+    stopMusic();
+    ambienceController.stop();
+  },
   previousTrack: prevTrack,
   nextTrack: switchTrack
 });
@@ -374,6 +455,13 @@ const statsController = createStatsController({
     statsActiveDaysValue,
     statsStreakValue,
     statsComparisonValue,
+    focusReviewRange,
+    focusReviewSummary,
+    focusReviewEmpty,
+    focusReviewList,
+    focusReviewPagination,
+    focusReviewRounding,
+    focusReviewLimits,
     sessionHistoryCount,
     sessionHistoryDateInput,
     sessionHistoryMinutesInput,
@@ -492,7 +580,6 @@ function loadUiSettings() {
   if (Number.isFinite(storedVol)) {
     const safeVolume = normalizeVolume(storedVol);
     if (volumeSlider) volumeSlider.value = String(Math.round(safeVolume * 100));
-    if (lofiPlayer) lofiPlayer.volume = safeVolume;
   }
 
   // brightness
@@ -510,7 +597,7 @@ function loadUiSettings() {
 
 function saveUiSettings() {
   const payload = {
-    volume: normalizeVolume(lofiPlayer.volume),
+    volume: normalizeVolume(getMusicUserVolume()),
     brightness: Number(getComputedStyle(document.documentElement).getPropertyValue("--scene-brightness")) || 1,
     shortcuts: shortcutSettings,
     background: backgroundSettings,
@@ -536,6 +623,8 @@ function refreshLocalizedUi() {
   refreshShortcutLabels();
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
+  ambienceController.refreshLanguage();
+  renderAudioTransitionSettings();
   tasksController?.render();
   renderStats();
   weatherController?.refreshLanguage?.();
@@ -1284,7 +1373,7 @@ function stopTimer() {
     currentFocusSession = committed.timerRuntime.focusSession;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
     sendTrayStatus();
     return true;
   } catch (error) {
@@ -1370,7 +1459,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
     timerId = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
   }
   refreshTimerGoalSummary(committed, new Date(completedAtMs));
   renderStats();
@@ -1380,9 +1469,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   notifyPhaseSwitch();
   announceStatus(t("timer.phaseStartedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
   if (timerId !== null && lofiPlayer.paused) {
-    lofiPlayer.play().catch(() => {
-      playPauseBtn.textContent = t("player.play");
-    });
+    playMusic();
   }
   return true;
 }
@@ -1445,12 +1532,7 @@ function toggleTimer() {
     showStorageFailure(error, t("storage.timerStartError"));
     return;
   }
-  if (!lofiPlayer.src) {
-    updateTrack();
-  }
-  lofiPlayer.play().catch(() => {
-    playPauseBtn.textContent = t("player.play");
-  });
+  playMusic();
   sendTrayStatus();
   announceStatus(t("timer.startedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
 }
@@ -1477,7 +1559,7 @@ function resetTimer() {
     currentFocusSession = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    if (!lofiPlayer.paused) lofiPlayer.pause();
+    pauseMusic();
     tasksController?.render(committed);
   } catch (error) {
     showStorageFailure(error, t("storage.timerResetError"));
@@ -1596,6 +1678,10 @@ function bindAppCommands() {
       resetTimer();
     }
   });
+  window.desktopApp.onPowerState?.(() => {
+    settleMusicTransition();
+    ambienceController.settleTransition();
+  });
 }
 
 
@@ -1630,6 +1716,20 @@ function toggleShortcutHelp(forceOpen) {
 
 async function init() {
   tasksController.bindEvents();
+  ambienceController.bindEvents();
+  audioTransitionsEnabled.addEventListener("change", () => {
+    saveAudioTransitionSettings({
+      ...audioTransitionSettings,
+      enabled: audioTransitionsEnabled.checked
+    });
+  });
+  audioTransitionDuration.addEventListener("change", () => {
+    saveAudioTransitionSettings({
+      ...audioTransitionSettings,
+      durationMs: Number(audioTransitionDuration.value)
+    });
+  });
+  renderAudioTransitionSettings();
   loadUiSettings();
   loadStatsRange();
   loadTimerSettings();
@@ -1643,6 +1743,7 @@ async function init() {
   loadNotes();
   updateTrack();
   await restorePersistedPlayer();
+  ambienceController.restore();
   updateVolume();
   // ensure initial brightness is applied (may have been loaded)
   const bs = Number(brightnessSlider ? brightnessSlider.value : 100) / 100;
@@ -1789,6 +1890,8 @@ async function init() {
         saveNotesNow();
         saveTimerRuntime();
         persistPlayerState();
+        settleMusicTransition();
+        ambienceController.destroy();
       }
     },
     formatTime,

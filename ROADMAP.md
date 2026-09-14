@@ -127,7 +127,7 @@ Status: completed, merged, and verified by passing `main` CI on 2026-09-09.
 
 ## Phase 4 — Focus Depth
 
-Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11; Phase 4B, 4C1, and 4C2 remain unstarted. This section supersedes the 2026-09-09 draft.
+Status: re-audited and documented on 2026-09-10. Phase 4A was completed, squash-merged, and verified by passing exact-merge `main` CI on 2026-09-11. Phase 4B and Phase 4C1 have separate local commits; Phase 4C2 and the combined local acceptance pass are complete on `codex/phase4-focus-depth`. The slices share [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20); final-commit CI, squash merge, and exact-merge `main` CI remain pending. This section supersedes the 2026-09-09 draft.
 
 ### Product decision and sequence
 
@@ -305,11 +305,13 @@ Status: completed through [PR #18](https://github.com/ginolyu3360-code/infinite-
 - [x] Keep language names stable and recognizable in their own scripts regardless of the currently selected interface language.
 - [x] Cover the language catalog, normalization, interpolation, document language, persistence, all seven live switches, restart restore, focus retention, development Electron, and Universal packaged Electron.
 
-This maintenance feature does not implement or change Phase 4B, 4C1, or 4C2.
+This maintenance feature did not itself implement or change Phase 4B, 4C1, or 4C2; Phase 4B was implemented later as the separate slice below.
 
 ### Phase 4B — Focus Review
 
 Goal: explain recorded time with modest, transparent summaries. This is a narrower replacement for the original Focus Insights proposal, not an intelligence or productivity-scoring feature.
+
+Implementation status: implemented and locally verified in commit `5123207` on `codex/phase4-focus-depth` on 2026-09-13. By explicit user direction, 4B, 4C1, and 4C2 share the pending feature PR and delivery checks.
 
 #### Scope and interpretation
 
@@ -338,6 +340,19 @@ Goal: explain recorded time with modest, transparent summaries. This is a narrow
 - Test aggregate reconciliation and CSV escaping if the extra export is shipped. Explain a zero denominator instead of displaying Infinity or misleading percentages.
 - Give charts readable text summaries and accessible labels, support keyboard/trackpad navigation, preserve responsive Stats behavior, and pass all existing size/theme checks in development and Universal packaged Electron.
 - This slice needs its own feature PR, final-commit CI, squash merge, main CI, and handoff entry. Review its exact presentation before implementation; do not expand into the deferred insights.
+
+#### Phase 4B release-independent acceptance checklist
+
+- [x] Today, Last 7 Days, and Last 30 Days are explicitly rolling stored-day ranges; total time, active recorded days, and equal-period comparison read the canonical ledger.
+- [x] Stable task IDs group identifiable history, current task titles label live tasks, latest retained snapshots label deleted tasks, and same-title/different-ID tasks remain distinct.
+- [x] Snapshot-only entries remain separate, unassigned/imported time stays visible, integer-second groups reconcile with the range total, and displayed rounding differences are explained.
+- [x] Covered dates, retention limits, imported-total semantics, absence-of-record semantics, current-target goal scope, zero baselines, and retention-limited comparisons are stated without speculative insights.
+- [x] Pure model and controller tests cover empty, sparse, dense, all-unassigned, imported, renamed, deleted, snapshot-only, same-title/different-ID, edits, deletion, retention, local-calendar/DST, and persistence-failure paths. Daily CSV remains unchanged; no task CSV was added.
+- [x] Rendering is bounded to eight breakdown groups per page and no review selector runs on timer ticks. At the 5,000-session cap, local development range-switch p95 measured 75.8 ms and packaged p95 measured 84.5 ms over 30 repetitions on the reference M2.
+- [x] Development and Universal packaged Electron checks cover named accessibility nodes, keyboard focus, all seven interface languages, every built-in scene's existing AA palette, reduced motion, Notes/timer/task/player/history/backup regressions, and responsive Stats at 720 × 520, 800 × 600, 899/901 × 700, 1100 × 760, and the display maximum of 1440 × 794.
+- [ ] Exact native 1440 × 900 remains unavailable on the reference display and is not claimed as passed.
+- [x] `npm run check` passes with 82 tests; the unsigned Universal application contains `x86_64` and `arm64`, and isolated development plus packaged smoke pass without renderer exceptions.
+- [ ] Final feature-commit CI, squash merge, exact-merge `main` CI, and follow-up delivery evidence are pending. By explicit user direction on 2026-09-13, 4B, 4C1, and 4C2 will share one PR after retaining separate local phase commits; no version bump, tag, Release, signing, or notarization is implicit.
 
 ### Phase 4C1 — Ambient Layer
 
@@ -370,6 +385,18 @@ Goal: add a small, reliable offline ambient sound choice without changing the lo
 - Real development and Universal packaged Electron checks exercise actual decoded playback, audible loop quality, pause/resume, system commands, accessible controls, keyboard focus, themes, and supported sizes. If listening requires the user, supply a numbered tutorial and leave that check explicitly pending.
 - Record licenses/attribution, package-size delta, process CPU/memory measurements, and the verified concurrency bound before considering C1 complete. Use the same PR/CI/squash/main-CI handoff workflow.
 
+#### Phase 4C1 implementation status
+
+- [x] Three deterministic, original MIT-licensed offline loops (Soft Rain, Quiet Cafe, and Brown Noise) are bundled with source/author/license attribution; total WAV size is about 3 MiB, below the 15 MiB budget.
+- [x] A single lazy-loaded ambient element provides independent selection, play/pause, and exact-zero volume. Selection and volume persist in additive schema-v5 `player.ambience`; playback intent never persists and relaunch remains paused and unloaded.
+- [x] Playing selection changes stop and release the previous source before the new source starts. Paused selection stays paused; command versioning prevents stale asynchronous play completion from stopping the newest source.
+- [x] Music controls remain independent; custom native Media Session pause/stop paths silence both channels and native play starts music only. Music metadata and seek ownership are unchanged.
+- [x] Invalid IDs, migration/backup, storage failure, decode failure, rapid selection, cleanup, player-preference preservation, and actual decoded development playback are covered. The isolated development smoke passed with 44 px ambient controls and no renderer exceptions.
+- [x] Universal packaged playback passed with one active ambient element, no renderer exceptions, no external resource requests, and an `x86_64 arm64` executable. Ambient assets total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15/20 MiB budgets; attribution and license are present in `app.asar`.
+- [x] A documented macOS `ps` comparison sampled the main process and all descendants once per second for 60 samples after a five-second warm-up. Music-only averaged 8.82% CPU / 454.98 MiB RSS; music plus ambience averaged 9.03% / 450.28 MiB. The +0.21 percentage-point CPU and -4.70 MiB average RSS deltas pass the +5 / +50 MiB targets.
+- [x] Deterministic hashes, WAV structure, asset budget, and loop-boundary discontinuity relative to adjacent-sample RMS are covered by tests; actual files decoded and looped in development and packaged Electron.
+- [ ] Actual operating-system Media Session button exercise and subjective audible loop/fade listening require human interaction and remain explicitly pending. Automated handler delegation, final state, waveform boundary, and real decoded playback checks pass, but are not represented as human listening evidence.
+
 ### Phase 4C2 — Audio Transitions
 
 Goal: add predictable audio transitions after C1 is stable, keeping final playback intent authoritative even during rapid actions or suspended execution.
@@ -394,12 +421,23 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 - If optional phase ducking would require a more complex state model, defer it rather than growing this slice. Sleep timers, multi-layer mixing, custom ambient-file imports, streaming, and background downloads remain separate proposals.
 - Complete the normal feature PR, final-commit CI, squash merge, post-merge main CI, and documentation evidence; no release action is implicit.
 
+#### Phase 4C2 implementation status
+
+- [x] Added an opt-in `player.audioTransitions` schema-v5 preference, defaulting off with a 200 ms duration normalized to 0–500 ms. Old state and backups receive safe defaults; only the preference persists, never envelope or autoplay state.
+- [x] Music and ambience each use one cancellable gain envelope whose effective volume is saved user volume multiplied by transient gain. Exact mute remains zero, source switches are sequential rather than crossfaded, and no animation-frame polling remains after settlement.
+- [x] Rapid play/pause/play, volume change during fade, late callbacks, source replacement, decode/play failure, immediate native stop, and suspend/resume settlement preserve the newest intent. Timer-driven music goes through the same controller path and never starts ambience.
+- [x] Scene exposes keyboard-accessible enable and duration controls with localized labels in all seven interface languages; controls meet the 44 px target and remain outside compact Mini Mode.
+- [x] Fake-clock model/controller tests and real development/packaged Electron checks cover mid-fade gain, final playing/paused state, rapid reversal, exact mute, old-source non-resurrection, sequential switches, persisted settings, paused restart, accessibility, all layouts/themes, Notes/timer/task/history/backup regressions, and Media Session state.
+- [x] `npm run check` passes with 98 tests; isolated development and final Universal packaged smoke pass without renderer exceptions. The final package contains both `x86_64` and `arm64` and adds no C2 audio assets or runtime dependency.
+- [ ] Exact native 1440 × 900 remains unavailable on the reference display; the maximum tested renderer viewport is 1440 × 794. OS Media Session button exercise and subjective audible loop/fade quality remain human checks.
+- [ ] Combined [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20) is open; final-head CI, squash merge, exact-merge `main` CI, and follow-up documentation evidence remain pending. Package version stays 1.3.0; no tag, Release, signing, or notarization is authorized.
+
 ### Phase 4 execution and handoff rules
 
 1. Use only `/Users/lvjunhao/Documents/GitHub/infinite_lofi`. Work directly in this checkout; never create another worktree or use/rebuild the removed ChatGPT-folder checkout.
 2. Read README, this roadmap, HANDOFF, verification-log, UI-REFRESH-PLAN, and repository AGENTS if present. Check working changes, current branch, recent commits, tags, real remote main, and latest main CI. Preserve user changes.
 3. The user will direct GPT-5.6 sol to execute. Do not create another task, switch models, or start implementation merely because this plan is saved. Obtain the user's instruction for the next slice; do not treat approval of A as approval of B/C1/C2.
-4. Each implemented slice uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. Never commit directly to main. Keep package version 1.3.0 until a separate version/release instruction.
+4. Each implemented slice normally uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. For this run, the user explicitly directed separate local commits for 4B, 4C1, and 4C2 followed by one combined PR and merge. Never commit directly to main. Keep package version 1.3.0 until a separate version/release instruction.
 5. After each merge, check main CI for that exact merge commit, then record PR, commit, CI links/results, checks, limitations, and next boundary in HANDOFF and verification-log. Merge evidence that could not exist before the feature merge goes in a follow-up documentation PR; verify its main CI too. Do not bypass the PR rule to write post-merge notes.
 6. Local checks must use isolated profiles. Do not mutate the user's installed app data or restore real backups just to test. Report unperformed checks accurately and provide numbered Chinese instructions when user interface operation is necessary.
 7. No signing/notarization, framework rewrite, accounts, cloud sync, backend, subscription, project hierarchy, deadlines, reminders, tags, task search, task descriptions, Notes bidirectional linkage, mid-session split attribution, or partial-time accounting in these slices.

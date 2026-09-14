@@ -232,10 +232,15 @@ try {
         'tasksDrawer', 'tasksCloseBtn', 'taskAddForm', 'taskTitleInput',
         'openTasksList', 'completedTasksToggle', 'completedTasksList',
         'statsActiveDaysValue', 'statsStreakValue', 'statsComparisonValue',
+        'focusReviewRange', 'focusReviewSummary', 'focusReviewList',
+        'focusReviewPagination', 'focusReviewLimits',
         'sessionHistoryDateInput', 'sessionHistoryMinutesInput',
         'sessionHistoryAddBtn', 'sessionHistoryList', 'sessionHistoryCount',
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
-        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect'
+        'useDefaultTracksBtn', 'a11yStatus', 'displayLanguageSelect',
+        'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
+        'ambienceVolumeSlider', 'ambienceStatus', 'audioTransitionsEnabled',
+        'audioTransitionDuration'
       ].every((id) => Boolean(document.getElementById(id)))
     };
   })()`);
@@ -368,6 +373,12 @@ try {
     node.role?.value === "dialog" && node.name?.value === "Tasks"
   );
   await evaluate("document.querySelector('#tasksCloseBtn').click(); true");
+  await evaluate("document.querySelector('#statsToggleBtn').click(); true");
+  const statsAccessibilityTree = await send("Accessibility.getFullAXTree");
+  accessibilityTreeResult.namedStatsDialog = statsAccessibilityTree.nodes.some((node) =>
+    node.role?.value === "dialog" && node.name?.value === "Focus Review (Last 7 Days)"
+  );
+  await evaluate("document.querySelector('#statsCloseBtn').click(); true");
 
   const responsiveLayouts = [];
   for (const [width, height] of [[720, 520], [800, 600], [899, 700], [901, 700], [1024, 677], [1440, 900], [1100, 760]]) {
@@ -761,11 +772,55 @@ try {
         .some((row) => row.textContent.includes('Alpha intention')),
       countLabel: document.querySelector('#sessionHistoryCount').textContent.trim(),
       activeDays: document.querySelector('#statsActiveDaysValue').textContent.trim(),
-      comparison: document.querySelector('#statsComparisonValue').textContent.trim()
+      comparison: document.querySelector('#statsComparisonValue').textContent.trim(),
+      comparisonTitle: document.querySelector('#statsComparisonValue').title,
+      heading: document.querySelector('#statsHeadingLabel').textContent.trim(),
+      weekLabel: document.querySelector('#statsRangeWeekBtn').textContent.trim(),
+      reviewRows: document.querySelectorAll('#focusReviewList .focus-review-row').length,
+      reviewSummary: document.querySelector('#focusReviewSummary').textContent.trim(),
+      deletedTaskVisible: document.querySelector('#focusReviewList').textContent.includes('Deleted'),
+      unassignedVisible: document.querySelector('#focusReviewList').textContent.includes('Unassigned'),
+      reconciliationNoteHidden: document.querySelector('#focusReviewRounding').classList.contains('hidden'),
+      retentionCopy: document.querySelector('#focusReviewLimits').textContent.trim()
     };
     document.querySelector('#statsCloseBtn').click();
     return result;
   })()`);
+  await evaluate("document.querySelector('#statsToggleBtn').click(); true");
+  const populatedStatsAccessibilityTree = await send("Accessibility.getFullAXTree");
+  accessibilityTreeResult.namedReviewList = populatedStatsAccessibilityTree.nodes.some((node) =>
+    node.role?.value === "list" && node.name?.value === "Recorded time by intention"
+  );
+  accessibilityTreeResult.reviewItems = populatedStatsAccessibilityTree.nodes.filter((node) =>
+    node.role?.value === "listitem"
+  ).length;
+  await evaluate("document.querySelector('#statsCloseBtn').click(); true");
+
+  const statsResponsiveLayouts = [];
+  for (const [width, height] of [[720, 520], [800, 600], [899, 700], [901, 700], [1100, 760], [1440, 900]]) {
+    await setWindowSize(width, height);
+    statsResponsiveLayouts.push(await evaluate(`(async () => {
+      document.querySelector('#statsToggleBtn').click();
+      await new Promise((resolve) => setTimeout(resolve, 260));
+      const drawer = document.querySelector('#statsDrawer');
+      const panel = document.querySelector('#statsPanel');
+      const close = document.querySelector('#statsCloseBtn');
+      const bounds = panel.getBoundingClientRect();
+      const result = {
+        width: innerWidth,
+        height: innerHeight,
+        open: drawer.classList.contains('is-open'),
+        inside: bounds.left >= -4 && bounds.top >= -4 && bounds.right <= innerWidth + 4 && bounds.bottom <= innerHeight + 4,
+        scrollable: panel.scrollHeight >= panel.clientHeight,
+        rangeButtonHeight: document.querySelector('#statsRangeWeekBtn').getBoundingClientRect().height,
+        reviewVisible: document.querySelector('#focusReviewTitle').getBoundingClientRect().height > 0,
+        closeVisible: close.getBoundingClientRect().height > 0
+      };
+      close.click();
+      return result;
+    })()`));
+  }
+  await setWindowSize(1100, 760);
 
   const notesResult = await evaluate(`(() => {
     const before = document.querySelectorAll('#noteTabs > *').length;
@@ -880,8 +935,161 @@ try {
       mediaSessionTitle: navigator.mediaSession?.metadata?.title || '',
       mediaPlaybackState: navigator.mediaSession?.playbackState || 'none'
     };
-    player.pause();
+    document.querySelector('#playPauseBtn').click();
     return result;
+  })()`);
+
+  const audioTransitionResult = await evaluate(`(async () => {
+    const music = document.querySelector('#lofiPlayer');
+    const userVolume = document.querySelector('#volumeSlider');
+    const enabled = document.querySelector('#audioTransitionsEnabled');
+    const duration = document.querySelector('#audioTransitionDuration');
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    const waitFor = async (predicate) => {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (predicate()) return true;
+        await wait(50);
+      }
+      return false;
+    };
+    const before = {
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions,
+      checked: enabled.checked,
+      duration: duration.value,
+      durationDisabled: duration.disabled
+    };
+    if (!music.paused) {
+      document.querySelector('#playPauseBtn').click();
+      await wait(20);
+    }
+    enabled.checked = true;
+    enabled.dispatchEvent(new Event('change', { bubbles: true }));
+    duration.value = '200';
+    duration.dispatchEvent(new Event('change', { bubbles: true }));
+    userVolume.value = '60';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+
+    document.querySelector('#playPauseBtn').click();
+    await waitFor(() => music.volume > 0.02 && music.volume < 0.58);
+    const playMidVolume = music.volume;
+    await waitFor(() => !music.paused && Math.abs(music.volume - 0.6) < 0.000001);
+    const playFinal = { paused: music.paused, volume: music.volume };
+
+    document.querySelector('#playPauseBtn').click();
+    await waitFor(() => music.volume > 0.02 && music.volume < 0.58);
+    const pauseMidVolume = music.volume;
+    document.querySelector('#playPauseBtn').click();
+    await waitFor(() => !music.paused && Math.abs(music.volume - 0.6) < 0.000001);
+    const rapidFinal = { paused: music.paused, volume: music.volume };
+
+    document.querySelector('#playPauseBtn').click();
+    await wait(60);
+    userVolume.value = '0';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+    const muteDuringFade = {
+      effective: music.volume,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.volume
+    };
+    document.querySelector('#playPauseBtn').click();
+    await waitFor(() => !music.paused);
+    const mutedReplay = { paused: music.paused, volume: music.volume };
+    userVolume.value = '60';
+    userVolume.dispatchEvent(new Event('input', { bubbles: true }));
+    await waitFor(() => Math.abs(music.volume - 0.6) < 0.000001);
+
+    const sourceBeforeSwitch = music.currentSrc || music.src;
+    document.querySelector('#nextTrackBtn').click();
+    const sourceDuringFadeOut = music.currentSrc || music.src;
+    await waitFor(() =>
+      (music.currentSrc || music.src) !== sourceBeforeSwitch && Math.abs(music.volume - 0.6) < 0.000001
+    );
+    const sourceAfterSwitch = music.currentSrc || music.src;
+    const saved = JSON.parse(localStorage.getItem('infiniteLofiState')).player.audioTransitions;
+    return {
+      before,
+      saved,
+      playMidVolume,
+      playFinal,
+      pauseMidVolume,
+      rapidFinal,
+      muteDuringFade,
+      mutedReplay,
+      sourceBeforeSwitch,
+      sourceDuringFadeOut,
+      sourceAfterSwitch,
+      finalPaused: music.paused,
+      finalVolume: music.volume,
+      checkboxLabelHeight: enabled.closest('label').getBoundingClientRect().height,
+      durationHeight: duration.getBoundingClientRect().height
+    };
+  })()`);
+
+  const ambienceResult = await evaluate(`(async () => {
+    const ambient = document.querySelector('#ambiencePlayer');
+    const music = document.querySelector('#lofiPlayer');
+    const select = document.querySelector('#ambienceSoundSelect');
+    const toggle = document.querySelector('#ambienceToggleBtn');
+    const volume = document.querySelector('#ambienceVolumeSlider');
+    const waitFor = async (predicate) => {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        if (predicate()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return false;
+    };
+
+    select.value = 'soft-rain';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    volume.value = '0';
+    volume.dispatchEvent(new Event('input', { bubbles: true }));
+    const savedZero = JSON.parse(localStorage.getItem('infiniteLofiState')).player.ambience.volume;
+    volume.value = '35';
+    volume.dispatchEvent(new Event('input', { bubbles: true }));
+    toggle.click();
+    const firstPlayed = await waitFor(() => !ambient.paused && Number.isFinite(ambient.duration));
+    const firstSource = ambient.currentSrc || ambient.src;
+    if (music.paused) document.querySelector('#playPauseBtn').click();
+    await waitFor(() => !music.paused);
+    document.querySelector('#playPauseBtn').click();
+    await waitFor(() => music.paused);
+    const independentAfterMusicPause = !ambient.paused;
+
+    select.value = 'quiet-cafe';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const switchedWhilePlaying = await waitFor(() =>
+      !ambient.paused && (ambient.currentSrc || ambient.src).endsWith('/quiet-cafe.wav')
+    );
+    const saved = JSON.parse(localStorage.getItem('infiniteLofiState')).player.ambience;
+    const result = {
+      firstPlayed,
+      firstSource,
+      switchedWhilePlaying,
+      secondSource: ambient.currentSrc || ambient.src,
+      independentAfterMusicPause,
+      musicPaused: music.paused,
+      loop: ambient.loop,
+      savedZero,
+      saved,
+      selectHeight: select.getBoundingClientRect().height,
+      toggleHeight: toggle.getBoundingClientRect().height,
+      status: document.querySelector('#ambienceStatus').textContent.trim()
+    };
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return result;
+  })()`);
+  await delay(1_000);
+  const ambienceRestartResult = await evaluate(`(() => {
+    const ambient = document.querySelector('#ambiencePlayer');
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    return {
+      selected: document.querySelector('#ambienceSoundSelect').value,
+      saved: state.player.ambience,
+      transitionSettings: state.player.audioTransitions,
+      paused: ambient.paused,
+      sourcePresent: ambient.hasAttribute('src'),
+      status: document.querySelector('#ambienceStatus').textContent.trim()
+    };
   })()`);
 
   const expiredSeedResult = await evaluate(`(() => {
@@ -974,6 +1182,7 @@ try {
     const percentile95 = (values) => [...values].sort((left, right) => left - right)[Math.ceil(values.length * 0.95) - 1];
     const openDurations = [];
     const actionDurations = [];
+    const rangeDurations = [];
     const trigger = document.querySelector('#tasksToggleBtn');
     for (let index = 0; index < 30; index += 1) {
       const startedAt = performance.now();
@@ -992,18 +1201,33 @@ try {
       await nextFrame();
       actionDurations.push(performance.now() - startedAt);
     }
+    document.querySelector('#tasksCloseBtn').click();
+    document.querySelector('#statsToggleBtn').click();
+    await nextFrame();
+    for (let index = 0; index < 30; index += 1) {
+      const button = document.querySelector(index % 2 === 0 ? '#statsRangeMonthBtn' : '#statsRangeWeekBtn');
+      const startedAt = performance.now();
+      button.click();
+      await nextFrame();
+      rangeDurations.push(performance.now() - startedAt);
+    }
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
     const result = {
       fixtureTasks: state.tasks.items.length,
       fixtureSessions: state.stats.focusSessions.length,
       repetitions: 30,
       renderedOpenRows: document.querySelectorAll('#openTasksList .task-row').length,
+      renderedReviewRows: document.querySelectorAll('#focusReviewList .focus-review-row').length,
+      reviewPaginationButtons: document.querySelectorAll('#focusReviewPagination button').length,
+      retentionBoundaryVisible: document.querySelector('#focusReviewLimits').textContent.includes('boundary'),
       openP95Ms: percentile95(openDurations),
       actionP95Ms: percentile95(actionDurations),
+      rangeP95Ms: percentile95(rangeDurations),
       openMaxMs: Math.max(...openDurations),
-      actionMaxMs: Math.max(...actionDurations)
+      actionMaxMs: Math.max(...actionDurations),
+      rangeMaxMs: Math.max(...rangeDurations)
     };
-    document.querySelector('#tasksCloseBtn').click();
+    document.querySelector('#statsCloseBtn').click();
     return result;
   })()`);
 
@@ -1053,7 +1277,7 @@ try {
   if (Object.values(contrastResult).some((ratio) => !Number.isFinite(ratio) || ratio < 4.5)) {
     failures.push("core dark or light theme text contrast fell below WCAG AA");
   }
-  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.liveStatusPresent) {
+  if (!accessibilityTreeResult.namedFocusPlanDialog || !accessibilityTreeResult.namedTasksDialog || !accessibilityTreeResult.namedStatsDialog || !accessibilityTreeResult.namedReviewList || accessibilityTreeResult.reviewItems < 2 || !accessibilityTreeResult.liveStatusPresent) {
     failures.push("dialog or live status was missing from the accessibility tree");
   }
   if (!expandableRegionResult.queueFocused || !expandableRegionResult.queueClosed || !expandableRegionResult.queueFocusRestored) {
@@ -1139,8 +1363,21 @@ try {
     !sessionHistoryResult.taskSnapshotVisible ||
     !sessionHistoryResult.countLabel.startsWith("2 ") ||
     !sessionHistoryResult.activeDays.startsWith("1 ") ||
-    sessionHistoryResult.comparison !== "New"
+    sessionHistoryResult.comparison !== "No baseline" ||
+    !sessionHistoryResult.comparisonTitle.includes("no recorded time") ||
+    sessionHistoryResult.heading !== "Focus Review (Last 7 Days)" ||
+    sessionHistoryResult.weekLabel !== "Last 7 Days" ||
+    sessionHistoryResult.reviewRows !== 2 ||
+    sessionHistoryResult.reviewSummary !== "1h 5m recorded across 1 active day." ||
+    !sessionHistoryResult.deletedTaskVisible ||
+    !sessionHistoryResult.unassignedVisible ||
+    !sessionHistoryResult.reconciliationNoteHidden ||
+    !sessionHistoryResult.retentionCopy.includes("5000")
   ) failures.push("session history editing or trend summaries failed");
+  if (statsResponsiveLayouts.some((layout) =>
+    !layout.open || !layout.inside || !layout.scrollable ||
+    layout.rangeButtonHeight < 42 || !layout.reviewVisible || !layout.closeVisible
+  )) failures.push("responsive Focus Review layout failed");
   if (notesResult.after !== notesResult.before + 1 || !notesResult.accepted) failures.push("notes interaction failed");
   if (!drawersResult.statsVisible || !drawersResult.statsFocused || !drawersResult.statsFocusRestored || !drawersResult.backgroundVisible || !drawersResult.backgroundFocused || !drawersResult.backgroundFocusRestored) failures.push("drawer interaction or focus restoration failed");
   if (
@@ -1180,6 +1417,31 @@ try {
     playerResult.mediaPlaybackState !== 'playing'
   ) failures.push("playlist persistence or native media session failed");
   if (
+    audioTransitionResult.before.saved.enabled || audioTransitionResult.before.checked ||
+    audioTransitionResult.before.duration !== '200' || !audioTransitionResult.before.durationDisabled ||
+    !audioTransitionResult.saved.enabled || audioTransitionResult.saved.durationMs !== 200 ||
+    !(audioTransitionResult.playMidVolume > 0 && audioTransitionResult.playMidVolume < 0.6) ||
+    audioTransitionResult.playFinal.paused || Math.abs(audioTransitionResult.playFinal.volume - 0.6) > 0.02 ||
+    !(audioTransitionResult.pauseMidVolume > 0 && audioTransitionResult.pauseMidVolume < 0.6) ||
+    audioTransitionResult.rapidFinal.paused || Math.abs(audioTransitionResult.rapidFinal.volume - 0.6) > 0.02 ||
+    audioTransitionResult.muteDuringFade.effective !== 0 || audioTransitionResult.muteDuringFade.saved !== 0 ||
+    audioTransitionResult.mutedReplay.paused || audioTransitionResult.mutedReplay.volume !== 0 ||
+    audioTransitionResult.sourceDuringFadeOut !== audioTransitionResult.sourceBeforeSwitch ||
+    audioTransitionResult.sourceAfterSwitch === audioTransitionResult.sourceBeforeSwitch ||
+    audioTransitionResult.finalPaused || Math.abs(audioTransitionResult.finalVolume - 0.6) > 0.02 ||
+    audioTransitionResult.checkboxLabelHeight < 42 || audioTransitionResult.durationHeight < 42
+  ) failures.push("audio transition preference, gain separation, cancellation, or sequential switch failed");
+  if (
+    !ambienceResult.firstPlayed || !ambienceResult.firstSource.endsWith('/soft-rain.wav') ||
+    !ambienceResult.switchedWhilePlaying || !ambienceResult.secondSource.endsWith('/quiet-cafe.wav') ||
+    !ambienceResult.independentAfterMusicPause || !ambienceResult.musicPaused || !ambienceResult.loop ||
+    ambienceResult.savedZero !== 0 || ambienceResult.saved.soundId !== 'quiet-cafe' || ambienceResult.saved.volume !== 0.35 ||
+    ambienceResult.selectHeight < 42 || ambienceResult.toggleHeight < 42 || !ambienceResult.status.includes('Quiet Cafe') ||
+    ambienceRestartResult.selected !== 'quiet-cafe' || ambienceRestartResult.saved.soundId !== 'quiet-cafe' ||
+    ambienceRestartResult.saved.volume !== 0.35 || !ambienceRestartResult.transitionSettings.enabled ||
+    ambienceRestartResult.transitionSettings.durationMs !== 200 || !ambienceRestartResult.paused || ambienceRestartResult.sourcePresent
+  ) failures.push("ambient selection, isolation, persistence, or paused startup failed");
+  if (
     expiredRestoreOnce.count !== 1 || expiredRestoreOnce.taskId !== "task-deleted-smoke" ||
     expiredRestoreOnce.taskTitle !== "Deleted task snapshot" ||
     expiredRestoreOnce.completedAt !== new Date(expiredSeedResult.deadlineMs).toISOString() ||
@@ -1188,13 +1450,14 @@ try {
   ) failures.push("expired focus recovery did not attribute and record exactly once");
   if (
     performanceResult.fixtureTasks !== 100 || performanceResult.fixtureSessions !== 5000 || performanceResult.repetitions !== 30 ||
-    performanceResult.renderedOpenRows !== 20 ||
-    (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100))
+    performanceResult.renderedOpenRows !== 20 || performanceResult.renderedReviewRows !== 8 ||
+    performanceResult.reviewPaginationButtons !== 2 || !performanceResult.retentionBoundaryVisible ||
+    (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100 || performanceResult.rangeP95Ms >= 100))
   ) failures.push("reference fixture pagination or p95 performance target failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

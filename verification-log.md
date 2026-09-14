@@ -1,5 +1,93 @@
 # Verification Log
 
+## 2026-09-13 — Phase 4C2 Audio Transitions and combined local acceptance
+
+### Implemented
+
+- Added opt-in 0–500 ms audio transitions, defaulting off at 200 ms, as an additive schema-v5 preference with legacy/default/backup normalization and storage-failure rollback.
+- Added one cancellable gain envelope per music/ambient channel. Persisted user volume and transient gain stay separate, exact mute remains zero, stale callbacks cannot restore an older intent, and settled envelopes leave no animation-frame polling.
+- Routed explicit music and ambient play/pause plus sequential track/sound replacement through the envelopes. Old sources fade to zero before replacement; no crossfade, overlapping ambient source, phase ducking, or new audio asset was added.
+- Made native stop immediately cancel and silence both channels, native pause settle both within the bound, and native play remain music-only. Suspend/resume and unload settle gains; timer-triggered music uses the same authoritative transport while timer phases never start ambience.
+- Added accessible Scene settings and all dynamic copy in Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish. Added a reusable packaged-audio performance measurement command.
+- Packaging review found the Markdown attribution file was excluded by the existing package filter, so it was minimally renamed to `ATTRIBUTION.txt`; the final `app.asar` contains both attribution and MIT license.
+
+### Automated and packaged checks
+
+- `npm run check` passed with 98 tests, syntax checks, and the minified stylesheet build. Fake-clock/model/controller coverage includes preference bounds, user/transient gain composition, mute during fades, rapid play/pause/play, sequential replacement, late callbacks and folder scans, storage/decode/play failures, cancellation/no idle polling, suspend settlement, and immediate stop.
+- Isolated development Electron smoke and final isolated Universal packaged-app smoke both passed with no renderer exceptions. Actual decoded playback checks measured non-final gain during a 200 ms fade, exact target gain afterward, rapid reversal, exact zero, no source replacement until fade-out completed, correct new source afterward, independent ambient playback, persisted settings, and paused/source-free restart.
+- Full regressions passed for Focus Intent snapshots/atomic recovery, Focus Review reconciliation/pagination, Notes, playlist recovery, Media Session metadata/state, backup restore, all seven languages, IME/keyboard focus, reduced motion, scene contrast, timer auto-start/recovery, and duplicate-completion protection.
+- Layout checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1024 × 677, 1100 × 760, and the available 1440 × 794 maximum. Both sides of the 900 px Notes breakpoint and Mini 420 × 250 / 360 × 200 passed; audio controls measured at least 44 px. Exact native 1440 × 900 remains unavailable and unverified.
+- The maximum 100-task / 5,000-session fixture over 30 repetitions reported final development p95 of 17.0 ms drawer open, 38.0 ms task action, and 78.3 ms range change; packaged p95 was 17.1 / 41.8 / 84.8 ms. All remain below the local 100 ms reference target.
+- `npm run pack:universal` passed with electron-builder 26.15.3 and Electron 41.10.7. The final executable is Mach-O Universal `x86_64 arm64`; `app.asar` contains all ambient files, attribution/license, and transition code. WAV assets total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15/20 MiB budgets.
+- The packaged performance comparison used fresh profiles, summed the main process and all descendants, warmed up for five seconds, then sampled macOS `ps` once per second for 60 samples per condition. Music-only averaged 8.82% CPU and 454.98 MiB RSS; music plus ambience averaged 9.03% and 450.28 MiB. Incremental +0.21 CPU percentage points and -4.70 MiB average RSS pass the +5 / +50 MiB budgets. Both page resource lists contained zero HTTP(S) entries.
+- All Electron tests used disposable temporary profiles. Normal installed application data was not read, restored, or modified.
+
+### Pending delivery and human checks
+
+- Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop button exercise remain human checks. Automated handler delegation, deterministic hashes, PCM/loop-boundary analysis, actual decode/playback, final playback state, and Media Session state pass, but are not claimed as subjective evidence.
+- Phase 4B is locally committed as `5123207`, Phase 4C1 as `e7aa161`, and Phase 4C2 as `185138c`. Per explicit user direction, the three phases share [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20), final-head CI, squash merge, and exact-merge `main` CI verification.
+- Initial PR CI run [34731366370](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34731366370) passed checks but exposed a smoke-only timing assumption on the slower runner: a fixed 250 ms read observed a correct 200 ms fade before its delayed animation frames settled. The follow-up keeps an intermediate-gain assertion but uses a bounded poll for the exact final gain/source, so genuine failures still fail without treating runner scheduling delay as product behavior.
+- The package remains version 1.3.0 and intentionally unsigned/unnotarized. No version tag, GitHub Release, installer release, signing, or notarization action was performed.
+
+## 2026-09-13 — Phase 4C1 Ambient Layer local implementation
+
+### Implemented
+
+- Added three original deterministic 12-second mono PCM loops—Soft Rain, Quiet Cafe, and Brown Noise—with generation source, author/source table, packaged MIT license, and no remote runtime dependency. Combined audio size is about 3 MiB, below the 15 MiB asset budget.
+- Added one lazy-loaded ambient channel in Scene with independent sound selection, explicit play/pause, and exact-zero volume. Additive schema-v5 `player.ambience` stores only sound ID and volume; startup, backup restore, recovery, and reload stay paused and unloaded.
+- Enforced one-source concurrency, stop-before-switch, paused-selection behavior, stale-command suppression, visible decode failure, and close/reload cleanup. Existing playlist persistence now preserves ambient preferences instead of overwriting the `player` object.
+- Extended native Media Session actions so play starts music only, while pause/stop invoke the renderer's combined music-and-ambient actions. Music metadata, artwork, position, and seek remain unchanged.
+- Added localized ambient UI/status/accessibility text for all seven supported display languages. Timer phase changes remain independent from ambience.
+
+### Local verification
+
+- `npm run check` passed with 92 tests, all JavaScript syntax checks, and the minified stylesheet build.
+- New tests cover volume clamp/exact zero, invalid IDs, schema migration/defaults, backup round-trip, player preference preservation, one-source switching, paused selection, rapid stale callbacks, decode failure, storage failure, native action delegation, cleanup, WAV structure, and the 15 MiB budget.
+- Isolated development Electron smoke passed with no renderer exceptions. Actual bundled Soft Rain and Quiet Cafe decoded and played; switching while playing retained one active element, music pause did not pause ambience, exact-zero volume persisted, controls measured 44 px, and reload restored the selection/volume while leaving ambience paused and source-free.
+- The full prior timer/task/history/Notes/player/scene/language/accessibility/layout regression path remained green, including Mini 420 × 250 and 360 × 200, the 900 px Notes breakpoint, all scene AA palettes, and 5,000-session Focus Review performance.
+
+### Combined evidence status
+
+- Universal packaged playback, package-size/content budgets, deterministic seam analysis, and the 60-second process CPU/memory comparison were completed in the combined Phase 4C2 acceptance pass above. Actual OS Media Session button exercise and subjective audible loop/fade listening remain explicitly pending human checks.
+- Phase 4B is separately committed as `5123207`; Phase 4C1 and Phase 4C2 will also receive separate local commits. By explicit user direction, all three phases will then share one PR, final-commit CI, squash merge, and exact-merge `main` CI check.
+- Package version remains 1.3.0. No tag, GitHub Release, signing, or notarization action is authorized.
+
+## 2026-09-13 — Phase 4B Focus Review implementation
+
+### Baseline revalidation
+
+- Read the complete README, audited Phase 4 specification, handoff, verification log, UI refresh plan, and user profile. No repository `AGENTS.md` exists.
+- Confirmed the canonical checkout was clean on `main` at `24adb4b66c0e1ec11873ddb88d0e815d8ecc330c`, with only one registered worktree. Fetched origin and confirmed live `origin/main` matched.
+- Confirmed package version 1.3.0 and annotated `v1.3.0` resolving to release commit `2e90dbdc2767861714c0effe4b580a1e03700379`.
+- Confirmed exact-head [main CI run 34701605670](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701605670) passed before implementation, then created `codex/phase4b-focus-review` directly in the canonical checkout.
+
+### Implemented
+
+- Reframed the existing Stats ranges as Today, Last 7 Days, and Last 30 Days rolling stored-day windows in all seven interface languages.
+- Added a pure canonical-ledger Focus Review selector for exact-second totals, active recorded days, previous equal-period comparison, imported duration, retention state, and task-time reconciliation. No aggregate is persisted and schema remains v5.
+- Grouped identifiable history by stable task ID. Live tasks use their current title; deleted tasks use the latest retained snapshot and a deleted marker. Visible stable IDs distinguish same-title tasks.
+- Kept snapshot-only entries separate by ledger identity and included an explicit unassigned group. Imported daily totals contribute duration but are not presented as real individual sessions.
+- Added covered-date, retention, absence-of-record, current-target goal, zero-baseline, comparison-completeness, and display-rounding explanations. Daily CSV remains unchanged and full JSON backup remains the loss-preserving export; no additional CSV was added.
+- Added a responsive, text-readable breakdown with accessible row summaries, keyboard focus, 44 px range controls, and eight groups per page. Review selectors do not run on timer ticks.
+- Deliberately excluded time-of-day reconstruction, historical goal claims, predictions, productivity scores, attribution editing, Phase 4C1 ambience, and Phase 4C2 transitions.
+
+### Local verification
+
+- `npm run check`: passed with 82 tests, all JavaScript syntax checks, and a minified stylesheet rebuild.
+- New model/controller coverage includes empty, sparse, dense, all-unassigned, imported, renamed, deleted, snapshot-only, and same-title/different-ID histories; stored-day and duration edits; deletion; retention caps; local-midnight/DST boundaries; exact reconciliation; rounding; zero previous totals; and stats-range storage persistence failure.
+- Isolated development Electron smoke passed without renderer exceptions. It covered live ledger edits, deleted/snapshot/unassigned rendering, readable summaries, named accessibility nodes, keyboard focus, seven-language regression switching, responsive Stats, and all existing timer/task/Notes/player/scene/backup/recovery paths.
+- Universal packaging passed with electron-builder 26.15.3; `file` and `lipo` confirmed an `x86_64 arm64` Mach-O Universal executable, and `app.asar` contains the changed stats, controller, renderer, i18n, HTML, and generated CSS files.
+- Isolated Universal packaged-app smoke passed the same complete path with no renderer exceptions.
+- Responsive Focus Review passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and this display's maximum 1440 × 794 viewport. Range controls measured 44 px; the drawer and review remained reachable and scrollable.
+- The 5,000-session/100-task performance fixture ran 30 repetitions. Development range-switch p95 was 75.8 ms; packaged p95 was 84.5 ms. Each review page rendered 8 rows with keyboard-accessible pagination, below the 100 ms M2 reference target.
+- Existing pause/resume, live auto-start, automatic focus start, local completion, restored expiry across two reloads, atomic/idempotent recording, Mini 420 × 250 and 360 × 200, 900 px Notes breakpoint, scene contrast, reduced motion, native Media Session, and storage/backup checks remained green. Every Electron run used a disposable profile, so normal application data was not read or modified.
+
+### Delivery state and limits
+
+- Feature PR, final-commit PR CI, squash merge, exact-merge `main` CI, and post-merge documentation evidence are pending.
+- The exact 1440 × 900 native viewport remains unavailable and unverified; the current display exposed at most 1440 × 794. This is not recorded as a pass.
+- The Universal app remains intentionally unsigned and not notarized. Package version stays 1.3.0; no version tag, GitHub Release, signing, notarization, Phase 4C1, or Phase 4C2 work was performed.
+
 ## 2026-09-12 — Seven-language display settings
 
 ### Implemented

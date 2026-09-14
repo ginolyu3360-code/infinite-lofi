@@ -1186,7 +1186,7 @@ body.has-visual-background .glass-panel {
 }
 
 .stats-range-btn {
-  min-height: 2.3rem;
+  min-height: 2.75rem;
   border-color: transparent;
   background: transparent;
 }
@@ -1327,6 +1327,147 @@ body.has-visual-background .glass-panel {
 
 #statsBars.is-month-range {
   min-width: 88rem;
+}
+
+.focus-review {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: rgba(5, 5, 4, 0.18);
+  padding: 0.9rem;
+}
+
+.focus-review-heading,
+.focus-review-row-heading,
+.focus-review-pagination {
+  display: flex;
+  align-items: center;
+}
+
+.focus-review-heading {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.focus-review-heading h3 {
+  margin: 0.3rem 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#focusReviewRange,
+.focus-review-summary,
+.focus-review-note,
+.focus-review-meta,
+.focus-review-duration,
+.focus-review-pagination {
+  color: var(--ink-muted);
+  font: 500 0.58rem/1.45 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+#focusReviewRange {
+  max-width: 48%;
+  text-align: right;
+}
+
+.focus-review-summary {
+  margin: 0.65rem 0 0;
+  color: var(--ink-soft);
+}
+
+.focus-review-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  outline: none;
+}
+
+.focus-review-list.hidden,
+.focus-review-note.hidden {
+  display: none;
+}
+
+.focus-review-list:focus-visible {
+  border-radius: var(--radius-small);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.focus-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.65rem 0.7rem;
+}
+
+.focus-review-row-heading {
+  min-width: 0;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.focus-review-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-review-meta {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-review-duration {
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.focus-review-meter {
+  grid-column: 1 / -1;
+  height: 0.32rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.focus-review-meter span {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+.focus-review-pagination {
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.focus-review-pagination:empty {
+  display: none;
+}
+
+.focus-review-pagination .stats-export-btn {
+  min-height: 2.5rem;
+}
+
+.focus-review-note {
+  margin: 0.65rem 0 0;
+}
+
+.focus-review-note.is-warning {
+  color: var(--accent-strong);
 }
 
 .session-history {
@@ -1516,6 +1657,117 @@ body.has-visual-background .glass-panel {
   font: 600 0.58rem/1.2 "IBM Plex Mono", ui-monospace, monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.scene-section-copy,
+.ambience-status,
+.ambience-license {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 500 0.66rem/1.5 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.ambience-controls {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) auto;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+}
+
+.ambience-field {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--ink-muted);
+  font: 600 0.58rem/1.2 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ambience-field select,
+.ambience-field input[type="number"],
+.ambience-field input[type="range"] {
+  min-height: 2.75rem;
+}
+
+.ambience-field select,
+.ambience-field input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(5, 5, 4, 0.36);
+  padding: 0 0.75rem;
+  color: var(--ink);
+}
+
+.ambience-volume-field {
+  grid-column: 1 / -1;
+}
+
+.ambience-volume-field input {
+  width: 100%;
+}
+
+.audio-transition-toggle {
+  min-height: 2.75rem;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: rgba(5, 5, 4, 0.24);
+  padding: 0.55rem 0.75rem;
+  color: var(--ink);
+  font: 500 0.66rem/1.3 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.audio-transition-toggle span,
+.audio-transition-toggle small {
+  display: block;
+}
+
+.audio-transition-toggle small {
+  margin-top: 0.2rem;
+  color: var(--ink-muted);
+  font-size: 0.58rem;
+}
+
+.audio-transition-toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+}
+
+.audio-transition-duration {
+  grid-column: 1 / -1;
+}
+
+.ambience-status {
+  margin-top: 0.65rem;
+  color: var(--ink);
+}
+
+.ambience-license {
+  margin-top: 0.3rem;
+  color: var(--ink-muted);
+  font-size: 0.58rem;
+}
+
+@media (max-width: 30rem) {
+  .ambience-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .ambience-volume-field {
+    grid-column: auto;
+  }
+
+  .audio-transition-toggle,
+  .audio-transition-duration {
+    grid-column: auto;
+  }
 }
 
 .scene-preset-grid {
@@ -1984,6 +2236,8 @@ body.bg-white-background .task-rename-input,
 body.bg-white-background .task-intent-card,
 body.bg-white-background .task-row,
 body.bg-white-background .stats-chart-wrap,
+body.bg-white-background .focus-review,
+body.bg-white-background .focus-review-row,
 body.bg-white-background .scene-meta {
   background-color: rgba(255, 255, 255, 0.38);
 }
@@ -2168,6 +2422,23 @@ body.is-showcase-mode .grain-layer {
 
   .stats-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-review-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  #focusReviewRange {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .focus-review-row-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 
   .session-history-add {

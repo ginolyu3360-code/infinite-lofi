@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3；仓库源码另含尚未单独发布的 Phase 4A Focus Intent。
+当前发布版本：**v1.3.0**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本包含完整的 Phase 3；仓库源码另含尚未单独发布的 Phase 4A Focus Intent 与 Phase 4B Focus Review。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -153,7 +153,10 @@ electron-builder 的关键配置（来自 package.json）：
 - Phase 3C Playlist & Media Controls 已完成：schema v4 使用文件夹内相对文件名保存稳定队列，移动文件夹后可重连，缺失曲目不会静默消失，并接入系统媒体信息与播放键。
 - Phase 3D Accessibility 已完成：弹层与响应式 Notes/Queue 具备可预测的键盘焦点，重要状态会经实时区域播报，核心深浅主题文字有 AA 对比度回归检查，减少动态效果也有真实 Electron 验证。
 - Phase 3E Curated Scenes 已完成：新增 Quiet Studio、Midnight、Moss 与 Paper，旧的黑/白/自定义媒体设置会自动映射，保存的本地图片和视频路径不会因切换预设而删除。
-- Phase 4A Focus Intent 已完成于源码：schema v5 保存标题任务、下一轮选择和当前轮冻结快照；完成记账与下一计时状态原子写入，任务改名、完成或删除不会重写进行中或历史快照。Phase 4B、4C1、4C2 尚未实施。
+- Phase 4A Focus Intent 已完成于源码：schema v5 保存标题任务、下一轮选择和当前轮冻结快照；完成记账与下一计时状态原子写入，任务改名、完成或删除不会重写进行中或历史快照。
+- Phase 4B Focus Review 已完成于源码：Stats 明确使用今天、最近 7 天和最近 30 天滚动范围，按稳定任务 ID 汇总账本时间，并分别标识已删除任务、仅快照与未指定记录；界面同时解释零基线、取整、导入数据及保留边界。
+- Phase 4C1 Ambient Layer 已完成于源码：Scene 提供三种原创 MIT 离线环境音，可与音乐独立控制且同一时间最多播放一种；选择与独立音量保存在 schema v5，但启动、恢复和异常恢复后始终暂停。
+- Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 500 ms 的音乐与环境声淡入淡出；用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
@@ -190,7 +193,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The release contains the complete Phase 3; the repository source also contains the not-yet-released Phase 4A Focus Intent.
+Current release: **v1.3.0**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. The release contains the complete Phase 3; the repository source also contains the not-yet-released Phase 4A Focus Intent, Phase 4B Focus Review, Phase 4C1 Ambient Layer, and Phase 4C2 Audio Transitions.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -201,6 +204,8 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Local notes with tabs and pinning
 - Music player with bundled sample tracks, stable saved queues, local-folder reconnect/rescan recovery, and explicit missing-track handling
 - Native Media Session metadata, playback, track navigation, stop, and seeking controls
+- Three original bundled offline ambient loops with a single independent playback layer and volume
+- Optional bounded, cancellable audio fades for playback and sequential source changes
 - Versioned local storage with legacy migration and validated backup restore
 - Four built-in scene presets—Quiet Studio, Midnight, Moss, and Paper—plus wallpaper, image, video, and track-cover sources
 - Native OS window controls, standard macOS close/quit behavior, and a tray menu

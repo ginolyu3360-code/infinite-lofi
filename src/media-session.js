@@ -99,13 +99,20 @@
     function installActionHandlers(actions = {}) {
       if (!supported) return false;
       setActionHandler("play", () => {
-        Promise.resolve(audio.play()).catch(() => {});
+        Promise.resolve(actions.play ? actions.play() : audio.play()).catch(() => {});
       });
-      setActionHandler("pause", () => audio.pause());
+      setActionHandler("pause", () => {
+        if (actions.pause) actions.pause();
+        else audio.pause();
+      });
       setActionHandler("stop", () => {
-        audio.pause();
-        if (Number.isFinite(Number(audio.duration)) && Number(audio.duration) > 0) {
-          audio.currentTime = 0;
+        if (actions.stop) {
+          actions.stop();
+        } else {
+          audio.pause();
+          if (Number.isFinite(Number(audio.duration)) && Number(audio.duration) > 0) {
+            audio.currentTime = 0;
+          }
         }
         syncPlaybackState();
         syncPositionState();

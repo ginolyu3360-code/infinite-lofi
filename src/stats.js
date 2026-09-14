@@ -49,6 +49,135 @@
     };
   }
 
+  const FOCUS_REVIEW_PAGE_SIZE = 8;
+
+  function summarizeFocusReview(rawSessions, rawTasks, days) {
+    const sessions = core.normalizeFocusSessions(rawSessions, []);
+    const selectedDays = new Set(
+      Array.isArray(days) ? days.map((day) => day?.key).filter(core.isValidLocalDayKey) : []
+    );
+    const previousDays = buildPreviousRangeDays(days);
+    const previousDayKeys = new Set(previousDays.map((day) => day.key));
+    const currentSessions = sessions.filter((session) => selectedDays.has(session.day));
+    const previousSessions = sessions.filter((session) => previousDayKeys.has(session.day));
+    const liveTasks = new Map(
+      (Array.isArray(rawTasks) ? rawTasks : [])
+        .filter((task) => task && typeof task.id === "string" && typeof task.title === "string")
+        .map((task) => [task.id, task])
+    );
+    const identifiableGroups = new Map();
+    const snapshotGroups = [];
+    let unassignedSeconds = 0;
+    let importedSeconds = 0;
+
+    for (const session of currentSessions) {
+      if (session.source === "migrated") importedSeconds += session.focusSeconds;
+      if (session.taskId) {
+        let group = identifiableGroups.get(session.taskId);
+        if (!group) {
+          group = {
+            key: `task:${session.taskId}`,
+            type: "task",
+            taskId: session.taskId,
+            seconds: 0,
+            latestSnapshot: ""
+          };
+          identifiableGroups.set(session.taskId, group);
+        }
+        group.seconds += session.focusSeconds;
+        if (session.taskTitle) group.latestSnapshot = session.taskTitle;
+      } else if (session.taskTitle) {
+        snapshotGroups.push({
+          key: `snapshot:${session.id}`,
+          type: "snapshot",
+          taskId: null,
+          title: session.taskTitle,
+          seconds: session.focusSeconds
+        });
+      } else {
+        unassignedSeconds += session.focusSeconds;
+      }
+    }
+
+    const taskGroups = [...identifiableGroups.values()].map((group) => {
+      const liveTask = liveTasks.get(group.taskId);
+      return {
+        key: group.key,
+        type: "task",
+        taskId: group.taskId,
+        title: liveTask?.title || group.latestSnapshot,
+        seconds: group.seconds,
+        deleted: !liveTask,
+        missingSnapshot: !liveTask && !group.latestSnapshot
+      };
+    });
+    const groups = [...taskGroups, ...snapshotGroups];
+    if (unassignedSeconds > 0) {
+      groups.push({
+        key: "unassigned",
+        type: "unassigned",
+        taskId: null,
+        title: "",
+        seconds: unassignedSeconds
+      });
+    }
+    groups.sort((left, right) =>
+      right.seconds - left.seconds ||
+      left.type.localeCompare(right.type) ||
+      left.key.localeCompare(right.key)
+    );
+
+    const totalSeconds = currentSessions.reduce((sum, session) => sum + session.focusSeconds, 0);
+    const previousTotalSeconds = previousSessions.reduce((sum, session) => sum + session.focusSeconds, 0);
+    const groupedSeconds = groups.reduce((sum, group) => sum + group.seconds, 0);
+    const distinctRetainedDays = new Set(sessions.map((session) => session.day)).size;
+    const retentionLimitReached =
+      sessions.length >= core.MAX_FOCUS_SESSIONS ||
+      distinctRetainedDays >= core.MAX_FOCUS_HISTORY_DAYS;
+    const displayedTotalMinutes = Math.round(totalSeconds / 60);
+    const displayedGroupMinutes = groups.reduce(
+      (sum, group) => sum + Math.round(group.seconds / 60),
+      0
+    );
+
+    return {
+      groups,
+      totalSeconds,
+      groupedSeconds,
+      activeDays: new Set(currentSessions.map((session) => session.day)).size,
+      previousTotalSeconds,
+      comparisonPercent: previousTotalSeconds > 0
+        ? Math.round(((totalSeconds - previousTotalSeconds) / previousTotalSeconds) * 100)
+        : null,
+      displayedTotalMinutes,
+      roundingDifferenceMinutes: displayedGroupMinutes - displayedTotalMinutes,
+      importedSeconds,
+      reconciles: groupedSeconds === totalSeconds,
+      rangeStart: days?.[0]?.key || "",
+      rangeEnd: days?.at?.(-1)?.key || "",
+      previousRangeStart: previousDays[0]?.key || "",
+      previousRangeEnd: previousDays.at(-1)?.key || "",
+      retainedSessionCount: sessions.length,
+      retainedDayCount: distinctRetainedDays,
+      earliestRetainedDay: sessions[0]?.day || "",
+      retentionLimitReached,
+      comparisonMayBeIncomplete: retentionLimitReached
+    };
+  }
+
+  function paginateFocusReview(groups, page, pageSize = FOCUS_REVIEW_PAGE_SIZE) {
+    const items = Array.isArray(groups) ? groups : [];
+    const normalizedSize = Math.max(1, Math.min(20, Math.round(Number(pageSize)) || FOCUS_REVIEW_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(items.length / normalizedSize));
+    const currentPage = Math.max(1, Math.min(totalPages, Math.round(Number(page)) || 1));
+    return {
+      items: items.slice((currentPage - 1) * normalizedSize, currentPage * normalizedSize),
+      page: currentPage,
+      totalPages,
+      totalItems: items.length
+    };
+  }
+
   function buildDailyCsv(rows, days) {
     const summary = summarizeFocusRows(rows, days);
     return [
@@ -146,11 +275,11 @@
       streakDays += 1;
       cursor.setDate(cursor.getDate() - 1);
     }
-    const comparisonPercent = previous.totalMinutes > 0
-      ? Math.round(((summary.totalMinutes - previous.totalMinutes) / previous.totalMinutes) * 100)
-      : summary.totalMinutes > 0
-      ? null
-      : 0;
+    const currentSeconds = summary.values.reduce((sum, value) => sum + value, 0);
+    const previousSeconds = previous.values.reduce((sum, value) => sum + value, 0);
+    const comparisonPercent = previousSeconds > 0
+      ? Math.round(((currentSeconds - previousSeconds) / previousSeconds) * 100)
+      : null;
     return {
       activeDays,
       goalDays,
@@ -176,12 +305,15 @@
   }
 
   const api = {
+    FOCUS_REVIEW_PAGE_SIZE,
     buildDailyCsv,
     buildPreviousRangeDays,
     buildRangeDays,
+    paginateFocusReview,
     recordFocusSession,
     removeFocusSession,
     summarizeDailyGoal,
+    summarizeFocusReview,
     summarizeFocusRows,
     summarizeFocusTrends,
     upsertFocusSession

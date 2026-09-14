@@ -64,3 +64,21 @@ test("keeps native language names stable in every interface language", () => {
     ["简体中文", "繁體中文", "English", "日本語", "Français", "한국어", "Español"]
   );
 });
+
+test("localizes rolling Focus Review labels in every display language", () => {
+  const expectedLastSevenDays = {
+    "zh-CN": "最近 7 天",
+    "zh-TW": "最近 7 天",
+    en: "Last 7 Days",
+    ja: "過去7日間",
+    fr: "7 derniers jours",
+    ko: "최근 7일",
+    es: "Últimos 7 días"
+  };
+  for (const [code, label] of Object.entries(expectedLastSevenDays)) {
+    const language = createI18n(code);
+    assert.equal(language.t("stats.week"), label);
+    assert.notEqual(language.t("stats.breakdownTitle"), "stats.breakdownTitle");
+    assert.notEqual(language.t("stats.zeroBaselineTitle"), "stats.zeroBaselineTitle");
+  }
+});

@@ -282,15 +282,15 @@
           <div class="drawer-header">
             <div>
               <p class="panel-eyebrow" data-i18n="stats.review">Review</p>
-              <h2 id="statsHeadingLabel" class="panel-title">Focus Stats (This Week)</h2>
+              <h2 id="statsHeadingLabel" class="panel-title">Focus Review (Last 7 Days)</h2>
             </div>
             <button id="statsCloseBtn" class="window-btn" title="Close Stats" aria-label="Close Stats" data-i18n-title="stats.close" data-i18n-aria-label="stats.close">×</button>
           </div>
           <div class="stats-toolbar">
             <div class="segmented-control" role="group" aria-label="Statistics range" data-i18n-aria-label="stats.range">
-              <button id="statsRangeTodayBtn" class="stats-range-btn" type="button" title="Show today stats" aria-pressed="false" data-i18n="stats.today">Today</button>
-              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" type="button" title="Show this week stats" aria-pressed="true" data-i18n="stats.week">Week</button>
-              <button id="statsRangeMonthBtn" class="stats-range-btn" type="button" title="Show this month stats" aria-pressed="false" data-i18n="stats.month">Month</button>
+              <button id="statsRangeTodayBtn" class="stats-range-btn" type="button" title="Show today stats" aria-pressed="false" data-i18n="stats.today" data-i18n-title="stats.showToday">Today</button>
+              <button id="statsRangeWeekBtn" class="stats-range-btn is-active" type="button" title="Show the last 7 days" aria-pressed="true" data-i18n="stats.week" data-i18n-title="stats.showWeek">Last 7 Days</button>
+              <button id="statsRangeMonthBtn" class="stats-range-btn" type="button" title="Show the last 30 days" aria-pressed="false" data-i18n="stats.month" data-i18n-title="stats.showMonth">Last 30 Days</button>
             </div>
             <div class="stats-file-actions">
               <button id="exportStatsBtn" class="stats-export-btn" title="Export stats as CSV" data-i18n="stats.csv">CSV</button>
@@ -362,6 +362,21 @@
               <div id="statsBars" role="list" aria-label="Focus minutes by day" data-i18n-aria-label="stats.minutesByDay"></div>
             </div>
           </div>
+          <section class="focus-review" aria-labelledby="focusReviewTitle">
+            <div class="focus-review-heading">
+              <div>
+                <p class="panel-eyebrow" data-i18n="stats.breakdownEyebrow">Focus Review</p>
+                <h3 id="focusReviewTitle" data-i18n="stats.breakdownTitle">Time by intention</h3>
+              </div>
+              <span id="focusReviewRange"></span>
+            </div>
+            <p id="focusReviewSummary" class="focus-review-summary" aria-live="polite"></p>
+            <p id="focusReviewEmpty" class="session-history-empty" data-i18n="stats.noBreakdown">No recorded time in this range.</p>
+            <div id="focusReviewList" class="focus-review-list" role="list" tabindex="0" aria-label="Recorded time by intention" data-i18n-aria-label="stats.breakdownList"></div>
+            <nav id="focusReviewPagination" class="focus-review-pagination" aria-label="Task-time breakdown pages" data-i18n-aria-label="stats.breakdownPages"></nav>
+            <p id="focusReviewRounding" class="focus-review-note hidden"></p>
+            <p id="focusReviewLimits" class="focus-review-note"></p>
+          </section>
           <section class="session-history" aria-labelledby="sessionHistoryTitle">
             <div class="session-history-heading">
               <div>
@@ -418,6 +433,32 @@
               <button id="bgImageBtn" class="control-btn" title="Import a background image" data-i18n="scene.importImage">Import Image</button>
               <button id="bgResetBtn" class="control-btn" title="Reset background settings" data-i18n="timer.reset">Reset</button>
             </div>
+          </div>
+
+          <div class="scene-section" aria-labelledby="ambienceTitle">
+            <h3 id="ambienceTitle" class="scene-section-title" data-i18n="ambience.title">Ambient sound</h3>
+            <p class="scene-section-copy" data-i18n="ambience.description">Layer one bundled offline sound beside your music. It always starts paused after launch.</p>
+            <div class="ambience-controls">
+              <label class="ambience-field" for="ambienceSoundSelect">
+                <span data-i18n="ambience.sound">Sound</span>
+                <select id="ambienceSoundSelect" aria-label="Ambient sound" data-i18n-aria-label="ambience.sound"></select>
+              </label>
+              <button id="ambienceToggleBtn" class="control-btn" type="button" aria-pressed="false" disabled data-i18n="ambience.play">Play ambience</button>
+              <label class="ambience-field ambience-volume-field" for="ambienceVolumeSlider">
+                <span data-i18n="ambience.volume">Ambient volume</span>
+                <input id="ambienceVolumeSlider" type="range" min="0" max="100" value="35" aria-label="Ambient volume" data-i18n-aria-label="ambience.volume" />
+              </label>
+              <label class="audio-transition-toggle" for="audioTransitionsEnabled">
+                <span><strong data-i18n="audioTransitions.title">Audio fades</strong><small data-i18n="audioTransitions.hint">Fade explicit play, pause, and sequential source changes.</small></span>
+                <input id="audioTransitionsEnabled" type="checkbox" />
+              </label>
+              <label class="ambience-field audio-transition-duration" for="audioTransitionDuration">
+                <span data-i18n="audioTransitions.duration">Fade duration (ms)</span>
+                <input id="audioTransitionDuration" type="number" min="0" max="500" step="10" value="200" aria-label="Fade duration in milliseconds" data-i18n-aria-label="audioTransitions.duration" />
+              </label>
+            </div>
+            <p id="ambienceStatus" class="ambience-status" role="status" aria-live="polite" data-i18n="ambience.offStatus">Ambient sound is off.</p>
+            <p class="ambience-license" data-i18n="ambience.license">Bundled original loops · Infinite Lo-Fi contributors · MIT</p>
           </div>
 
           <div class="mt-4 bg-preview">
@@ -477,8 +518,8 @@
           <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.togglePlaylist">Toggle Playlist</span><span class="shortcut-keys"><span class="shortcut-key">L</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="togglePlaylist" checked /></div>
           <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.toggleStats">Toggle Stats Drawer</span><span class="shortcut-keys"><span class="shortcut-key">S</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="toggleStats" checked /></div>
           <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsToday">Stats Range: Today</span><span class="shortcut-keys"><span class="shortcut-key">1</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsToday" checked /></div>
-          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsWeek">Stats Range: Week</span><span class="shortcut-keys"><span class="shortcut-key">2</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsWeek" checked /></div>
-          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsMonth">Stats Range: Month</span><span class="shortcut-keys"><span class="shortcut-key">3</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsMonth" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsWeek">Stats Range: Last 7 Days</span><span class="shortcut-keys"><span class="shortcut-key">2</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsWeek" checked /></div>
+          <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.statsMonth">Stats Range: Last 30 Days</span><span class="shortcut-keys"><span class="shortcut-key">3</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="statsMonth" checked /></div>
           <div class="shortcut-row"><span class="shortcut-label" data-i18n="keys.closePanels">Close Panels / Help</span><span class="shortcut-keys"><span class="shortcut-key">Esc</span></span><input class="shortcut-toggle" type="checkbox" data-shortcut="closePanels" checked /></div>
 
           <h3 class="shortcut-group-title" data-i18n="keys.notes">Notes</h3>
@@ -491,11 +532,14 @@
       <div id="a11yStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
       <audio id="lofiPlayer" preload="metadata"></audio>
+      <audio id="ambiencePlayer" preload="none" loop></audio>
     </div>
 
     <script src="./core.js"></script>
     <script src="./i18n.js"></script>
     <script src="./tasks.js"></script>
+    <script src="./ambience.js"></script>
+    <script src="./audio-transition.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>
@@ -503,6 +547,7 @@
     <script src="./player.js"></script>
     <script src="./media-session.js"></script>
     <script src="./player-controller.js"></script>
+    <script src="./ambience-controller.js"></script>
     <script src="./backgrounds.js"></script>
     <script src="./stats.js"></script>
     <script src="./focus-session.js"></script>

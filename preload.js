@@ -19,5 +19,9 @@ contextBridge.exposeInMainWorld("desktopApp", {
     ipcRenderer.on("app:command", (_event, command) => {
       callback(command);
     });
+  },
+  onPowerState: (callback) => {
+    if (typeof callback !== "function") return;
+    ipcRenderer.on("app:power-state", (_event, state) => callback(state));
   }
 });
