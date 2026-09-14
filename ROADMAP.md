@@ -2,9 +2,9 @@
 
 ## Current baseline
 
-Version 1.4.0 is the current published release, delivering the complete Phase 4 Focus Depth pass and seven-language display settings on top of the v1.3.0 Phase 3 foundation.
+Version 1.4.1 is the current published release, delivering the complete Phase 4 Focus Depth pass, seven-language display settings, and the post-v1.4 Queue/playback/responsive feedback pass on top of the v1.3.0 Phase 3 foundation.
 
-Version 1.4.0 adds optional Focus Intent tasks with immutable attribution, transparent Focus Review summaries, one bundled offline ambient layer, bounded cancellable audio transitions, and seven immediate interface languages. Release-preparation [PR #23](https://github.com/ginolyu3360-code/infinite-lofi/pull/23) passed CI, was squash-merged as `a55cb73`, and passed exact-merge `main` CI before the annotated `v1.4.0` tag triggered successful Release workflow `34796559509`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
+Version 1.4.1 adds large-library Queue management, Repeat One and Shuffle, Mini transport controls, responsive timer improvements, a larger window-drag surface, and related interaction repairs. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) merged as `5bb67c6`; release [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) merged as `089bdf6`, passed exact-head main CI `34865480996`, and the annotated `v1.4.1` tag triggered successful Release workflow `34866263548`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
 
 ## Phase 0 — Stabilize the core
 
@@ -445,9 +445,9 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 7. No signing/notarization, framework rewrite, accounts, cloud sync, backend, subscription, project hierarchy, deadlines, reminders, tags, task search, task descriptions, Notes bidirectional linkage, mid-session split attribution, or partial-time accounting in these slices.
 8. Creating a version tag, publishing a GitHub Release, or changing the unsigned distribution policy requires a separate explicit instruction. A passing feature CI is not release authorization.
 
-## Post-v1.4.0 candidate backlog
+## Post-v1.4.0 feedback release
 
-Status: implementation completed locally on `codex/post-v1.4-feedback`; delivery/release is not yet performed. `HANDOFF.md` is the concise canonical summary.
+Status: completed through PR #26 and released in v1.4.1. `HANDOFF.md` is the concise canonical summary.
 
 ### Recommended first slice — correctness and timer layout
 

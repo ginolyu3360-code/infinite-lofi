@@ -1,20 +1,19 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-14
+Updated: 2026-09-15
 
 ## Start of the next session
 
 1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not recreate the removed `/Users/lvjunhao/Documents/ChatGPT/infinite lofi` checkout or create an extra worktree.
 2. For an ordinary continuation, read the post-v1.4 implementation summary and remaining boundary near the end of this handoff, then inspect only changes since the recorded baseline. Do not repeatedly reread the complete historical roadmap, verification log, and UI plan unless planning a release/migration, resolving a contradiction, or changing the relevant subsystem.
-3. Recorded audit baseline: local and remote `main` were clean and synchronized at `c536bc0b068f47e7eaedcf0a36136e8b310abe37`; exact-head CI `34798817855` passed. Before making changes, fetch and compare the working tree, `main`, tags, and latest exact-commit CI against this baseline.
-4. Package version 1.4.0 is published. Do not create later tags or releases, or begin signing/notarization work, without a new instruction.
+3. Published release baseline: annotated `v1.4.1` peels to `089bdf65ba30a1a386477ca3aafa1814cee868d5`; exact-head main CI `34865480996` and Release workflow `34866263548` passed. Before making changes, fetch and compare the working tree, `main`, tags, and latest exact-commit CI against this baseline.
+4. Package version 1.4.1 is published. Do not create later tags or releases, or begin signing/notarization work, without a new instruction.
 
 ## Current project state
 
-- After the release evidence and repository-file cleanup PRs, current local/remote `main` is `c536bc0`; [exact-head CI `34798817855`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34798817855) passed checks, development smoke, Universal packaging, and packaged smoke. The only remote branch is `main`, with no open PRs or Issues at the recorded audit.
-- Current package and latest published release: v1.4.0. Release-preparation [PR #23](https://github.com/ginolyu3360-code/infinite-lofi/pull/23) final head `c8df170` passed CI `34796227646`, was squash-merged as `a55cb73`, and passed exact-merge [main CI `34796418446`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796418446).
-- Annotated tag `v1.4.0` resolves to `a55cb73`. [Release workflow `34796559509`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34796559509) published the latest non-draft, non-prerelease [GitHub Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.0) with unsigned Universal DMG/ZIP and SHA-256 checksums.
-- Phase 0 through Phase 4C2 are complete in source. v1.4.0 packages complete Phase 4 plus the seven-language display setting.
+- Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) passed final CI `34861869716`, squash-merged as `5bb67c6`, and passed exact-merge main CI `34863054603`. Release-preparation [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) final head `a99e64f` passed CI `34865115885` and squash-merged as `089bdf6`; exact-head [main CI `34865480996`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34865480996) passed on its second attempt after one inspector-disconnect-only packaged-smoke failure.
+- Current package and latest published release: v1.4.1. Annotated tag `v1.4.1` peels exactly to `089bdf6`. [Release workflow `34866263548`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34866263548) published the latest non-draft, non-prerelease [GitHub Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.1) with unsigned Universal DMG/ZIP and SHA-256 checksums.
+- Phase 0 through Phase 4C2, seven-language display settings, and the post-v1.4 Queue/playback/responsive feedback pass are complete and packaged in v1.4.1.
 - The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
 - Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
 - Phase 4B Focus Review was locally committed as `5123207` on `codex/phase4-focus-depth` and delivered with 4C1/C2 through PR #20.
@@ -98,13 +97,13 @@ Updated: 2026-09-14
 
 - Automated Phase 4B/C1/C2 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The user subsequently confirmed native 1440 × 900 verification passed on 2026-09-14; keep the older automated limitation as provenance rather than treating it as the current acceptance state.
 - Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop buttons require human interaction and remain pending. Automated action-handler delegation, waveform seam bounds, actual decode/playback, final state, and native Media Session state all pass; those checks are not mislabeled as subjective listening.
-- The v1.4.0 Universal build is intentionally unsigned and not notarized. Its version tag and GitHub Release were a separate explicitly authorized release step, not part of Phase 4B implementation.
+- The current v1.4.1 Universal build is intentionally unsigned and not notarized. Its version tag and GitHub Release were a separate explicitly authorized release step.
 - Tray menu rendering and OS notification presentation are not directly introspected by the renderer smoke; their unchanged IPC paths were exercised without exceptions, and existing main-process behavior was not modified.
 - Tasks remain title-only and optional. Phase 4B/C1/C2 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, multiple ambient layers, crossfades, phase ducking, or sleep timers.
 
 ## Post-v1.4 feedback implementation
 
-Implementation branch: `codex/post-v1.4-feedback`, based on `c536bc0`. Package version remains 1.4.0; no tag, Release, signing, or notarization work is part of this branch.
+Delivered through [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) as merge commit `5bb67c6` and released in v1.4.1. Signing and notarization remain outside scope.
 
 - Implemented responsive large timer sizing in full, Queue, and Mini layouts. Queue-open timer content is reduced to time plus Start/Pause and Reset; Mini retains previous/next and seeking at 360 × 200 without overflow.
 - Implemented vertically scrollable compact Queue plus a large in-app `Show All` manager for folders with more than six tracks. Drag reorder remains; single-click selects and swaps, repeat-click or Escape cancels, double-click plays, and Shift+Enter is the keyboard play action.
