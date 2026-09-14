@@ -146,11 +146,26 @@ try {
       const cardRect = timerCard.getBoundingClientRect();
       const playerRect = player.getBoundingClientRect();
       const headerActionsRect = headerActions.getBoundingClientRect();
+      const timerContentRect = timerContent.getBoundingClientRect();
       const viewportTolerance = 4;
+      const timerChildOverflow = [...timerContent.children]
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+        })
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.left < timerContentRect.left - viewportTolerance ||
+            rect.right > timerContentRect.right + viewportTolerance ||
+            rect.top < timerContentRect.top - viewportTolerance ||
+            rect.bottom > timerContentRect.bottom + viewportTolerance;
+        })
+        .map((element) => element.id || element.className || element.tagName);
       return {
         width: innerWidth,
         height: innerHeight,
         timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+        timerChildOverflow,
         cardInsideViewport: cardRect.left >= -viewportTolerance && cardRect.right <= innerWidth + viewportTolerance && cardRect.top >= -viewportTolerance,
         playerInsideViewport: playerRect.left >= -viewportTolerance && playerRect.right <= innerWidth + viewportTolerance && playerRect.bottom <= innerHeight + viewportTolerance,
         headerActionsInsideViewport: headerActionsRect.left >= -viewportTolerance && headerActionsRect.right <= innerWidth + viewportTolerance,
@@ -164,7 +179,7 @@ try {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       state = await readLayoutState();
       if (
-        state.timerOverflow <= 4 &&
+        state.timerChildOverflow.length === 0 &&
         state.cardInsideViewport &&
         state.playerInsideViewport &&
         state.headerActionsInsideViewport &&
@@ -647,15 +662,32 @@ try {
 
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
-  const miniMode420 = await evaluate(`(() => ({
-    enabled: document.body.classList.contains('is-mini-mode'),
-    width: innerWidth,
-    height: innerHeight,
-    timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
-    fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
-    notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none',
-    editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none'
-  }))()`);
+  const miniMode420 = await evaluate(`(() => {
+    const timerContent = document.querySelector('#timerContent');
+    const timerContentRect = timerContent.getBoundingClientRect();
+    const tolerance = 4;
+    const timerChildOverflow = [...timerContent.children]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+      })
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < timerContentRect.left - tolerance || rect.right > timerContentRect.right + tolerance ||
+          rect.top < timerContentRect.top - tolerance || rect.bottom > timerContentRect.bottom + tolerance;
+      })
+      .map((element) => element.id || element.className || element.tagName);
+    return {
+      enabled: document.body.classList.contains('is-mini-mode'),
+      width: innerWidth,
+      height: innerHeight,
+      timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+      timerChildOverflow,
+      fullLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
+      notesHidden: getComputedStyle(document.querySelector('#notesPanel')).display === 'none',
+      editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none'
+    };
+  })()`);
   await evaluate(`(() => {
     window.__miniTimerText = document.querySelector('#timerDisplay').textContent;
     const intention = document.querySelector('#timerIntentValue');
@@ -670,6 +702,8 @@ try {
   })()`);
   await setWindowSize(360, 200);
   const miniMode360 = await evaluate(`(() => {
+    const timerContent = document.querySelector('#timerContent');
+    const timerContentRect = timerContent.getBoundingClientRect();
     const ids = [
       'timerDisplay', 'timerToggle', 'timerReset', 'playPauseBtn',
       'prevTrackBtn', 'nextTrackBtn', 'progressSlider', 'miniModeToggleBtn',
@@ -683,11 +717,23 @@ try {
         inside: rect.left >= -tolerance && rect.right <= innerWidth + tolerance && rect.top >= -tolerance && rect.bottom <= innerHeight + tolerance
       }];
     }));
+    const timerChildOverflow = [...timerContent.children]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+      })
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < timerContentRect.left - tolerance || rect.right > timerContentRect.right + tolerance ||
+          rect.top < timerContentRect.top - tolerance || rect.bottom > timerContentRect.bottom + tolerance;
+      })
+      .map((element) => element.id || element.className || element.tagName);
     const intention = document.querySelector('#timerIntentValue');
     return {
       width: innerWidth,
       height: innerHeight,
-      timerOverflow: document.querySelector('#timerContent').scrollHeight - document.querySelector('#timerContent').clientHeight,
+      timerOverflow: timerContent.scrollHeight - timerContent.clientHeight,
+      timerChildOverflow,
       timer: document.querySelector('#timerDisplay').textContent.trim(),
       titleAvailable: intention.getAttribute('aria-label')?.includes('界') && intention.title.includes('界'),
       editorHidden: getComputedStyle(document.querySelector('#tasksDrawer')).display === 'none',
@@ -1386,7 +1432,7 @@ try {
   if (!responsiveNotesResult.focusedOnOpen || !responsiveNotesResult.hiddenAfterEscape || !responsiveNotesResult.focusRestored) {
     failures.push("responsive notes focus management failed");
   }
-  if (responsiveLayouts.some((layout) => layout.timerOverflow > 4 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
+  if (responsiveLayouts.some((layout) => layout.timerChildOverflow.length > 0 || !layout.cardInsideViewport || !layout.playerInsideViewport || !layout.headerActionsInsideViewport || layout.timerButtonHeight < 42)) {
     failures.push("responsive full-window layout overflowed or exposed undersized controls");
   }
   if (
@@ -1425,11 +1471,11 @@ try {
     completionDoesNotStopResult.resetContext !== null || !completionDoesNotStopResult.resetSelection ||
     completionDoesNotStopResult.resetSelectedTitle !== "Beta intention"
   ) failures.push("task completion changed the active timer or reset semantics");
-  if (!miniMode420.enabled || miniMode420.width > 480 || miniMode420.height > 280 || miniMode420.timerOverflow > 4 || miniMode420.fullLabel !== "Full" || !miniMode420.notesHidden || !miniMode420.editorHidden) {
+  if (!miniMode420.enabled || miniMode420.width > 480 || miniMode420.height > 280 || miniMode420.timerChildOverflow.length > 0 || miniMode420.fullLabel !== "Full" || !miniMode420.notesHidden || !miniMode420.editorHidden) {
     failures.push("Mini Mode layout or window sizing failed");
   }
   if (
-    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerOverflow > 4 || miniMode360.timer !== "360:00" ||
+    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerChildOverflow.length > 0 || miniMode360.timer !== "360:00" ||
     !miniMode360.titleAvailable || !miniMode360.editorHidden ||
     Object.values(miniMode360.controls).some((control) => !control.visible || !control.inside)
   ) failures.push("360x200 Mini Mode clipped maximum timer, intention, or primary controls");
