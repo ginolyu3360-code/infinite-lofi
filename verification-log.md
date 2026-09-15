@@ -1,8 +1,8 @@
 # Verification Log
 
-## 2026-09-15 — Windows x64 support implemented locally
+## 2026-09-15 — Windows x64 support delivered
 
-- Implemented on `codex/windows-support` from clean synchronized `main` `64d5380`, then audited and rebased onto `main` `9ae5fdd`. The original local commit is preserved as `3e55cec` on `codex/windows-support-backup-3e55cec`; package version remains 1.4.1 and no PR, tag, or Release has been created yet.
+- Implemented on `codex/windows-support` from clean synchronized `main` `64d5380`, then audited and rebased onto `main` `9ae5fdd`. Final PR head `3376f7d` passed CI `34944611079`, squash-merged through [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) as `722084412657e4a434fa9d51540a032714eceae9`, and exact-merge [main CI `34944930190`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34944930190) passed both jobs. Package version remains 1.4.1; no tag or Release was created.
 - Added an assisted per-user NSIS installer for Windows x64, explicit Windows packaged-smoke commands, platform-appropriate opaque window initialization, a resized Windows tray image, and single-instance startup that restores the existing window.
 - Kept automatic desktop-wallpaper discovery macOS-only and hid its unavailable action on Windows; local image and video backgrounds remain supported.
 - Expanded CI to run checks, development smoke, native packaging, and packaged smoke on macOS and Windows. Tag releases now stage both platform builds and publish the DMG, ZIP, EXE, and shared SHA-256 file together.
@@ -12,7 +12,7 @@
 - Cross-packaging on macOS completed with electron-builder 26.15.3 / Electron 41.10.7. `dist/win-unpacked/Infinite Lo-Fi.exe` is a Windows x86-64 PE application; its ASAR contains the main/preload/UI/icon, bundled track, and ambience resources. The current-code assisted installer `dist/Infinite-Lo-Fi-1.4.1-x64.exe` was generated successfully with SHA-256 `a973d725a4c33ddb837b5866f04a2576c5b1bdf38874d3a24a3f3c42b2790f8b`.
 - Unsigned Universal macOS packaging, `x86_64 arm64` inspection, and isolated packaged-app smoke also passed after integration.
 - Follow-up PR CI `34943717149` passed both jobs. The Windows x64 runner completed 111 tests, native development smoke, x64 unpacked packaging, and packaged-app smoke; the macOS runner completed 111 tests, development smoke, Universal packaging, and packaged-app smoke.
-- Docs-head CI `34944088191` passed macOS. Its Windows job completed every product assertion and printed the smoke success marker, then failed when synchronous process-exit cleanup encountered a transient `EBUSY` lock on Chromium's `Shared Dictionary/db`. The runner now awaits Electron exit before removing the profile and uses bounded `rmSync` retries for transient Windows locks; local tests and isolated development smoke pass after the repair. A clean final-head CI is still required before merge.
+- Docs-head CI `34944088191` passed macOS. Its Windows job completed every product assertion and printed the smoke success marker, then failed when synchronous process-exit cleanup encountered a transient `EBUSY` lock on Chromium's `Shared Dictionary/db`. The runner now awaits Electron exit before removing the profile and uses bounded `rmSync` retries for transient Windows locks; final PR CI `34944611079` and exact-merge main CI `34944930190` both passed the repaired cleanup path on Windows.
 - Installer launch, installation/upgrade/uninstall, tray rendering, physical system media buttons, display scaling, sleep/resume, and Defender/SmartScreen remain explicitly pending on a physical Windows 11 x64 computer. The unsigned build is not approved for broad distribution.
 
 ## 2026-09-15 — Queue rendering and smoke-profile isolation optimization
