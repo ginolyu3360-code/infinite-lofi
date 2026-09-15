@@ -45,13 +45,34 @@ function createElement(tagName = "div") {
     },
     addEventListener(name, handler) { listeners.set(name, handler); },
     setAttribute(name, value) { this.attributes[name] = String(value); },
+    getAttribute(name) { return this.attributes[name] ?? null; },
     removeAttribute(name) { delete this.attributes[name]; },
+    matches(selector) {
+      return selector === ".playlist-item" && this.classList.contains("playlist-item");
+    },
+    closest(selector) {
+      let current = this;
+      while (current) {
+        if (current.matches?.(selector)) return current;
+        current = current.parentNode;
+      }
+      return null;
+    },
     contains() { return false; },
     querySelector() { return null; },
     querySelectorAll() { return []; },
-    async click(event = { detail: 0 }) { return listeners.get("click")?.(event); },
-    async dblclick() { return listeners.get("dblclick")?.({ detail: 2 }); },
-    async keydown(event) { return listeners.get("keydown")?.(event); }
+    listenerCount(name) { return listeners.has(name) ? 1 : 0; },
+    async dispatch(name, event = {}) {
+      if (!event.target) event.target = this;
+      if (!event.preventDefault) event.preventDefault = () => { event.defaultPrevented = true; };
+      event.currentTarget = this;
+      const result = await listeners.get(name)?.(event);
+      if (!event.cancelBubble && this.parentNode?.dispatch) return this.parentNode.dispatch(name, event);
+      return result;
+    },
+    async click(event = { detail: 0 }) { return this.dispatch("click", event); },
+    async dblclick() { return this.dispatch("dblclick", { detail: 2 }); },
+    async keydown(event) { return this.dispatch("keydown", event); }
   };
   Object.defineProperty(element, "innerHTML", {
     get() { return ""; },
@@ -93,6 +114,7 @@ function createHarness(playerState, desktopApp, controllerOptions = {}) {
     shuffleModeBtn: createElement("button"),
     drawerBackdrop: createElement()
   };
+  elements.playlistPanel.appendChild(elements.playlistItems);
   const playerPanel = createElement("footer");
   playerPanel.appendChild(elements.playlistPanel);
   const controller = createPlayerController({
@@ -182,17 +204,95 @@ test("single-click swaps queue positions while double-click plays the chosen tra
   });
   await controller.restorePersistedPlayer();
 
-  await elements.playlistItems.children[0].click();
+  assert.equal(elements.playlistItems.listenerCount("click"), 1);
+  assert.equal(elements.playlistItems.children[0].listenerCount("click"), 0);
+  await elements.playlistItems.children[0].children[0].click();
   assert.equal(elements.playlistItems.children[0].attributes["aria-pressed"], "true");
   await elements.playlistItems.children[2].click();
   assert.deepEqual(getState().player.queue.map((track) => track.key), [
     "builtin:three", "builtin:two", "builtin:one"
   ]);
 
+  const rowsBeforePlayback = [...elements.playlistItems.children];
   await elements.playlistItems.children[1].dblclick();
   await Promise.resolve();
   assert.equal(getState().player.activeTrackKey, "builtin:two");
   assert.equal(elements.lofiPlayer.paused, false);
+  assert.equal(elements.playlistItems.children[0], rowsBeforePlayback[0]);
+});
+
+test("delegated Queue events preserve keyboard playback, cancellation, and drag reorder", async () => {
+  const { controller, elements, getState } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: ""
+  }, undefined, {
+    defaultTracks: [
+      { key: "builtin:one", label: "One", src: "one.wav" },
+      { key: "builtin:two", label: "Two", src: "two.wav" },
+      { key: "builtin:three", label: "Three", src: "three.wav" }
+    ]
+  });
+  await controller.restorePersistedPlayer();
+
+  await elements.playlistItems.children[0].click();
+  const cancelEvent = { key: "Escape" };
+  await elements.playlistItems.children[0].children[0].keydown(cancelEvent);
+  assert.equal(cancelEvent.defaultPrevented, true);
+  assert.equal(elements.playlistItems.children[0].attributes["aria-pressed"], "false");
+
+  const keyboardPlayEvent = { key: "Enter", shiftKey: true };
+  await elements.playlistItems.children[2].keydown(keyboardPlayEvent);
+  await Promise.resolve();
+  assert.equal(keyboardPlayEvent.defaultPrevented, true);
+  assert.equal(getState().player.activeTrackKey, "builtin:three");
+
+  const firstRow = elements.playlistItems.children[0];
+  const thirdRow = elements.playlistItems.children[2];
+  const dataTransfer = {};
+  await firstRow.dispatch("dragstart", { dataTransfer });
+  assert.equal(dataTransfer.effectAllowed, "move");
+  await thirdRow.dispatch("dragover", { dataTransfer });
+  assert.equal(dataTransfer.dropEffect, "move");
+  assert.equal(thirdRow.classList.contains("is-drag-over"), true);
+  await thirdRow.dispatch("drop", { dataTransfer });
+  assert.deepEqual(getState().player.queue.map((track) => track.key), [
+    "builtin:two", "builtin:three", "builtin:one"
+  ]);
+});
+
+test("a maximum-size Queue keeps constant listeners and stable rows while switching tracks", async () => {
+  const defaultTracks = Array.from({ length: 1000 }, (_, index) => ({
+    key: `builtin:${index}`,
+    label: `Track ${index}`,
+    src: `${index}.wav`
+  }));
+  const { controller, elements, getState } = createHarness(
+    { folderPath: "", queue: [], activeTrackKey: "" },
+    undefined,
+    { defaultTracks }
+  );
+  await controller.restorePersistedPlayer();
+
+  const eventNames = ["click", "dblclick", "keydown", "dragstart", "dragend", "dragover", "dragleave", "drop"];
+  assert.equal(elements.playlistItems.children.length, 1000);
+  assert.equal(eventNames.reduce((total, name) => total + elements.playlistItems.listenerCount(name), 0), 8);
+  assert.equal(
+    elements.playlistItems.children.reduce(
+      (total, row) => total + eventNames.reduce((rowTotal, name) => rowTotal + row.listenerCount(name), 0),
+      0
+    ),
+    0
+  );
+
+  const firstRow = elements.playlistItems.children[0];
+  const secondRow = elements.playlistItems.children[1];
+  await controller.switchTrack();
+  assert.equal(getState().player.activeTrackKey, "builtin:1");
+  assert.equal(elements.playlistItems.children[0], firstRow);
+  assert.equal(elements.playlistItems.children[1], secondRow);
+  assert.equal(firstRow.attributes["aria-current"], undefined);
+  assert.equal(secondRow.attributes["aria-current"], "true");
 });
 
 test("supports repeat-one, non-repeating shuffle, and no-op play for music already playing", async () => {

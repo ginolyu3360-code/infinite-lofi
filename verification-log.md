@@ -1,8 +1,17 @@
 # Verification Log
 
+## 2026-09-15 — Queue rendering and smoke-profile isolation optimization
+
+- Implemented on `codex/optimize-queue-rendering` from delivered scan-optimization `main` `64d5380ce812d9ebe6c3ca0e6d99697fa0155758`; package version remains 1.4.1 and no tag or Release was created.
+- Replaced eight per-track Queue listeners with eight delegated container listeners. At the supported 1,000-track limit, normal track switching retains the existing row nodes and patches active/selected accessibility state instead of reconstructing the entire list.
+- Preserved click-to-swap, Escape cancellation, double-click/Shift+Enter playback, missing-track handling, and drag reorder through delegated-event regression coverage.
+- The first packaged smoke exposed that Chromium's command-line profile flag did not reliably isolate Electron app startup: expired-timer recovery could read or mutate the installed profile before the script's later backup boundary. The app now accepts an absolute test-only profile path before startup and assigns both Electron `userData` and `sessionData`; the smoke runner injects that path for development and packaged runs.
+- `npm run check` passed with 107 tests, including the 1,000-row listener/identity regression and a static app-level smoke-isolation contract. Development smoke and two consecutive unsigned Universal packaged-app smoke runs passed from clean disposable profiles with no renderer exceptions or cross-run state.
+- Final `file` and `lipo` inspection confirmed the rebuilt executable is a Universal Mach-O containing both `x86_64` and `arm64` architectures.
+
 ## 2026-09-15 — Local music-library scan optimization
 
-- Implemented on `codex/optimize-library-scans` from clean synchronized post-release `main` `13bffdcd2d3d7268c27c9f4f5af6716682840e0a`; package version remains 1.4.1 and no tag or Release was created.
+- Implemented from clean synchronized post-release `main` `13bffdcd2d3d7268c27c9f4f5af6716682840e0a` and delivered through [PR #29](https://github.com/ginolyu3360-code/infinite-lofi/pull/29) as `64d5380ce812d9ebe6c3ca0e6d99697fa0155758`; exact-merge [main CI `34916714525`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34916714525) passed. Package version remains 1.4.1 and no tag or Release was created.
 - Replaced up to five sequential artwork-cache existence probes per track with one fail-open cache-directory index per folder scan. The existing per-file size/mtime cache key, bounded metadata concurrency, sidecar priority, file URL transport, and no-audio-copy policy remain unchanged.
 - Added latest-request-wins scan handling so a slow restore/rescan cannot overwrite a newer folder selection. Rescan is disabled and the Queue exposes `aria-busy` while scanning; Load Folder stays usable as an intentional override.
 - `npm run check` passed with 104 tests, including cached lookup without per-artwork access probes, unreadable-cache fallback, and stale-scan rejection.

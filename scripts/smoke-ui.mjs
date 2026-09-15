@@ -19,9 +19,10 @@ const launchArguments = packagedExecutable
   ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`]
   : [`--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`, "."];
 const appProcess = connectOnly ? null : spawn(executable, launchArguments, {
-    cwd: projectDirectory,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
+  cwd: projectDirectory,
+  env: { ...process.env, INFINITE_LOFI_SMOKE_PROFILE: smokeUserDataDirectory },
+  stdio: ["ignore", "pipe", "pipe"]
+});
 
 let appLog = "";
 let socket;
