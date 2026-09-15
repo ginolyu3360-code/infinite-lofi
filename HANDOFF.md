@@ -117,16 +117,26 @@ Delivered through [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pul
 
 ## Post-v1.4.1 library-scan optimization
 
-Current local branch: `codex/optimize-library-scans`, based on post-release `main` `13bffdc`. Package version remains 1.4.1; this is an unreleased optimization slice.
+Delivered through [PR #29](https://github.com/ginolyu3360-code/infinite-lofi/pull/29) as merge commit `64d5380`; exact-merge [main CI `34916714525`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34916714525) passed. Package version remains 1.4.1; this is an unreleased post-v1.4.1 optimization.
 
 - Repeat local-folder scans now index the embedded-artwork cache once instead of probing up to five possible cache files for every track. Audio files are not duplicated or persistently cached.
 - Folder scan results use latest-request-wins semantics, so an older restore/rescan cannot replace a newer folder selected by the user. The Queue reports `aria-busy` and disables Rescan while a scan is active; Load Folder remains available as an intentional override.
 - The optional artwork cache remains fail-open: an unreadable cache cannot prevent the music folder itself from loading.
 - Local acceptance passed 104 tests, syntax/style checks, development smoke, unsigned Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions.
 
+## Post-v1.4.1 Queue-render optimization
+
+Current implementation branch: `codex/optimize-queue-rendering`, based on delivered scan-optimization `main` `64d5380`. Package version remains 1.4.1; this is another unreleased optimization slice.
+
+- Queue interaction now uses eight delegated listeners on the list container instead of eight listeners per row. At the supported 1,000-track maximum, this keeps the listener count at eight instead of up to 8,000.
+- Ordinary track changes and click-swap selection patch active/selected row state in place instead of rebuilding every Queue row. Full rebuilding remains limited to actual queue membership/order or language changes.
+- Single-click swap, repeat-click/Escape cancellation, double-click and Shift+Enter playback, missing-track handling, and drag reorder retain their prior behavior.
+- Development and packaged smoke launch with an explicit disposable Electron `userData` and `sessionData` profile. This closes a test-runner isolation gap where packaged startup could otherwise recover state from the installed app profile before the smoke script backed it up.
+- Local acceptance passed 107 tests, development smoke, unsigned Universal packaging, final `x86_64 arm64` inspection, and two consecutive packaged-app smoke runs from clean profiles.
+
 ### Remaining boundary
 
 - Do not add a persistent one-to-three-track audio-file cache without measured latency or availability evidence. Local media and the OS already buffer; if a real problem appears, evaluate bounded next-track/metadata/artwork preload first and define size, invalidation, cleanup, privacy, and missing-folder behavior before a disk cache.
 - Music Inbox was removed after direct user feedback that it was unnecessary. Continue using bundled defaults plus explicitly loaded local folders; do not restore an app-owned Inbox without a new request.
 - Subjective audio quality and physical OS media-key checks remain human checks.
-- A version bump, PR/merge, tag, Release, signing, or notarization requires its normal separate delivery decision. The previously recorded ambient-sound/signing reminder was explicitly removed from this feedback list; signing/notarization remains only the older distribution limitation, not near-term work.
+- A version bump, tag, Release, signing, or notarization requires its normal separate delivery decision. The previously recorded ambient-sound/signing reminder was explicitly removed from this feedback list; signing/notarization remains only the older distribution limitation, not near-term work.

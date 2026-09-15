@@ -179,13 +179,13 @@
       if (!trackKey) return;
       if (!swapSourceKey) {
         swapSourceKey = trackKey;
-        renderPlaylist();
+        updatePlaylistItemStates();
         announce(t("player.swapSelected"));
         return;
       }
       if (swapSourceKey === trackKey) {
         swapSourceKey = "";
-        renderPlaylist();
+        updatePlaylistItemStates();
         announce(t("player.swapCancelled"));
         return;
       }
@@ -193,6 +193,113 @@
       const toIndex = playlist.findIndex((track) => playerModel.getTrackKey(track) === trackKey);
       swapSourceKey = "";
       if (swapPlaylistPositions(fromIndex, toIndex)) announce(t("player.swapComplete"));
+    }
+
+    function updatePlaylistItemStates() {
+      Array.from(elements.playlistItems.children || []).forEach((itemButton) => {
+        const itemIndex = Number(itemButton.dataset.index);
+        const trackKey = itemButton.dataset.trackKey || "";
+        const isActive = itemIndex === currentTrackIndex;
+        const isSwapSource = trackKey === swapSourceKey;
+        itemButton.classList.toggle("is-active", isActive);
+        itemButton.classList.toggle("is-swap-source", isSwapSource);
+        itemButton.setAttribute("aria-pressed", String(isSwapSource));
+        if (isActive) itemButton.setAttribute("aria-current", "true");
+        else itemButton.removeAttribute("aria-current");
+      });
+      renderPlaybackMode();
+      updateFolderStatus();
+    }
+
+    function getPlaylistItem(event) {
+      return event?.target?.closest?.(".playlist-item") || null;
+    }
+
+    function handlePlaylistClick(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      const detail = Number(event.detail);
+      if (Number.isFinite(detail) && detail > 1) return;
+      const trackKey = itemButton.dataset.trackKey || "";
+      cancelPendingSingleClick();
+      if (!Number.isFinite(detail) || detail === 0) {
+        handleSwapSelection(trackKey);
+        return;
+      }
+      pendingSingleClick = scheduleDelayed(() => {
+        pendingSingleClick = null;
+        handleSwapSelection(trackKey);
+      }, 220);
+    }
+
+    function handlePlaylistDoubleClick(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      cancelPendingSingleClick();
+      swapSourceKey = "";
+      const selectedIndex = Number(itemButton.dataset.index);
+      const track = playlist[selectedIndex];
+      if (track?.isMissing === true) {
+        showAlert(t("player.trackMissingAlert"));
+        updatePlaylistItemStates();
+        return;
+      }
+      playSelectedTrack(selectedIndex);
+    }
+
+    function handlePlaylistKeydown(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      if (event.key === "Escape" && swapSourceKey) {
+        event.preventDefault();
+        swapSourceKey = "";
+        updatePlaylistItemStates();
+        announce(t("player.swapCancelled"));
+      } else if (event.key === "Enter" && event.shiftKey && itemButton.getAttribute("aria-disabled") !== "true") {
+        event.preventDefault();
+        cancelPendingSingleClick();
+        swapSourceKey = "";
+        playSelectedTrack(Number(itemButton.dataset.index));
+      }
+    }
+
+    function handlePlaylistDragStart(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      cancelPendingSingleClick();
+      swapSourceKey = "";
+      draggedItem = itemButton;
+      updatePlaylistItemStates();
+      itemButton.classList.add("is-dragging");
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+    }
+
+    function handlePlaylistDragEnd(event) {
+      const itemButton = getPlaylistItem(event);
+      itemButton?.classList.remove("is-dragging");
+      draggedItem = null;
+    }
+
+    function handlePlaylistDragOver(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      if (draggedItem && draggedItem !== itemButton) itemButton.classList.add("is-drag-over");
+    }
+
+    function handlePlaylistDragLeave(event) {
+      getPlaylistItem(event)?.classList.remove("is-drag-over");
+    }
+
+    function handlePlaylistDrop(event) {
+      const itemButton = getPlaylistItem(event);
+      if (!itemButton) return;
+      event.preventDefault();
+      itemButton.classList.remove("is-drag-over");
+      if (draggedItem && draggedItem !== itemButton) {
+        reorderPlaylist(Number(draggedItem.dataset.index), Number(itemButton.dataset.index));
+      }
     }
 
     function renderPlaylist() {
@@ -228,75 +335,13 @@
         itemButton.title = track.isMissing === true
           ? t("player.trackUnavailableTitle", { title: track.label })
           : t("player.queueTrackTitle", { title: track.label });
-        itemButton.addEventListener("click", (event = {}) => {
-          const detail = Number(event.detail);
-          if (Number.isFinite(detail) && detail > 1) return;
-          cancelPendingSingleClick();
-          if (!Number.isFinite(detail) || detail === 0) {
-            handleSwapSelection(trackKey);
-            return;
-          }
-          pendingSingleClick = scheduleDelayed(() => {
-            pendingSingleClick = null;
-            handleSwapSelection(trackKey);
-          }, 220);
-        });
-        itemButton.addEventListener("dblclick", () => {
-          cancelPendingSingleClick();
-          swapSourceKey = "";
-          if (track.isMissing === true) {
-            showAlert(t("player.trackMissingAlert"));
-            renderPlaylist();
-            return;
-          }
-          const selectedIndex = playlist.findIndex((candidate) => playerModel.getTrackKey(candidate) === trackKey);
-          playSelectedTrack(selectedIndex);
-        });
-        itemButton.addEventListener("keydown", (event) => {
-          if (event.key === "Escape" && swapSourceKey) {
-            event.preventDefault();
-            swapSourceKey = "";
-            renderPlaylist();
-            announce(t("player.swapCancelled"));
-          } else if (event.key === "Enter" && event.shiftKey && track.isMissing !== true) {
-            event.preventDefault();
-            cancelPendingSingleClick();
-            swapSourceKey = "";
-            const selectedIndex = playlist.findIndex((candidate) => playerModel.getTrackKey(candidate) === trackKey);
-            playSelectedTrack(selectedIndex);
-          }
-        });
-        itemButton.addEventListener("dragstart", (event) => {
-          cancelPendingSingleClick();
-          swapSourceKey = "";
-          draggedItem = itemButton;
-          itemButton.classList.add("is-dragging");
-          event.dataTransfer.effectAllowed = "move";
-        });
-        itemButton.addEventListener("dragend", () => {
-          itemButton.classList.remove("is-dragging");
-          draggedItem = null;
-        });
-        itemButton.addEventListener("dragover", (event) => {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-          if (draggedItem && draggedItem !== itemButton) itemButton.classList.add("is-drag-over");
-        });
-        itemButton.addEventListener("dragleave", () => itemButton.classList.remove("is-drag-over"));
-        itemButton.addEventListener("drop", (event) => {
-          event.preventDefault();
-          itemButton.classList.remove("is-drag-over");
-          if (draggedItem && draggedItem !== itemButton) {
-            reorderPlaylist(Number(draggedItem.dataset.index), Number(itemButton.dataset.index));
-          }
-        });
         elements.playlistItems.appendChild(itemButton);
       });
       renderPlaybackMode();
       updateFolderStatus();
     }
 
-    function updateTrack() {
+    function updateTrack({ rebuildPlaylist = true } = {}) {
       playbackCommandVersion += 1;
       musicEnvelope.cancel({ gain: 1 });
       const track = getActiveTrack();
@@ -309,7 +354,8 @@
         elements.playPauseBtn.textContent = t("player.play");
         onArtworkChange(null);
         onTrackChange(null);
-        renderPlaylist();
+        if (rebuildPlaylist) renderPlaylist();
+        else updatePlaylistItemStates();
         return;
       }
       elements.trackLabel.textContent = track.label;
@@ -321,7 +367,8 @@
       );
       onTrackChange(track);
       announce(t("player.nowPlayingAnnouncement", { title: track.label }));
-      renderPlaylist();
+      if (rebuildPlaylist) renderPlaylist();
+      else updatePlaylistItemStates();
     }
 
     function setPlaylistFromScan(tracks, savedQueue, activeTrackKey) {
@@ -543,7 +590,7 @@
       elements.lofiPlayer.pause();
       musicEnvelope.cancel({ gain: 1 });
       currentTrackIndex = index;
-      updateTrack();
+      updateTrack({ rebuildPlaylist: false });
       const sourceVersion = playbackCommandVersion;
       persistState();
       desiredPlaying = shouldResume;
@@ -696,6 +743,15 @@
       }
       renderPlaylist();
     }
+
+    elements.playlistItems.addEventListener("click", handlePlaylistClick);
+    elements.playlistItems.addEventListener("dblclick", handlePlaylistDoubleClick);
+    elements.playlistItems.addEventListener("keydown", handlePlaylistKeydown);
+    elements.playlistItems.addEventListener("dragstart", handlePlaylistDragStart);
+    elements.playlistItems.addEventListener("dragend", handlePlaylistDragEnd);
+    elements.playlistItems.addEventListener("dragover", handlePlaylistDragOver);
+    elements.playlistItems.addEventListener("dragleave", handlePlaylistDragLeave);
+    elements.playlistItems.addEventListener("drop", handlePlaylistDrop);
 
     return {
       getUserVolume: () => musicEnvelope.getState().userVolume,

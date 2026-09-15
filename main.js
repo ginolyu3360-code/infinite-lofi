@@ -8,6 +8,15 @@ const musicMetadata = require("music-metadata");
 const { createMusicLibrary } = require("./src/music-library");
 const { isTrustedNavigationUrl } = require("./src/security");
 
+const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
+const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
+  testUserDataArgument?.slice("--user-data-dir=".length);
+if ((!app.isPackaged || process.argv.includes("--allow-devtools-for-testing")) && testUserDataDirectory) {
+  if (!path.isAbsolute(testUserDataDirectory)) throw new Error("Test user-data directory must be absolute");
+  app.setPath("userData", testUserDataDirectory);
+  app.setPath("sessionData", testUserDataDirectory);
+}
+
 const mainDocumentPath = path.join(__dirname, "src", "index.html");
 const mainDocumentUrl = pathToFileURL(mainDocumentPath).href;
 const execFileAsync = promisify(execFile);
