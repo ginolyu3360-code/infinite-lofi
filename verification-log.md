@@ -2,7 +2,7 @@
 
 ## 2026-09-15 — Queue rendering and smoke-profile isolation optimization
 
-- Implemented on `codex/optimize-queue-rendering` from delivered scan-optimization `main` `64d5380ce812d9ebe6c3ca0e6d99697fa0155758`; package version remains 1.4.1 and no tag or Release was created.
+- Implemented from delivered scan-optimization `main` `64d5380ce812d9ebe6c3ca0e6d99697fa0155758` and delivered through [PR #30](https://github.com/ginolyu3360-code/infinite-lofi/pull/30) as `fb31a947c5bda1daaad7275e7fdf69969ae1f9d4`; exact-merge [main CI `34936384466`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34936384466) passed. Package version remains 1.4.1 and no tag or Release was created.
 - Replaced eight per-track Queue listeners with eight delegated container listeners. At the supported 1,000-track limit, normal track switching retains the existing row nodes and patches active/selected accessibility state instead of reconstructing the entire list.
 - Preserved click-to-swap, Escape cancellation, double-click/Shift+Enter playback, missing-track handling, and drag reorder through delegated-event regression coverage.
 - The first packaged smoke exposed that Chromium's command-line profile flag did not reliably isolate Electron app startup: expired-timer recovery could read or mutate the installed profile before the script's later backup boundary. The app now accepts an absolute test-only profile path before startup and assigns both Electron `userData` and `sessionData`; the smoke runner injects that path for development and packaged runs.

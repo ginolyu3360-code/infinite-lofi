@@ -126,7 +126,7 @@ Delivered through [PR #29](https://github.com/ginolyu3360-code/infinite-lofi/pul
 
 ## Post-v1.4.1 Queue-render optimization
 
-Current implementation branch: `codex/optimize-queue-rendering`, based on delivered scan-optimization `main` `64d5380`. Package version remains 1.4.1; this is another unreleased optimization slice.
+Delivered through [PR #30](https://github.com/ginolyu3360-code/infinite-lofi/pull/30) as merge commit `fb31a94`; exact-merge [main CI `34936384466`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34936384466) passed. Package version remains 1.4.1; this is another unreleased post-v1.4.1 optimization.
 
 - Queue interaction now uses eight delegated listeners on the list container instead of eight listeners per row. At the supported 1,000-track maximum, this keeps the listener count at eight instead of up to 8,000.
 - Ordinary track changes and click-swap selection patch active/selected row state in place instead of rebuilding every Queue row. Full rebuilding remains limited to actual queue membership/order or language changes.
