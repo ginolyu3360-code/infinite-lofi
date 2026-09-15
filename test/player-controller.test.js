@@ -289,6 +289,49 @@ test("a late folder rescan cannot override a newer pause intent", async () => {
   assert.equal(elements.lofiPlayer.paused, true);
 });
 
+test("a late folder scan cannot replace a newer folder selection", async () => {
+  let finishOldScan;
+  const oldTrack = {
+    key: "local:old.mp3",
+    label: "Old",
+    relativePath: "old.mp3",
+    src: "/Old/old.mp3",
+    isLocal: true
+  };
+  const newTrack = {
+    key: "local:new.mp3",
+    label: "New",
+    relativePath: "new.mp3",
+    src: "/New/new.mp3",
+    isLocal: true
+  };
+  const desktopApp = {
+    scanMusicFolder: () => new Promise((resolve) => { finishOldScan = resolve; }),
+    selectMusicFolder: async () => ({ folderPath: "/New", tracks: [newTrack] })
+  };
+  const { controller, elements, getState } = createHarness({
+    folderPath: "/Old",
+    queue: [oldTrack],
+    activeTrackKey: oldTrack.key
+  }, desktopApp);
+
+  const restore = controller.restorePersistedPlayer();
+  await Promise.resolve();
+  assert.equal(elements.rescanMusicFolderBtn.disabled, true);
+  assert.equal(elements.playlistPanel.attributes["aria-busy"], "true");
+
+  await controller.loadMusicFolder();
+  assert.equal(getState().player.folderPath, "/New");
+  assert.equal(elements.trackLabel.textContent, "New");
+  assert.equal(elements.rescanMusicFolderBtn.disabled, false);
+
+  finishOldScan({ folderPath: "/Old", tracks: [oldTrack] });
+  await restore;
+  assert.equal(getState().player.folderPath, "/New");
+  assert.equal(elements.trackLabel.textContent, "New");
+  assert.equal(elements.playlistPanel.attributes["aria-busy"], "false");
+});
+
 test("audio transitions keep mute separate, cancel stale pauses, switch sequentially, and stop immediately", async () => {
   let now = 0;
   let nextHandle = 1;

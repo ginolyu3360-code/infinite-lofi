@@ -1,5 +1,13 @@
 # Verification Log
 
+## 2026-09-15 — Local music-library scan optimization
+
+- Implemented on `codex/optimize-library-scans` from clean synchronized post-release `main` `13bffdcd2d3d7268c27c9f4f5af6716682840e0a`; package version remains 1.4.1 and no tag or Release was created.
+- Replaced up to five sequential artwork-cache existence probes per track with one fail-open cache-directory index per folder scan. The existing per-file size/mtime cache key, bounded metadata concurrency, sidecar priority, file URL transport, and no-audio-copy policy remain unchanged.
+- Added latest-request-wins scan handling so a slow restore/rescan cannot overwrite a newer folder selection. Rescan is disabled and the Queue exposes `aria-busy` while scanning; Load Folder stays usable as an intentional override.
+- `npm run check` passed with 104 tests, including cached lookup without per-artwork access probes, unreadable-cache fallback, and stale-scan rejection.
+- Isolated development smoke passed. Unsigned Universal packaging completed, `file`/`lipo` confirmed `x86_64 arm64`, and packaged-app smoke passed with no renderer exceptions.
+
 ## 2026-09-15 — v1.4.1 release completed
 
 - User authorized complete delivery, release, and merged-branch cleanup. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) final head `1bf40f3` passed [CI `34861869716`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34861869716) and squash-merged as `5bb67c6cdd937921400f17bd0dc5bd46057c5689`; exact-merge main CI `34863054603` passed.

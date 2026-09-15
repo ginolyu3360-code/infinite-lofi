@@ -115,6 +115,15 @@ Delivered through [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pul
 - User-confirmed native 1440 × 900 remains accepted. Automated smoke also covers its available 1440-wide viewport plus 720 × 520 through 1100 × 760 and Mini 420 × 250 / 360 × 200.
 - Final local verification passed 102 tests, development smoke, Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions. Both smoke paths verify the Queue viewport portal/restoration and the enlarged header drag surface.
 
+## Post-v1.4.1 library-scan optimization
+
+Current local branch: `codex/optimize-library-scans`, based on post-release `main` `13bffdc`. Package version remains 1.4.1; this is an unreleased optimization slice.
+
+- Repeat local-folder scans now index the embedded-artwork cache once instead of probing up to five possible cache files for every track. Audio files are not duplicated or persistently cached.
+- Folder scan results use latest-request-wins semantics, so an older restore/rescan cannot replace a newer folder selected by the user. The Queue reports `aria-busy` and disables Rescan while a scan is active; Load Folder remains available as an intentional override.
+- The optional artwork cache remains fail-open: an unreadable cache cannot prevent the music folder itself from loading.
+- Local acceptance passed 104 tests, syntax/style checks, development smoke, unsigned Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions.
+
 ### Remaining boundary
 
 - Do not add a persistent one-to-three-track audio-file cache without measured latency or availability evidence. Local media and the OS already buffer; if a real problem appears, evaluate bounded next-track/metadata/artwork preload first and define size, invalidation, cleanup, privacy, and missing-folder behavior before a disk cache.

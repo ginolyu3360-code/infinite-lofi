@@ -35,6 +35,7 @@
     let localMusicFolder = null;
     let folderUnavailable = false;
     let isScanning = false;
+    let scanCommandVersion = 0;
     let playbackMode = "sequential";
     let shuffleRemainingKeys = [];
     let shuffleHistoryKeys = [];
@@ -148,7 +149,11 @@
       if (elements.loadMusicFolderBtn) {
         elements.loadMusicFolderBtn.textContent = t(folderUnavailable ? "player.reconnectFolder" : "player.loadFolder");
       }
-      if (elements.rescanMusicFolderBtn) elements.rescanMusicFolderBtn.hidden = false;
+      if (elements.rescanMusicFolderBtn) {
+        elements.rescanMusicFolderBtn.hidden = false;
+        elements.rescanMusicFolderBtn.disabled = isScanning;
+      }
+      elements.playlistPanel.setAttribute("aria-busy", String(isScanning));
       if (elements.removeMissingTracksBtn) elements.removeMissingTracksBtn.hidden = missingCount === 0;
       if (elements.useDefaultTracksBtn) elements.useDefaultTracksBtn.hidden = !localMusicFolder;
       if (elements.showAllQueueBtn) elements.showAllQueueBtn.hidden = playlist.length <= 6;
@@ -329,6 +334,8 @@
     }
 
     function loadDefaultLibrary(savedQueue = [], activeTrackKey = "", { shouldStop = true } = {}) {
+      scanCommandVersion += 1;
+      isScanning = false;
       if (shouldStop) stop();
       localMusicFolder = null;
       folderUnavailable = false;
@@ -342,12 +349,15 @@
         renderPlaylist();
         return false;
       }
+      const folderPath = localMusicFolder;
+      const scanVersion = ++scanCommandVersion;
       const shouldResume = desiredPlaying || !elements.lofiPlayer.paused;
       const playbackVersionBeforeScan = playbackCommandVersion;
       isScanning = true;
       updateFolderStatus();
       try {
-        const result = await desktopApp.scanMusicFolder(localMusicFolder);
+        const result = await desktopApp.scanMusicFolder(folderPath);
+        if (scanVersion !== scanCommandVersion || localMusicFolder !== folderPath) return false;
         if (!result || !Array.isArray(result.tracks)) {
           folderUnavailable = true;
           renderPlaylist();
@@ -367,13 +377,16 @@
         }
         return true;
       } catch (error) {
+        if (scanVersion !== scanCommandVersion || localMusicFolder !== folderPath) return false;
         folderUnavailable = true;
         logger.error("Error scanning music folder:", error);
         renderPlaylist();
         return false;
       } finally {
-        isScanning = false;
-        updateFolderStatus();
+        if (scanVersion === scanCommandVersion) {
+          isScanning = false;
+          updateFolderStatus();
+        }
       }
     }
 
@@ -412,6 +425,8 @@
         const shouldReconnect = folderUnavailable && Boolean(localMusicFolder);
         const savedQueue = shouldReconnect ? playerModel.createQueueSnapshot(playlist) : [];
         const activeTrackKey = shouldReconnect ? playerModel.getTrackKey(getActiveTrack()) : "";
+        scanCommandVersion += 1;
+        isScanning = false;
         localMusicFolder = result.folderPath;
         setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
         persistState();

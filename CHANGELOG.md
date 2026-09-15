@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Reduced repeat scans of large local libraries from up to five artwork-cache file probes per track to one cache-directory index read per scan
+- Prevented stale folder scans from replacing a newer library selection and exposed a disabled/busy rescan state while scanning
+
 ## 1.4.1 — 2026-09-14
 
 - Added scrollable and full-size Queue management, retained drag reorder, and added click-to-swap plus double-click playback
