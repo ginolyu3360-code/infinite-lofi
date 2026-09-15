@@ -144,8 +144,8 @@ Delivery is pending on `codex/windows-support`; package version remains 1.4.1 an
 - Windows uses an opaque initial window, a sized tray icon, single-instance restoration, and a hidden macOS-only desktop-wallpaper action; local image/video import remains available.
 - The smoke runner uses Electron's native executable on Windows instead of the Unix npm shim. The minimized-window path restores before show/focus.
 - Local acceptance on macOS passed 111 tests, workflow YAML parsing, isolated development smoke, Windows x64 PE/ASAR inspection, current-code NSIS generation, Universal `x86_64 arm64` packaging, and isolated packaged-macOS smoke.
-- [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) initial CI `34942919532` passed macOS. Windows successfully launched the development app and exercised the smoke suite, then exposed that native window chrome reduced the tested content viewport. The follow-up keeps the full and Mini content-area minimums invariant and sizes smoke viewports by content rather than outer frame; rerun remains pending.
-- Windows CI must still prove native development and packaged execution. Installer launch, install/upgrade/uninstall, tray appearance, physical media keys, display scaling, sleep/resume, and Defender/SmartScreen remain physical Windows 11 checks.
+- [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) initial CI `34942919532` passed macOS. Windows successfully launched the development app and exercised the smoke suite, then exposed that native window chrome reduced the tested content viewport. The follow-up keeps the full and Mini content-area minimums invariant and sizes smoke viewports by content rather than outer frame.
+- Follow-up CI `34943717149` passed both jobs. The Windows x64 runner completed 111 tests, native development smoke, unpacked packaging, and packaged-app smoke; macOS completed the equivalent checks with Universal packaging. Installer launch, install/upgrade/uninstall, tray appearance, physical media keys, display scaling, sleep/resume, and Defender/SmartScreen remain physical Windows 11 checks.
 
 ### Remaining boundary
 

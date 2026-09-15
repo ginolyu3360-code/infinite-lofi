@@ -11,7 +11,8 @@
 - After repair, `npm run check` passed all syntax checks, the stylesheet build, and 111 tests. Both workflow YAML files parsed successfully, `git diff --check` passed, and isolated development smoke passed with no renderer exceptions.
 - Cross-packaging on macOS completed with electron-builder 26.15.3 / Electron 41.10.7. `dist/win-unpacked/Infinite Lo-Fi.exe` is a Windows x86-64 PE application; its ASAR contains the main/preload/UI/icon, bundled track, and ambience resources. The current-code assisted installer `dist/Infinite-Lo-Fi-1.4.1-x64.exe` was generated successfully with SHA-256 `a973d725a4c33ddb837b5866f04a2576c5b1bdf38874d3a24a3f3c42b2790f8b`.
 - Unsigned Universal macOS packaging, `x86_64 arm64` inspection, and isolated packaged-app smoke also passed after integration.
-- Native Windows development and packaged smoke remain pending on GitHub's Windows runner. Installer launch, installation/upgrade/uninstall, tray rendering, system media buttons, display scaling, sleep/resume, and Defender/SmartScreen remain explicitly pending on a physical Windows 11 x64 computer. The unsigned build is not approved for broad distribution.
+- Follow-up PR CI `34943717149` passed both jobs. The Windows x64 runner completed 111 tests, native development smoke, x64 unpacked packaging, and packaged-app smoke; the macOS runner completed 111 tests, development smoke, Universal packaging, and packaged-app smoke.
+- Installer launch, installation/upgrade/uninstall, tray rendering, physical system media buttons, display scaling, sleep/resume, and Defender/SmartScreen remain explicitly pending on a physical Windows 11 x64 computer. The unsigned build is not approved for broad distribution.
 
 ## 2026-09-15 — Queue rendering and smoke-profile isolation optimization
 
