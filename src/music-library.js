@@ -74,26 +74,44 @@ function createMusicLibrary({
       .digest("hex");
   }
 
-  async function findCachedArtwork(cacheKey) {
-    if (!artworkCacheDirectory) return null;
-    for (const extension of CACHE_EXTENSIONS) {
-      const cachedPath = path.join(artworkCacheDirectory, `${cacheKey}${extension}`);
-      try {
-        await fileSystem.access(cachedPath);
-        return {
-          artworkName: "Embedded Cover",
-          artworkPath: cachedPath,
-          artworkUrl: pathToFileURL(cachedPath).href
-        };
-      } catch {}
-    }
-    return null;
+  async function readArtworkCacheIndex() {
+    const index = new Map();
+    if (!artworkCacheDirectory) return index;
+    try {
+      const entries = await fileSystem.readdir(artworkCacheDirectory, { withFileTypes: true });
+      const fileNames = new Set(
+        entries
+          .filter((entry) => typeof entry === "string" || entry.isFile())
+          .map((entry) => typeof entry === "string" ? entry : entry.name)
+      );
+      for (const fileName of fileNames) {
+        const extension = path.extname(fileName).toLowerCase();
+        if (!CACHE_EXTENSIONS.includes(extension)) continue;
+        const cacheKey = fileName.slice(0, -extension.length);
+        const existing = index.get(cacheKey);
+        if (existing && CACHE_EXTENSIONS.indexOf(path.extname(existing).toLowerCase()) <= CACHE_EXTENSIONS.indexOf(extension)) {
+          continue;
+        }
+        index.set(cacheKey, path.join(artworkCacheDirectory, fileName));
+      }
+    } catch {}
+    return index;
   }
 
-  async function getEmbeddedArtwork(audioPath) {
+  function findCachedArtwork(cacheKey, cacheIndex) {
+    const cachedPath = cacheIndex.get(cacheKey);
+    if (!cachedPath) return null;
+    return {
+      artworkName: "Embedded Cover",
+      artworkPath: cachedPath,
+      artworkUrl: pathToFileURL(cachedPath).href
+    };
+  }
+
+  async function getEmbeddedArtwork(audioPath, cacheIndex) {
     try {
       const cacheKey = artworkCacheDirectory ? await getArtworkCacheKey(audioPath) : "";
-      const cached = cacheKey ? await findCachedArtwork(cacheKey) : null;
+      const cached = cacheKey ? findCachedArtwork(cacheKey, cacheIndex) : null;
       if (cached) return cached;
 
       const metadata = await parseFile(audioPath, { duration: false });
@@ -109,6 +127,7 @@ function createMusicLibrary({
       const cachedPath = path.join(artworkCacheDirectory, `${cacheKey}${extensionForMimeType(mimeType)}`);
       await fileSystem.mkdir(artworkCacheDirectory, { recursive: true });
       await fileSystem.writeFile(cachedPath, artworkData);
+      cacheIndex.set(cacheKey, cachedPath);
       return {
         artworkName: "Embedded Cover",
         artworkMimeType: mimeType,
@@ -121,7 +140,10 @@ function createMusicLibrary({
   }
 
   async function scanFolder(folderPath) {
-    const entries = await fileSystem.readdir(folderPath, { withFileTypes: true });
+    const [entries, artworkCacheIndex] = await Promise.all([
+      fileSystem.readdir(folderPath, { withFileTypes: true }),
+      readArtworkCacheIndex()
+    ]);
     const files = entries.filter((entry) => entry.isFile());
     const fileNameLookup = new Map(files.map((entry) => [entry.name.toLowerCase(), entry.name]));
     const audioFiles = files
@@ -131,7 +153,7 @@ function createMusicLibrary({
     return mapWithConcurrency(audioFiles, concurrency, async (entry) => {
       const audioPath = path.join(folderPath, entry.name);
       const sidecarArtwork = findSidecarArtwork(folderPath, entry.name, fileNameLookup);
-      const artwork = sidecarArtwork || await getEmbeddedArtwork(audioPath);
+      const artwork = sidecarArtwork || await getEmbeddedArtwork(audioPath, artworkCacheIndex);
       return {
         id: `local:${entry.name}`,
         key: `local:${entry.name}`,

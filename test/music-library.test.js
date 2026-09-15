@@ -21,9 +21,23 @@ test("scans asynchronously with bounded metadata concurrency and cached file art
   let activeParsers = 0;
   let maximumActiveParsers = 0;
   let parseCount = 0;
+  let cacheDirectoryReads = 0;
+  let perArtworkAccessChecks = 0;
+  const fileSystem = {
+    ...fs.promises,
+    async readdir(targetPath, options) {
+      if (targetPath === cacheDirectory) cacheDirectoryReads += 1;
+      return fs.promises.readdir(targetPath, options);
+    },
+    async access(...args) {
+      perArtworkAccessChecks += 1;
+      return fs.promises.access(...args);
+    }
+  };
   const library = createMusicLibrary({
     artworkCacheDirectory: cacheDirectory,
     concurrency: 2,
+    fileSystem,
     parseFile: async () => {
       parseCount += 1;
       activeParsers += 1;
@@ -43,6 +57,8 @@ test("scans asynchronously with bounded metadata concurrency and cached file art
 
   await library.scanFolder(musicDirectory);
   assert.equal(parseCount, 4);
+  assert.equal(cacheDirectoryReads, 2);
+  assert.equal(perArtworkAccessChecks, 0);
 });
 
 test("uses a sidecar cover without parsing embedded metadata", async (t) => {
@@ -81,4 +97,34 @@ test("keeps damaged audio entries usable when metadata parsing fails", async (t)
   assert.equal(tracks.length, 1);
   assert.equal(tracks[0].label, "damaged");
   assert.equal(tracks[0].artworkUrl, undefined);
+});
+
+test("keeps scanning when the optional artwork cache cannot be read", async (t) => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "infinite-lofi-cache-failure-"));
+  const musicDirectory = path.join(root, "music");
+  const cacheDirectory = path.join(root, "cache");
+  await fs.promises.mkdir(musicDirectory);
+  await fs.promises.writeFile(path.join(musicDirectory, "focus.mp3"), "audio");
+  t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+
+  const fileSystem = {
+    ...fs.promises,
+    async readdir(targetPath, options) {
+      if (targetPath === cacheDirectory) {
+        const error = new Error("cache unavailable");
+        error.code = "EACCES";
+        throw error;
+      }
+      return fs.promises.readdir(targetPath, options);
+    }
+  };
+  const library = createMusicLibrary({
+    artworkCacheDirectory: cacheDirectory,
+    fileSystem,
+    parseFile: async () => ({ common: {} })
+  });
+
+  const tracks = await library.scanFolder(musicDirectory);
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0].label, "focus");
 });
