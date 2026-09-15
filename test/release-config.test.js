@@ -34,6 +34,17 @@ test("development smoke bypasses the Unix npm shim on Windows", () => {
   assert.match(smokeSource, /:\s*path\.join\(projectDirectory, "node_modules", "\.bin", "electron"\)/);
 });
 
+test("native window frames do not reduce the tested or supported content viewport", () => {
+  const mainSource = fs.readFileSync(path.join(projectDirectory, "main.js"), "utf8");
+  const smokeSource = fs.readFileSync(path.join(projectDirectory, "scripts", "smoke-ui.mjs"), "utf8");
+
+  assert.match(mainSource, /function setMinimumContentSize[\s\S]*getContentSize\(\)[\s\S]*setMinimumSize\(/);
+  assert.match(mainSource, /setMinimumContentSize\(mainWindow, 720, 520\)/);
+  assert.match(mainSource, /setMinimumContentSize\(mainWindow, 360, 200\)/);
+  assert.match(smokeSource, /window\.outerWidth - window\.innerWidth/);
+  assert.match(smokeSource, /window\.outerHeight - window\.innerHeight/);
+});
+
 test("Windows distribution is an x64 assisted NSIS installer", () => {
   assert.equal(packageJson.scripts.dist, "npm run dist:mac");
   assert.match(packageJson.scripts["dist:win"], /electron-builder\b.*--win nsis\b.*--x64\b/);

@@ -137,8 +137,13 @@ try {
   await send("Page.enable");
   await send("Page.enable");
   async function setWindowSize(width, height) {
-    await evaluate("window.moveTo(0, 0); true");
-    await evaluate(`window.resizeTo(${width}, ${height}); true`);
+    await evaluate(`(() => {
+      const frameWidth = Math.max(0, window.outerWidth - window.innerWidth);
+      const frameHeight = Math.max(0, window.outerHeight - window.innerHeight);
+      window.moveTo(0, 0);
+      window.resizeTo(${width} + frameWidth, ${height} + frameHeight);
+      return true;
+    })()`);
     await delay(350);
   }
 

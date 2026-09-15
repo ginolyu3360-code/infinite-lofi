@@ -66,6 +66,15 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
+function setMinimumContentSize(browserWindow, width, height) {
+  const [windowWidth, windowHeight] = browserWindow.getSize();
+  const [contentWidth, contentHeight] = browserWindow.getContentSize();
+  browserWindow.setMinimumSize(
+    width + Math.max(0, windowWidth - contentWidth),
+    height + Math.max(0, windowHeight - contentHeight)
+  );
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, "assets", "trayTemplate.png");
   const icon = nativeImage.createFromPath(iconPath);
@@ -152,6 +161,7 @@ function createMainWindow() {
       spellcheck: false
     }
   });
+  setMinimumContentSize(mainWindow, 720, 520);
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
@@ -210,13 +220,13 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
   if (nextEnabled) {
     fullWindowBounds = mainWindow.getBounds();
     miniModeEnabled = true;
-    mainWindow.setMinimumSize(360, 200);
-    mainWindow.setSize(420, 250, true);
+    setMinimumContentSize(mainWindow, 360, 200);
+    mainWindow.setContentSize(420, 250, true);
   } else {
     miniModeEnabled = false;
-    mainWindow.setMinimumSize(720, 520);
+    setMinimumContentSize(mainWindow, 720, 520);
     if (fullWindowBounds) mainWindow.setBounds(fullWindowBounds, true);
-    else mainWindow.setSize(1100, 760, true);
+    else mainWindow.setContentSize(1100, 760, true);
     fullWindowBounds = null;
   }
   return miniModeEnabled;
