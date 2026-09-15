@@ -1,6 +1,6 @@
-# macOS Distribution
+# Desktop Distribution
 
-## Local build
+## macOS local build
 
 From the project root:
 
@@ -63,3 +63,34 @@ spctl --assess --type execute --verbose "/Applications/Infinite Lo-Fi.app"
 ```
 
 Do not commit certificates, passwords, API keys, or notarization credentials to the repository.
+
+## Windows x64 local build
+
+Build on 64-bit Windows with Node.js 22:
+
+```bash
+npm ci
+npm run dist:win
+```
+
+The output is created in `dist/`:
+
+- `Infinite-Lo-Fi-<version>-x64.exe`: assisted NSIS installer
+- `win-unpacked/Infinite Lo-Fi.exe`: unpacked application created by `npm run pack:win`
+
+The installer is per-user, allows the destination directory to be changed, and creates desktop and Start Menu shortcuts. Uninstalling preserves the application data under `%APPDATA%/Infinite Lo-Fi`; use the application's own reset or backup controls before manually deleting that directory.
+
+The Windows beta is intentionally unsigned. SmartScreen may show an unknown-publisher warning, and managed computers may prevent it from running. Do not distribute the unsigned build broadly. Verify the matching entry in `SHA256SUMS.txt` before running a downloaded artifact.
+
+## Windows verification
+
+Run the unpacked packaged smoke test on Windows with:
+
+```bash
+npm run pack:win
+npm run smoke:packaged:win
+```
+
+Before a public release, also verify installation, upgrade, uninstall, tray behavior, native media controls, local folders containing non-ASCII characters, display scaling, sleep/resume, and Defender/SmartScreen behavior on a physical Windows 11 x64 computer.
+
+Automatic desktop-wallpaper discovery currently remains macOS-only. On Windows the unavailable control is hidden, while local image and video import continue to work.

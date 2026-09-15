@@ -6,6 +6,12 @@
 - Prevented stale folder scans from replacing a newer library selection and exposed a disabled/busy rescan state while scanning
 - Kept Queue event listeners constant for large libraries and avoided rebuilding all track rows during ordinary track changes or swap selection
 - Isolated development and packaged UI smoke runs at the Electron app-data level so tests cannot read or mutate the installed app's profile
+- Added Windows 11 x64 packaging through an assisted per-user NSIS installer, with Windows application and tray icon handling
+- Added Windows development/packaged smoke coverage and multi-platform GitHub Release assembly with shared SHA-256 checksums
+- Added single-instance startup behavior and hid the macOS-only desktop-wallpaper action on Windows
+- Made the development smoke runner launch Electron through a Windows-native executable and restore minimized single-instance windows before showing them
+- Preserved the intended full and Mini content-area minimums across native window frames and made responsive smoke checks size the content viewport consistently
+- Made isolated UI smoke cleanup wait for Electron exit and retry transient Windows profile locks
 
 ## 1.4.1 — 2026-09-14
 

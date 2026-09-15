@@ -20,6 +20,7 @@ if ((!app.isPackaged || process.argv.includes("--allow-devtools-for-testing")) &
 const mainDocumentPath = path.join(__dirname, "src", "index.html");
 const mainDocumentUrl = pathToFileURL(mainDocumentPath).href;
 const execFileAsync = promisify(execFile);
+const appIconPath = path.join(__dirname, "assets", "icon.png");
 
 let mainWindow = null;
 let tray = null;
@@ -58,17 +59,30 @@ function showMainWindow() {
     createMainWindow();
     return;
   }
-  mainWindow.show();
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
+  mainWindow.show();
   mainWindow.focus();
+}
+
+function setMinimumContentSize(browserWindow, width, height) {
+  const [windowWidth, windowHeight] = browserWindow.getSize();
+  const [contentWidth, contentHeight] = browserWindow.getContentSize();
+  browserWindow.setMinimumSize(
+    width + Math.max(0, windowWidth - contentWidth),
+    height + Math.max(0, windowHeight - contentHeight)
+  );
 }
 
 function createTray() {
   const iconPath = path.join(__dirname, "assets", "trayTemplate.png");
   const icon = nativeImage.createFromPath(iconPath);
-  const trayIcon = icon.isEmpty() ? nativeImage.createEmpty() : icon;
+  const trayIcon = icon.isEmpty()
+    ? nativeImage.createEmpty()
+    : process.platform === "win32"
+      ? icon.resize({ width: 16, height: 16, quality: "best" })
+      : icon;
   tray = new Tray(trayIcon);
   tray.setToolTip("Infinite Lo-Fi");
   tray.on("click", () => {
@@ -127,8 +141,9 @@ function createMainWindow() {
     center: true,
     resizable: true,
     frame: true,
-    transparent: true,
-    backgroundColor: "#00000000",
+    transparent: process.platform === "darwin",
+    backgroundColor: process.platform === "darwin" ? "#00000000" : "#11110f",
+    icon: process.platform === "win32" ? appIconPath : undefined,
     vibrancy: process.platform === "darwin" ? "under-window" : undefined,
     visualEffectState: process.platform === "darwin" ? "active" : undefined,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
@@ -146,6 +161,7 @@ function createMainWindow() {
       spellcheck: false
     }
   });
+  setMinimumContentSize(mainWindow, 720, 520);
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
@@ -156,9 +172,6 @@ function createMainWindow() {
     mainWindow.webContents.on("devtools-opened", () => mainWindow?.webContents.closeDevTools());
   }
 
-  if (process.platform === "win32") {
-    mainWindow.setBackgroundColor("#00000000");
-  }
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
   mainWindow.on("closed", () => {
@@ -171,27 +184,33 @@ function createMainWindow() {
   mainWindow.loadFile(mainDocumentPath);
 }
 
-app.whenReady().then(async () => {
-  nativeTheme.themeSource = "dark";
-  await loadMusicFolderGrants();
-  musicLibrary = createMusicLibrary({
-    parseFile: musicMetadata.parseFile,
-    artworkCacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "artwork")
-  });
-  createMainWindow();
-  createTray();
-  powerMonitor.on("suspend", () => sendPowerStateToRenderer("suspend"));
-  powerMonitor.on("resume", () => sendPowerStateToRenderer("resume"));
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => showMainWindow());
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
-      refreshTrayMenu();
-      return;
-    }
-    showMainWindow();
+  app.whenReady().then(async () => {
+    nativeTheme.themeSource = "dark";
+    await loadMusicFolderGrants();
+    musicLibrary = createMusicLibrary({
+      parseFile: musicMetadata.parseFile,
+      artworkCacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "artwork")
+    });
+    createMainWindow();
+    createTray();
+    powerMonitor.on("suspend", () => sendPowerStateToRenderer("suspend"));
+    powerMonitor.on("resume", () => sendPowerStateToRenderer("resume"));
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow();
+        refreshTrayMenu();
+        return;
+      }
+      showMainWindow();
+    });
   });
-});
+}
 
 ipcMain.handle("window:setMiniMode", (event, enabled) => {
   if (!isTrustedIpcSender(event) || !mainWindow || mainWindow.isDestroyed()) return miniModeEnabled;
@@ -201,13 +220,13 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
   if (nextEnabled) {
     fullWindowBounds = mainWindow.getBounds();
     miniModeEnabled = true;
-    mainWindow.setMinimumSize(360, 200);
-    mainWindow.setSize(420, 250, true);
+    setMinimumContentSize(mainWindow, 360, 200);
+    mainWindow.setContentSize(420, 250, true);
   } else {
     miniModeEnabled = false;
-    mainWindow.setMinimumSize(720, 520);
+    setMinimumContentSize(mainWindow, 720, 520);
     if (fullWindowBounds) mainWindow.setBounds(fullWindowBounds, true);
-    else mainWindow.setSize(1100, 760, true);
+    else mainWindow.setContentSize(1100, 760, true);
     fullWindowBounds = null;
   }
   return miniModeEnabled;

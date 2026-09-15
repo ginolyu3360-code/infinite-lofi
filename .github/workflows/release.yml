@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   macos:
+    name: Build macOS Universal
     runs-on: macos-latest
     timeout-minutes: 30
     env:
@@ -35,22 +36,85 @@ jobs:
         run: npm run check
 
       - name: Build unsigned Universal macOS release
-        run: npm run dist
+        run: npm run dist:mac
 
-      - name: Verify Universal binary and create checksums
+      - name: Verify Universal binary
         run: |
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q x86_64
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q arm64
-          shasum -a 256 dist/*.dmg dist/*.zip > dist/SHA256SUMS.txt
+
+      - name: Stage macOS release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-files
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Require matching package and tag versions
+        run: node -e "if (require('./package.json').version !== process.env.GITHUB_REF_NAME.slice(1)) process.exit(1)"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run checks and tests
+        run: npm run check
+
+      - name: Build unsigned Windows x64 release
+        run: npm run dist:win
+
+      - name: Stage Windows release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-files
+          path: dist/*.exe
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v5
+
+      - name: Download release files
+        uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        run: sha256sum dist/*.dmg dist/*.zip dist/*.exe > dist/SHA256SUMS.txt
 
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS.txt --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS.txt \
+            gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt \
               --verify-tag \
               --title "Infinite Lo-Fi $GITHUB_REF_NAME" \
               --generate-notes

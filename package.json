@@ -11,18 +11,24 @@
     "test": "node --test",
     "check": "node --check main.js && node --check preload.js && node --check src/music-library.js && node --check src/core.js && node --check src/i18n.js && node --check src/security.js && node --check src/tasks.js && node --check src/ambience.js && node --check src/audio-transition.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/media-session.js && node --check src/player-controller.js && node --check src/ambience-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/focus-session.js && node --check src/stats-controller.js && node --check src/tasks-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/accessibility.js && node --check src/bindings.js && node --check src/renderer.js && npm test && npm run build:css",
     "smoke": "node scripts/smoke-ui.mjs",
-    "smoke:packaged": "node scripts/smoke-ui.mjs \"dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi\"",
+    "smoke:packaged": "npm run smoke:packaged:mac",
+    "smoke:packaged:mac": "node scripts/smoke-ui.mjs \"dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi\"",
+    "smoke:packaged:win": "node scripts/smoke-ui.mjs \"dist/win-unpacked/Infinite Lo-Fi.exe\"",
     "measure:audio": "node scripts/measure-audio-performance.mjs",
     "verify": "npm run check && npm run smoke",
     "start": "npm run build:css && electron .",
-    "dist": "npm run dist:universal",
+    "dist": "npm run dist:mac",
+    "dist:mac": "npm run dist:universal",
     "dist:x64": "npm run build:css && electron-builder --mac --x64 --publish never",
     "dist:arm64": "npm run build:css && electron-builder --mac --arm64 --publish never",
     "dist:universal": "npm run build:css && electron-builder --mac --universal --publish never",
-    "pack": "npm run pack:universal",
+    "dist:win": "npm run build:css && electron-builder --win nsis --x64 --publish never",
+    "pack": "npm run pack:mac",
+    "pack:mac": "npm run pack:universal",
     "pack:x64": "npm run build:css && electron-builder --dir --mac --x64",
     "pack:arm64": "npm run build:css && electron-builder --dir --mac --arm64",
-    "pack:universal": "npm run build:css && electron-builder --dir --mac --universal"
+    "pack:universal": "npm run build:css && electron-builder --dir --mac --universal",
+    "pack:win": "npm run build:css && electron-builder --dir --win --x64"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.5",
@@ -63,6 +69,26 @@
         "zip"
       ],
       "icon": "assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Infinite Lo-Fi",
+      "deleteAppDataOnUninstall": false
     }
   }
 }

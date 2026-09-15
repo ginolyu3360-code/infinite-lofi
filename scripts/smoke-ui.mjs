@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const require = createRequire(import.meta.url);
 const projectDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const enforceReferencePerformance = !process.env.CI;
 const connectArgumentIndex = process.argv.indexOf("--connect");
@@ -11,7 +13,10 @@ const connectOnly = connectArgumentIndex >= 0;
 const requestedPort = connectOnly ? Number(process.argv[connectArgumentIndex + 1]) : NaN;
 const packagedExecutable = connectOnly ? "" : (process.argv[2] || "");
 const debugPort = Number.isInteger(requestedPort) ? requestedPort : 10_000 + (process.pid % 20_000);
-const executable = packagedExecutable || path.join(projectDirectory, "node_modules", ".bin", "electron");
+const developmentExecutable = process.platform === "win32"
+  ? require("electron")
+  : path.join(projectDirectory, "node_modules", ".bin", "electron");
+const executable = packagedExecutable || developmentExecutable;
 const smokeUserDataDirectory = connectOnly
   ? ""
   : mkdtempSync(path.join(tmpdir(), "infinite-lofi-smoke-profile-"));
@@ -30,24 +35,31 @@ let profileRemoved = false;
 appProcess?.stdout.on("data", (chunk) => { appLog += chunk.toString(); });
 appProcess?.stderr.on("data", (chunk) => { appLog += chunk.toString(); });
 
-function stopApp() {
+async function stopApp() {
   if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
-  if (appProcess && appProcess.exitCode === null) appProcess.kill("SIGINT");
+  if (!appProcess || appProcess.exitCode !== null) return;
+
+  const exitPromise = new Promise((resolve) => appProcess.once("exit", resolve));
+  appProcess.kill("SIGINT");
+  await Promise.race([
+    exitPromise,
+    new Promise((resolve) => setTimeout(resolve, 5_000))
+  ]);
 }
 
 function removeSmokeProfile() {
   if (profileRemoved || !smokeUserDataDirectory) return;
+  rmSync(smokeUserDataDirectory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   profileRemoved = true;
-  rmSync(smokeUserDataDirectory, { recursive: true, force: true });
 }
 
-appProcess?.once("exit", removeSmokeProfile);
 process.on("exit", () => {
-  stopApp();
+  void stopApp();
   removeSmokeProfile();
 });
-process.on("SIGINT", () => {
-  stopApp();
+process.on("SIGINT", async () => {
+  await stopApp();
+  removeSmokeProfile();
   process.exit(130);
 });
 
@@ -132,8 +144,13 @@ try {
   await send("Page.enable");
   await send("Page.enable");
   async function setWindowSize(width, height) {
-    await evaluate("window.moveTo(0, 0); true");
-    await evaluate(`window.resizeTo(${width}, ${height}); true`);
+    await evaluate(`(() => {
+      const frameWidth = Math.max(0, window.outerWidth - window.innerWidth);
+      const frameHeight = Math.max(0, window.outerHeight - window.innerHeight);
+      window.moveTo(0, 0);
+      window.resizeTo(${width} + frameWidth, ${height} + frameHeight);
+      return true;
+    })()`);
     await delay(350);
   }
 
@@ -1620,5 +1637,6 @@ try {
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");
 } finally {
-  stopApp();
+  await stopApp();
+  removeSmokeProfile();
 }
