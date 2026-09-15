@@ -325,7 +325,7 @@
         Math.min(duration, (Number(e.progressSlider.value) / 1000) * duration)
       );
     });
-    on(targetWindow, "focus", a.syncTimerToClock);
+    on(targetWindow, "focus", () => a.syncTimerToClock());
     on(targetWindow, "beforeunload", a.persistBeforeUnload);
     on(document, "visibilitychange", () => {
       if (!document.hidden) a.syncTimerToClock();

@@ -288,6 +288,21 @@ try {
     };
   })()`);
 
+  const windowFocusResult = await evaluate(`(() => {
+    remainingSeconds = 120;
+    timerDeadlineMs = Date.now() + remainingSeconds * 1000;
+    timerId = setInterval(() => {}, 60_000);
+    const before = { phase: timerPhase, remainingSeconds, isRunning: timerId !== null };
+    window.dispatchEvent(new FocusEvent('focus'));
+    const after = { phase: timerPhase, remainingSeconds, isRunning: timerId !== null };
+    clearInterval(timerId);
+    timerId = null;
+    timerDeadlineMs = null;
+    remainingSeconds = getPhaseDuration(timerPhase, timerSettings);
+    renderTimer();
+    return { before, after };
+  })()`);
+
   const shortcutHelpResult = await evaluate(`(async () => {
     const trigger = document.querySelector('#shortcutHelpBtn');
     trigger.focus();
@@ -1402,6 +1417,11 @@ try {
 
   const failures = [];
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
+  if (
+    windowFocusResult.after.phase !== windowFocusResult.before.phase ||
+    !windowFocusResult.after.isRunning ||
+    windowFocusResult.after.remainingSeconds !== windowFocusResult.before.remainingSeconds
+  ) failures.push("window focus ended the active timer phase");
   if (!baseline.localFontsReady || baseline.remoteStylesheetCount !== 0) failures.push("local fonts did not initialize offline");
   if (
     !shortcutHelpResult.openedFromButton ||
@@ -1632,7 +1652,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

@@ -12,6 +12,8 @@
 - Made the development smoke runner launch Electron through a Windows-native executable and restore minimized single-instance windows before showing them
 - Preserved the intended full and Mini content-area minimums across native window frames and made responsive smoke checks size the content viewport consistently
 - Made isolated UI smoke cleanup wait for Electron exit and retry transient Windows profile locks
+- Prevented window focus events from being misread as timer timestamps and immediately ending active focus or break phases
+- Kept native media controls responsive while the window is minimized, restoring normal background throttling when the window returns
 
 ## 1.4.1 — 2026-09-14
 

@@ -7,6 +7,7 @@ const fs = require("fs");
 const musicMetadata = require("music-metadata");
 const { createMusicLibrary } = require("./src/music-library");
 const { isTrustedNavigationUrl } = require("./src/security");
+const { bindWindowBackgroundLifecycle } = require("./src/window-lifecycle");
 
 const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
 const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
@@ -174,6 +175,7 @@ function createMainWindow() {
 
   mainWindow.on("show", () => refreshTrayMenu());
   mainWindow.on("hide", () => refreshTrayMenu());
+  bindWindowBackgroundLifecycle(mainWindow);
   mainWindow.on("closed", () => {
     mainWindow = null;
     miniModeEnabled = false;
