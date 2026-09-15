@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { bindKeyboardShortcuts } = require("../src/bindings");
+const { bindKeyboardShortcuts, bindUiEvents } = require("../src/bindings");
 
 class FakeHTMLElement {
   constructor(tagName = "div") {
@@ -82,4 +82,36 @@ test("shortcuts still work outside task editing and Escape closes the task drawe
   assert.equal(dispatch({ target: outsideInput, key: "s", metaKey: true }), true);
   assert.equal(dispatch({ key: "Escape" }), true);
   assert.deepEqual(calls, [["saveNotesNow"], ["toggleTasksDrawer", false]]);
+});
+
+test("window focus synchronizes the timer without forwarding the FocusEvent as a timestamp", () => {
+  const listeners = new Map();
+  const calls = [];
+  const window = {
+    addEventListener(name, handler) { listeners.set(name, handler); }
+  };
+  const document = {
+    hidden: false,
+    addEventListener(name, handler) { listeners.set(`document:${name}`, handler); }
+  };
+
+  bindUiEvents({
+    window,
+    document,
+    elements: {},
+    actions: new Proxy({}, {
+      get(_target, name) {
+        return (...args) => calls.push([String(name), ...args]);
+      }
+    }),
+    formatTime: (value) => String(value)
+  });
+
+  listeners.get("focus")({ type: "focus" });
+  listeners.get("document:visibilitychange")({ type: "visibilitychange" });
+
+  assert.deepEqual(calls, [
+    ["syncTimerToClock"],
+    ["syncTimerToClock"]
+  ]);
 });
