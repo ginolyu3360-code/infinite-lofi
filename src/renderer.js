@@ -1685,7 +1685,11 @@ function normalizeConfigInputDisplay() {
 
 
 function bindWindowControls() {
-  document.documentElement.dataset.platform = window.desktopWindow?.platform || "unknown";
+  const platform = window.desktopWindow?.platform || "unknown";
+  document.documentElement.dataset.platform = platform;
+  if (bgWallpaperBtn && platform !== "darwin") {
+    bgWallpaperBtn.hidden = true;
+  }
   shortcutHelpBtn?.addEventListener("click", () => toggleShortcutHelp(true));
   miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());

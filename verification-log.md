@@ -1,5 +1,17 @@
 # Verification Log
 
+## 2026-09-15 — Windows x64 support implemented locally
+
+- Implemented on `codex/windows-support` from clean synchronized `main` `64d5380`, then audited and rebased onto `main` `9ae5fdd`. The original local commit is preserved as `3e55cec` on `codex/windows-support-backup-3e55cec`; package version remains 1.4.1 and no PR, tag, or Release has been created yet.
+- Added an assisted per-user NSIS installer for Windows x64, explicit Windows packaged-smoke commands, platform-appropriate opaque window initialization, a resized Windows tray image, and single-instance startup that restores the existing window.
+- Kept automatic desktop-wallpaper discovery macOS-only and hid its unavailable action on Windows; local image and video backgrounds remain supported.
+- Expanded CI to run checks, development smoke, native packaging, and packaged smoke on macOS and Windows. Tag releases now stage both platform builds and publish the DMG, ZIP, EXE, and shared SHA-256 file together.
+- The rebase retained Queue listener and app-profile isolation changes. Review found the development smoke path used a Unix npm shim; it now resolves the native Electron executable on Windows, with a regression contract. Minimized single-instance windows now restore before show/focus.
+- `npm run check` passed all syntax checks, the stylesheet build, and 110 tests. Both workflow YAML files parsed successfully, `git diff --check` passed, and isolated development smoke passed with no renderer exceptions.
+- Cross-packaging on macOS completed with electron-builder 26.15.3 / Electron 41.10.7. `dist/win-unpacked/Infinite Lo-Fi.exe` is a Windows x86-64 PE application; its ASAR contains the main/preload/UI/icon, bundled track, and ambience resources. The assisted installer `dist/Infinite-Lo-Fi-1.4.1-x64.exe` was generated successfully with SHA-256 `aa5d4db644e0f199ecc3944aa69e6c96c194ed35610bec2d0cc24c7e091634bb`.
+- Unsigned Universal macOS packaging, `x86_64 arm64` inspection, and isolated packaged-app smoke also passed after integration.
+- Native Windows development and packaged smoke remain pending on GitHub's Windows runner. Installer launch, installation/upgrade/uninstall, tray rendering, system media buttons, display scaling, sleep/resume, and Defender/SmartScreen remain explicitly pending on a physical Windows 11 x64 computer. The unsigned build is not approved for broad distribution.
+
 ## 2026-09-15 — Queue rendering and smoke-profile isolation optimization
 
 - Implemented from delivered scan-optimization `main` `64d5380ce812d9ebe6c3ca0e6d99697fa0155758` and delivered through [PR #30](https://github.com/ginolyu3360-code/infinite-lofi/pull/30) as `fb31a947c5bda1daaad7275e7fdf69969ae1f9d4`; exact-merge [main CI `34936384466`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34936384466) passed. Package version remains 1.4.1 and no tag or Release was created.

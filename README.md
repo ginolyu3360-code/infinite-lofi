@@ -25,7 +25,7 @@
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
-- 系统原生窗口按钮、标准 macOS 关闭/退出行为与托盘菜单
+- 系统原生窗口按钮、平台标准关闭/退出行为与托盘菜单；重复启动会唤起已有窗口
 - 顶栏快捷键入口，也可按 `Shift + /`（即 `?`）打开快捷键面板
 - 快捷键面板内可即时切换简体中文、繁體中文、English、日本語、Français、한국어 与 Español；选择会随完整备份保存
 - 面板与响应式 Notes 的焦点进入、Tab 圈定、Escape 关闭和焦点返回，以及计时器、播放器与历史操作的读屏播报
@@ -33,14 +33,14 @@
 - 实时时钟、可关闭或指定城市的天气，以及支持逐次记录编辑与有限趋势的统计面板
 - 严格 CSP、Electron 沙箱和导航限制；生产包默认关闭 DevTools
 - 离线本地字体，不再在运行时访问 Google Fonts
-- Universal macOS 打包与基于版本标签的 GitHub Release 自动发布
+- Universal macOS 与 Windows x64 NSIS 打包，以及基于版本标签的多平台 GitHub Release 自动发布
 
 ## 技术栈
 - 语言：JavaScript（Electron 主进程、preload 与 renderer）
 - 运行时 / 框架：Electron（项目 devDependencies 中为 electron）
 - 关键库：
   - tailwindcss — UI 样式与构建
-  - electron-builder — 打包 macOS 应用
+  - electron-builder — 打包 macOS 与 Windows 应用
   - music-metadata — 读取音频元数据与嵌入封面
   - concurrently — 并行运行开发脚本
 
@@ -60,8 +60,8 @@ tailwind.config.js
 verification-log.md
 HANDOFF.md             # 新会话接续说明、验证结果与下一步边界
 UI-REFRESH-PLAN.md     # Phase 3 前 UI 基础改版的决策、规则与验收标准
-.github/workflows/ci.yml # GitHub Actions 检查与 macOS 打包验证
-.github/workflows/release.yml # 标签触发的 Universal Release 自动发布
+.github/workflows/ci.yml # GitHub Actions 检查与 macOS/Windows 打包验证
+.github/workflows/release.yml # 标签触发的多平台 Release 自动发布
 scripts/smoke-ui.mjs    # Electron 界面冒烟测试
 test/                   # 核心、存储与功能模型单元测试
 src/
@@ -146,8 +146,27 @@ electron-builder 的关键配置（来自 package.json）：
 
 > 注意：在未使用 Apple Developer 证书的机器上打包的 macOS 应用将未签名，macOS 可能需要右键→打开来绕过 Gatekeeper。生产签名与 notarization 需要 Apple 开发者账号与相应证书/凭据。
 
+## 打包 Windows
+
+在 64 位 Windows 上构建 NSIS 安装包：
+
+```bash
+npm run dist:win
+# 生成 dist/Infinite-Lo-Fi-<version>-x64.exe
+```
+
+仅生成免安装测试目录：
+
+```bash
+npm run pack:win
+# 生成 dist/win-unpacked/Infinite Lo-Fi.exe
+```
+
+Windows 安装器默认为当前用户安装，可选择安装目录，并创建桌面和开始菜单快捷方式。当前构建未签名，Windows Defender SmartScreen 可能阻止或警告未知发布者；请只运行由本仓库 CI 或可信本地构建产生并核对过校验值的文件。卸载程序不会自动删除 `%APPDATA%/Infinite Lo-Fi` 中的用户数据。
+
 ## 已知/重要事项
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
+- Windows 首版目标为 Windows 11 x64。自动读取桌面壁纸目前仅支持 macOS，Windows 仍可导入本地图片或视频。
 - Phase 1 已完成：应用会把旧版分散存储迁移到版本化状态；音乐目录/顺序和活动计时器可以恢复。
 - Phase 2（签名除外）已完成：天气默认关闭，可选择自动 IP 定位或手动城市；设置面板会解释相应网络行为。
 - Phase 3A Focus Plan 已完成：可配置长休息与循环、独立自动开始选项和每日专注目标。
@@ -211,7 +230,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
 - Versioned local storage with legacy migration and validated backup restore
 - Four built-in scene presets—Quiet Studio, Midnight, Moss, and Paper—plus wallpaper, image, video, and track-cover sources
-- Native OS window controls, standard macOS close/quit behavior, and a tray menu
+- Native OS window controls, platform-standard close/quit behavior, a tray menu, and single-instance window restoration
 - Visible keyboard-shortcut entry point; `Shift + /` (`?`) also opens the shortcut panel
 - Immediate display-language switching in the shortcut panel for Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish, persisted in full backups
 - Predictable dialog, responsive Notes, and Queue focus behavior with live screen-reader announcements
@@ -219,7 +238,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Live clock, opt-in automatic or city-based weather, and a focus stats panel with editable session history and bounded trends
 - Restrictive CSP, renderer sandboxing, blocked navigation, and production DevTools disabled
 - Locally bundled fonts for an offline main UI
-- Universal macOS packaging and tag-driven GitHub Release automation
+- Universal macOS and Windows x64 NSIS packaging with tag-driven multi-platform GitHub Release automation
 
 ## Stack
 - Language: JavaScript
@@ -291,8 +310,24 @@ Local packaging (no installer):
 npm run pack
 ```
 
+## Build Windows App
+
+On 64-bit Windows, build the unsigned assisted NSIS installer with:
+
+```bash
+npm run dist:win
+```
+
+Create only the unpacked application directory with:
+
+```bash
+npm run pack:win
+```
+
+The unpacked executable is `dist/win-unpacked/Infinite Lo-Fi.exe`. Windows desktop-wallpaper discovery is currently unavailable; importing a local image or video remains supported. The installer preserves user data on uninstall.
+
 ## CI / Signing notes (GitHub Actions)
-The CI workflow installs locked dependencies, runs syntax and unit checks, exercises both the development and packaged applications with isolated UI smoke tests, builds the stylesheet, and verifies Universal macOS packaging. Pushing a matching `v*` tag runs the release workflow, which produces the Universal DMG/ZIP, generates SHA-256 checksums, and creates or updates the GitHub Release. Code signing and notarization are intentionally deferred.
+The CI workflow installs locked dependencies on macOS and Windows, runs syntax and unit checks, exercises both development and packaged applications with isolated UI smoke tests, builds the stylesheet, and verifies Universal macOS and Windows x64 packaging. Pushing a matching `v*` tag builds the Universal DMG/ZIP and Windows NSIS EXE in separate jobs, generates shared SHA-256 checksums, and creates or updates one GitHub Release. Code signing and notarization are intentionally deferred.
 
 Weather is off by default. Automatic mode sends the public IP address to `ipapi.co` and coordinates to Open-Meteo; city mode sends the city query and coordinates only to Open-Meteo. No weather/location requests are made while weather is off.
 

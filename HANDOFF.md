@@ -8,9 +8,11 @@ Updated: 2026-09-15
 2. For an ordinary continuation, read the post-v1.4 implementation summary and remaining boundary near the end of this handoff, then inspect only changes since the recorded baseline. Do not repeatedly reread the complete historical roadmap, verification log, and UI plan unless planning a release/migration, resolving a contradiction, or changing the relevant subsystem.
 3. Published release baseline: annotated `v1.4.1` peels to `089bdf65ba30a1a386477ca3aafa1814cee868d5`; exact-head main CI `34865480996` and Release workflow `34866263548` passed. Before making changes, fetch and compare the working tree, `main`, tags, and latest exact-commit CI against this baseline.
 4. Package version 1.4.1 is published. Do not create later tags or releases, or begin signing/notarization work, without a new instruction.
+5. Windows x64 support is locally committed on `codex/windows-support`, rebased onto post-v1.4.1 `main` `9ae5fdd`; the original `3e55cec` is preserved on `codex/windows-support-backup-3e55cec`. Local non-GUI checks and macOS-to-Windows cross-packaging pass; do not claim Windows runtime compatibility until Windows CI passes, and keep installer lifecycle and physical-device behavior explicitly separate.
 
 ## Current project state
 
+- The working Windows slice adds an assisted per-user NSIS x64 installer, Windows CI/package smoke commands, multi-platform Release assembly, opaque Windows window initialization, tray sizing, single-instance restoration, and platform-gated desktop-wallpaper UI. Physical Windows validation, commit/PR delivery, versioning, and release remain pending.
 - Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) passed final CI `34861869716`, squash-merged as `5bb67c6`, and passed exact-merge main CI `34863054603`. Release-preparation [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) final head `a99e64f` passed CI `34865115885` and squash-merged as `089bdf6`; exact-head [main CI `34865480996`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34865480996) passed on its second attempt after one inspector-disconnect-only packaged-smoke failure.
 - Current package and latest published release: v1.4.1. Annotated tag `v1.4.1` peels exactly to `089bdf6`. [Release workflow `34866263548`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34866263548) published the latest non-draft, non-prerelease [GitHub Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.1) with unsigned Universal DMG/ZIP and SHA-256 checksums.
 - Phase 0 through Phase 4C2, seven-language display settings, and the post-v1.4 Queue/playback/responsive feedback pass are complete and packaged in v1.4.1.
@@ -133,6 +135,16 @@ Delivered through [PR #30](https://github.com/ginolyu3360-code/infinite-lofi/pul
 - Single-click swap, repeat-click/Escape cancellation, double-click and Shift+Enter playback, missing-track handling, and drag reorder retain their prior behavior.
 - Development and packaged smoke launch with an explicit disposable Electron `userData` and `sessionData` profile. This closes a test-runner isolation gap where packaged startup could otherwise recover state from the installed app profile before the smoke script backed it up.
 - Local acceptance passed 107 tests, development smoke, unsigned Universal packaging, final `x86_64 arm64` inspection, and two consecutive packaged-app smoke runs from clean profiles.
+
+## Post-v1.4.1 Windows x64 candidate
+
+Delivery is pending on `codex/windows-support`; package version remains 1.4.1 and no tag or Release is planned for this slice.
+
+- Adds an assisted per-user NSIS installer and unpacked Windows x64 application, Windows CI development/packaged smoke, and multi-platform tag workflow assembly without claiming a new release.
+- Windows uses an opaque initial window, a sized tray icon, single-instance restoration, and a hidden macOS-only desktop-wallpaper action; local image/video import remains available.
+- The smoke runner uses Electron's native executable on Windows instead of the Unix npm shim. The minimized-window path restores before show/focus.
+- Local acceptance on macOS passed 110 tests, workflow YAML parsing, isolated development smoke, Windows x64 PE/ASAR inspection, NSIS generation, Universal `x86_64 arm64` packaging, and isolated packaged-macOS smoke.
+- Windows CI must still prove native development and packaged execution. Installer launch, install/upgrade/uninstall, tray appearance, physical media keys, display scaling, sleep/resume, and Defender/SmartScreen remain physical Windows 11 checks.
 
 ### Remaining boundary
 

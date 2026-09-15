@@ -7,8 +7,21 @@ on:
 
 jobs:
   verify:
-    runs-on: macos-latest
-    timeout-minutes: 20
+    name: Verify (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Universal
+            os: macos-latest
+            pack_command: npm run pack:mac
+            smoke_command: npm run smoke:packaged:mac
+          - name: Windows x64
+            os: windows-latest
+            pack_command: npm run pack:win
+            smoke_command: npm run smoke:packaged:win
 
     steps:
       - name: Check out repository
@@ -29,8 +42,8 @@ jobs:
       - name: Run development UI smoke test
         run: npm run smoke
 
-      - name: Verify macOS packaging
-        run: npm run pack
+      - name: Verify packaged application
+        run: ${{ matrix.pack_command }}
 
       - name: Run packaged UI smoke test
-        run: npm run smoke:packaged
+        run: ${{ matrix.smoke_command }}

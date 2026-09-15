@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const require = createRequire(import.meta.url);
 const projectDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const enforceReferencePerformance = !process.env.CI;
 const connectArgumentIndex = process.argv.indexOf("--connect");
@@ -11,7 +13,10 @@ const connectOnly = connectArgumentIndex >= 0;
 const requestedPort = connectOnly ? Number(process.argv[connectArgumentIndex + 1]) : NaN;
 const packagedExecutable = connectOnly ? "" : (process.argv[2] || "");
 const debugPort = Number.isInteger(requestedPort) ? requestedPort : 10_000 + (process.pid % 20_000);
-const executable = packagedExecutable || path.join(projectDirectory, "node_modules", ".bin", "electron");
+const developmentExecutable = process.platform === "win32"
+  ? require("electron")
+  : path.join(projectDirectory, "node_modules", ".bin", "electron");
+const executable = packagedExecutable || developmentExecutable;
 const smokeUserDataDirectory = connectOnly
   ? ""
   : mkdtempSync(path.join(tmpdir(), "infinite-lofi-smoke-profile-"));
