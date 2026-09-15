@@ -11,6 +11,7 @@
 - Added single-instance startup behavior and hid the macOS-only desktop-wallpaper action on Windows
 - Made the development smoke runner launch Electron through a Windows-native executable and restore minimized single-instance windows before showing them
 - Preserved the intended full and Mini content-area minimums across native window frames and made responsive smoke checks size the content viewport consistently
+- Made isolated UI smoke cleanup wait for Electron exit and retry transient Windows profile locks
 
 ## 1.4.1 — 2026-09-14
 

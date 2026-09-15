@@ -24,6 +24,8 @@ test("development and packaged smoke runs use an app-level isolated profile", ()
   assert.match(mainSource, /process\.env\.INFINITE_LOFI_SMOKE_PROFILE/);
   assert.match(mainSource, /app\.setPath\("userData",\s*testUserDataDirectory\)/);
   assert.match(mainSource, /app\.setPath\("sessionData",\s*testUserDataDirectory\)/);
+  assert.match(smokeSource, /await stopApp\(\);\s*removeSmokeProfile\(\);/);
+  assert.match(smokeSource, /maxRetries:\s*20,\s*retryDelay:\s*100/);
 });
 
 test("development smoke bypasses the Unix npm shim on Windows", () => {

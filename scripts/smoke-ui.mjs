@@ -35,24 +35,31 @@ let profileRemoved = false;
 appProcess?.stdout.on("data", (chunk) => { appLog += chunk.toString(); });
 appProcess?.stderr.on("data", (chunk) => { appLog += chunk.toString(); });
 
-function stopApp() {
+async function stopApp() {
   if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
-  if (appProcess && appProcess.exitCode === null) appProcess.kill("SIGINT");
+  if (!appProcess || appProcess.exitCode !== null) return;
+
+  const exitPromise = new Promise((resolve) => appProcess.once("exit", resolve));
+  appProcess.kill("SIGINT");
+  await Promise.race([
+    exitPromise,
+    new Promise((resolve) => setTimeout(resolve, 5_000))
+  ]);
 }
 
 function removeSmokeProfile() {
   if (profileRemoved || !smokeUserDataDirectory) return;
+  rmSync(smokeUserDataDirectory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   profileRemoved = true;
-  rmSync(smokeUserDataDirectory, { recursive: true, force: true });
 }
 
-appProcess?.once("exit", removeSmokeProfile);
 process.on("exit", () => {
-  stopApp();
+  void stopApp();
   removeSmokeProfile();
 });
-process.on("SIGINT", () => {
-  stopApp();
+process.on("SIGINT", async () => {
+  await stopApp();
+  removeSmokeProfile();
   process.exit(130);
 });
 
@@ -1630,5 +1637,6 @@ try {
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");
 } finally {
-  stopApp();
+  await stopApp();
+  removeSmokeProfile();
 }
