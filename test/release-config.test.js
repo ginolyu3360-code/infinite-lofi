@@ -41,8 +41,11 @@ test("native window frames do not reduce the tested or supported content viewpor
   const smokeSource = fs.readFileSync(path.join(projectDirectory, "scripts", "smoke-ui.mjs"), "utf8");
 
   assert.match(mainSource, /function setMinimumContentSize[\s\S]*getContentSize\(\)[\s\S]*setMinimumSize\(/);
-  assert.match(mainSource, /setMinimumContentSize\(mainWindow, 720, 520\)/);
-  assert.match(mainSource, /setMinimumContentSize\(mainWindow, 360, 200\)/);
+  assert.match(mainSource, /\? \[360, 200\]/);
+  assert.match(mainSource, /:\s*\[720, 520\]/);
+  assert.match(mainSource, /queuePanelOpen[\s\S]*\[900, 780\]/);
+  assert.match(mainSource, /ipcMain\.handle\("window:setQueueOpen"/);
+  assert.match(smokeSource, /queueResizeConstraintResult/);
   assert.match(smokeSource, /window\.outerWidth - window\.innerWidth/);
   assert.match(smokeSource, /window\.outerHeight - window\.innerHeight/);
 });
@@ -60,13 +63,17 @@ test("Windows distribution is an x64 assisted NSIS installer", () => {
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
 });
 
-test("CI and tagged releases include Windows artifacts", () => {
+test("CI and tagged release drafts verify both platforms before publication", () => {
   const ciWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "ci.yml"), "utf8");
   const releaseWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "release.yml"), "utf8");
 
   assert.match(ciWorkflow, /os: windows-latest/);
   assert.match(ciWorkflow, /smoke_command: npm run smoke:packaged:win/);
   assert.match(releaseWorkflow, /run: npm run dist:win/);
+  assert.match(releaseWorkflow, /run: npm run smoke:packaged:mac/);
+  assert.match(releaseWorkflow, /run: npm run smoke:packaged:win/);
   assert.match(releaseWorkflow, /path: dist\/\*\.exe/);
   assert.match(releaseWorkflow, /dist\/\*\.exe dist\/SHA256SUMS\.txt/);
+  assert.match(releaseWorkflow, /--json isDraft --jq \.isDraft/);
+  assert.match(releaseWorkflow, /gh release create[\s\S]*--draft/);
 });

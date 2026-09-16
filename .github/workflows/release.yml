@@ -35,6 +35,9 @@ jobs:
       - name: Run checks and tests
         run: npm run check
 
+      - name: Run development UI smoke test
+        run: npm run smoke
+
       - name: Build unsigned Universal macOS release
         run: npm run dist:mac
 
@@ -42,6 +45,9 @@ jobs:
         run: |
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q x86_64
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q arm64
+
+      - name: Run packaged UI smoke test
+        run: npm run smoke:packaged:mac
 
       - name: Stage macOS release files
         uses: actions/upload-artifact@v4
@@ -78,8 +84,14 @@ jobs:
       - name: Run checks and tests
         run: npm run check
 
+      - name: Run development UI smoke test
+        run: npm run smoke
+
       - name: Build unsigned Windows x64 release
         run: npm run dist:win
+
+      - name: Run packaged UI smoke test
+        run: npm run smoke:packaged:win
 
       - name: Stage Windows release files
         uses: actions/upload-artifact@v4
@@ -89,7 +101,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish GitHub Release
+    name: Assemble GitHub Release draft
     needs: [macos, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -107,15 +119,17 @@ jobs:
       - name: Create checksums
         run: sha256sum dist/*.dmg dist/*.zip dist/*.exe > dist/SHA256SUMS.txt
 
-      - name: Create or update GitHub Release
+      - name: Create or update GitHub Release draft
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = "true"
             gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt --clobber
           else
             gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt \
               --verify-tag \
+              --draft \
               --title "Infinite Lo-Fi $GITHUB_REF_NAME" \
               --generate-notes
           fi

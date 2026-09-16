@@ -338,10 +338,11 @@ test("expands and closes the full queue manager without losing the compact queue
     label: `Track ${index + 1}`,
     src: `${index + 1}.wav`
   }));
+  const layoutChanges = [];
   const { controller, elements } = createHarness(
     { folderPath: "", queue: [], activeTrackKey: "" },
     undefined,
-    { defaultTracks }
+    { defaultTracks, onLayoutChange: (state) => layoutChanges.push(state) }
   );
   await controller.restorePersistedPlayer();
   assert.equal(elements.showAllQueueBtn.hidden, false);
@@ -354,6 +355,13 @@ test("expands and closes the full queue manager without losing the compact queue
   assert.equal(elements.playlistPanel.classList.contains("hidden"), false);
   assert.equal(elements.playlistPanel.classList.contains("is-expanded"), false);
   assert.equal(elements.playlistPanel.parentNode.tagName, "FOOTER");
+  controller.togglePlaylistPanel(false);
+  assert.deepEqual(layoutChanges, [
+    { queueOpen: true, queueExpanded: false },
+    { queueOpen: true, queueExpanded: true },
+    { queueOpen: true, queueExpanded: false },
+    { queueOpen: false, queueExpanded: false }
+  ]);
 });
 
 test("a late folder rescan cannot override a newer pause intent", async () => {

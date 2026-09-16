@@ -338,7 +338,11 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: mediaSessionController.updateMetadata,
-  onLayoutChange: () => requestAnimationFrame(adjustTimerFont),
+  onLayoutChange: ({ queueOpen } = {}) => {
+    requestAnimationFrame(adjustTimerFont);
+    const resizeRequest = window.desktopWindow?.setQueueOpen?.(queueOpen === true);
+    resizeRequest?.catch?.((error) => console.warn("Window Queue layout update failed:", error));
+  },
   getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
   setDisclosureState,
@@ -1354,6 +1358,7 @@ async function toggleMiniMode(forceEnabled) {
     toggleTasksDrawer(false);
     toggleShortcutHelp(false);
     toggleNotesPanel(false);
+    togglePlaylistPanel(false);
     if (showcaseModeEnabled) toggleShowcaseMode(false);
   }
   miniModeEnabled = await window.desktopWindow.setMiniMode(nextEnabled);

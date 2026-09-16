@@ -51,8 +51,10 @@
 
   const FOCUS_REVIEW_PAGE_SIZE = 8;
 
-  function summarizeFocusReview(rawSessions, rawTasks, days) {
-    const sessions = core.normalizeFocusSessions(rawSessions, []);
+  function summarizeFocusReview(rawSessions, rawTasks, days, options = {}) {
+    const sessions = options.normalized && Array.isArray(rawSessions)
+      ? rawSessions
+      : core.normalizeFocusSessions(rawSessions, []);
     const selectedDays = new Set(
       Array.isArray(days) ? days.map((day) => day?.key).filter(core.isValidLocalDayKey) : []
     );
