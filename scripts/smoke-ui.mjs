@@ -457,7 +457,8 @@ try {
     panelPosition: getComputedStyle(document.querySelector('#notesPanel')).position
   }))()`);
 
-  const expandableRegionResult = await evaluate(`(async () => {
+  await setWindowSize(720, 520);
+  const queueOpenResult = await evaluate(`(async () => {
     const queueTrigger = document.querySelector('#playlistToggleBtn');
     queueTrigger.focus();
     queueTrigger.click();
@@ -471,6 +472,26 @@ try {
       getComputedStyle(document.querySelector('#timerPhaseLabel')).display === 'none' &&
       getComputedStyle(document.querySelector('#timerIntentSummary')).display === 'none' &&
       getComputedStyle(document.querySelector('#timerConfigPanel')).display === 'none';
+    return { queueFocused, queueUsesVerticalScroll, timerIsSimplified };
+  })()`);
+  await delay(350);
+  await setWindowSize(720, 520);
+  const queueResizeConstraintResult = await evaluate(`(() => {
+    const panelBounds = document.querySelector('#playlistPanel').getBoundingClientRect();
+    const tolerance = 4;
+    return {
+      width: innerWidth,
+      height: innerHeight,
+      expectedMinimumWidth: Math.min(900, screen.availWidth - Math.max(0, outerWidth - innerWidth)),
+      expectedMinimumHeight: Math.min(780, screen.availHeight - Math.max(0, outerHeight - innerHeight)),
+      queueVisible: getComputedStyle(document.querySelector('#playlistPanel')).display !== 'none',
+      queueInsideViewport:
+        panelBounds.left >= -tolerance && panelBounds.top >= -tolerance &&
+        panelBounds.right <= innerWidth + tolerance && panelBounds.bottom <= innerHeight + tolerance
+    };
+  })()`);
+  const expandableRegionResult = await evaluate(`(async () => {
+    const queueTrigger = document.querySelector('#playlistToggleBtn');
     const showAll = document.querySelector('#showAllQueueBtn');
     showAll.hidden = false;
     showAll.click();
@@ -488,9 +509,6 @@ try {
     const queueClosed = document.querySelector('#playlistPanel').classList.contains('hidden');
     const queueFocusRestored = document.activeElement === queueTrigger;
     return {
-      queueFocused,
-      queueUsesVerticalScroll,
-      timerIsSimplified,
       showAllExpanded,
       showAllViewportLayer,
       showAllInside,
@@ -500,6 +518,7 @@ try {
       queueFocusRestored
     };
   })()`);
+  Object.assign(expandableRegionResult, queueOpenResult);
 
   await setWindowSize(800, 600);
   const responsiveNotesResult = await evaluate(`(async () => {
@@ -1416,6 +1435,7 @@ try {
   }))()`);
 
   const failures = [];
+  const nativeResizeTolerance = 4;
   if (baseline.readyState !== "complete" || !baseline.requiredElementsPresent) failures.push("required UI did not initialize");
   if (
     windowFocusResult.after.phase !== windowFocusResult.before.phase ||
@@ -1467,6 +1487,12 @@ try {
   ) {
     failures.push("playlist disclosure focus management failed");
   }
+  if (
+    queueResizeConstraintResult.width < queueResizeConstraintResult.expectedMinimumWidth - nativeResizeTolerance ||
+    queueResizeConstraintResult.height < queueResizeConstraintResult.expectedMinimumHeight - nativeResizeTolerance ||
+    !queueResizeConstraintResult.queueVisible ||
+    !queueResizeConstraintResult.queueInsideViewport
+  ) failures.push("expanded Queue did not enforce a fully visible window size");
   if (!responsiveNotesResult.focusedOnOpen || !responsiveNotesResult.hiddenAfterEscape || !responsiveNotesResult.focusRestored) {
     failures.push("responsive notes focus management failed");
   }
@@ -1513,7 +1539,8 @@ try {
     failures.push("Mini Mode layout or window sizing failed");
   }
   if (
-    miniMode360.width > 360 || miniMode360.height > 200 || miniMode360.timerChildOverflow.length > 0 || miniMode360.timer !== "360:00" ||
+    miniMode360.width > 360 + nativeResizeTolerance || miniMode360.height > 200 + nativeResizeTolerance ||
+    miniMode360.timerChildOverflow.length > 0 || miniMode360.timer !== "360:00" ||
     !miniMode360.titleAvailable || !miniMode360.editorHidden ||
     Object.values(miniMode360.controls).some((control) => !control.visible || !control.inside)
   ) failures.push("360x200 Mini Mode clipped maximum timer, intention, or primary controls");
@@ -1652,7 +1679,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

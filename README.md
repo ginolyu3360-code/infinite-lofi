@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.4.1**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；默认提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。本版本在完整 Phase 4 和七语言即时切换的基础上，加入大曲库 Queue 管理、单曲循环/随机播放、Mini 播放控制、更大的响应式计时器，以及多项交互修复。
+当前发布版本：**v1.4.1**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载；该正式版仅提供同时支持 Intel 与 Apple Silicon 的未签名 Universal 包。Windows 11 x64 与 NSIS 支持已进入 `main`，但 Windows 安装器尚未发布；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -162,7 +162,7 @@ npm run pack:win
 # 生成 dist/win-unpacked/Infinite Lo-Fi.exe
 ```
 
-Windows 安装器默认为当前用户安装，可选择安装目录，并创建桌面和开始菜单快捷方式。当前构建未签名，Windows Defender SmartScreen 可能阻止或警告未知发布者；请只运行由本仓库 CI 或可信本地构建产生并核对过校验值的文件。卸载程序不会自动删除 `%APPDATA%/Infinite Lo-Fi` 中的用户数据。
+Windows 安装器默认为当前用户安装，可选择安装目录，并创建桌面和开始菜单快捷方式。当前构建未签名，Windows Defender SmartScreen 可能阻止或警告未知发布者；请只运行由本仓库 CI 或可信本地构建产生并核对过校验值的文件。卸载程序不会自动删除 `%APPDATA%/infinite-lofi-desktop` 中的用户数据。
 
 ## 已知/重要事项
 - `src/` 渲染层源码已恢复，并通过开发版和打包版界面测试。
@@ -214,7 +214,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.4.1**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The default unsigned artifacts are Universal macOS builds for Intel and Apple Silicon. Building on the complete Phase 4 and immediate seven-language switching, this release adds large-library Queue management, Repeat One and Shuffle, Mini transport controls, a larger responsive timer, and interaction fixes.
+Current release: **v1.4.1**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). That release contains unsigned Universal macOS builds for Intel and Apple Silicon only. Windows 11 x64 and NSIS support are present on `main`, but no Windows installer has been published; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -324,10 +324,10 @@ Create only the unpacked application directory with:
 npm run pack:win
 ```
 
-The unpacked executable is `dist/win-unpacked/Infinite Lo-Fi.exe`. Windows desktop-wallpaper discovery is currently unavailable; importing a local image or video remains supported. The installer preserves user data on uninstall.
+The unpacked executable is `dist/win-unpacked/Infinite Lo-Fi.exe`. Windows desktop-wallpaper discovery is currently unavailable; importing a local image or video remains supported. The installer preserves user data under `%APPDATA%/infinite-lofi-desktop` on uninstall.
 
 ## CI / Signing notes (GitHub Actions)
-The CI workflow installs locked dependencies on macOS and Windows, runs syntax and unit checks, exercises both development and packaged applications with isolated UI smoke tests, builds the stylesheet, and verifies Universal macOS and Windows x64 packaging. Pushing a matching `v*` tag builds the Universal DMG/ZIP and Windows NSIS EXE in separate jobs, generates shared SHA-256 checksums, and creates or updates one GitHub Release. Code signing and notarization are intentionally deferred.
+The CI workflow installs locked dependencies on macOS and Windows, runs syntax and unit checks, exercises both development and packaged applications with isolated UI smoke tests, builds the stylesheet, and verifies Universal macOS and Windows x64 packaging. Pushing a matching `v*` tag repeats the development and packaged smoke tests, builds the Universal DMG/ZIP and Windows NSIS EXE in separate jobs, generates shared SHA-256 checksums, and creates a draft GitHub Release. The workflow may replace assets only while that Release remains a draft. Publish the draft only after the downloaded assets, checksums, and required physical-device results have been reviewed. Code signing and notarization are intentionally deferred.
 
 Weather is off by default. Automatic mode sends the public IP address to `ipapi.co` and coordinates to Open-Meteo; city mode sends the city query and coordinates only to Open-Meteo. No weather/location requests are made while weather is off.
 

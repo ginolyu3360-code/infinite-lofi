@@ -254,7 +254,7 @@
 
     function renderSessionHistory(sessions) {
       if (!elements.sessionHistoryList) return;
-      const normalized = core.normalizeFocusSessions(sessions, []);
+      const normalized = Array.isArray(sessions) ? sessions : [];
       const recent = normalized.slice(-visibleHistoryLimit).reverse();
       elements.sessionHistoryCount.textContent = t("stats.savedCount", { count: normalized.length });
       elements.sessionHistoryEmpty.classList.toggle("hidden", normalized.length > 0);
@@ -336,8 +336,8 @@
       }
     }
 
-    function renderStats() {
-      const state = appStorage.getState();
+    function renderStats(committedState) {
+      const state = committedState || appStorage.getState();
       const rows = state.stats.focusRows;
       const days = statsModel.buildRangeDays(new Date(), rangeMode, getLocale());
       if (rangeMode === "today" && days[0]) days[0].label = t("stats.today");
@@ -351,7 +351,8 @@
       const review = statsModel.summarizeFocusReview(
         state.stats.focusSessions,
         state.tasks?.items,
-        days
+        days,
+        { normalized: true }
       );
       const todayKey = core.getLocalDayKey(new Date());
       const goal = statsModel.summarizeDailyGoal(
@@ -469,10 +470,10 @@
       rangeMode = mode === "today" || mode === "month" ? mode : "week";
       reviewPage = 1;
       try {
-        appStorage.update((state) => {
+        const committed = appStorage.update((state) => {
           state.settings.statsRange = rangeMode;
         });
-        renderStats();
+        renderStats(committed);
       } catch (error) {
         rangeMode = previousMode;
         showAlert(error instanceof Error ? error.message : "Could not save the statistics range.");

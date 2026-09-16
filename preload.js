@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("desktopWindow", {
   platform: process.platform,
-  setMiniMode: (enabled) => ipcRenderer.invoke("window:setMiniMode", enabled === true)
+  setMiniMode: (enabled) => ipcRenderer.invoke("window:setMiniMode", enabled === true),
+  setQueueOpen: (open) => ipcRenderer.invoke("window:setQueueOpen", open === true)
 });
 
 contextBridge.exposeInMainWorld("desktopApp", {

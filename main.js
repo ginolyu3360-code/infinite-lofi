@@ -26,6 +26,7 @@ const appIconPath = path.join(__dirname, "assets", "icon.png");
 let mainWindow = null;
 let tray = null;
 let miniModeEnabled = false;
+let queuePanelOpen = false;
 let fullWindowBounds = null;
 let musicLibrary = null;
 let grantedMusicFolders = new Set();
@@ -74,6 +75,36 @@ function setMinimumContentSize(browserWindow, width, height) {
     width + Math.max(0, windowWidth - contentWidth),
     height + Math.max(0, windowHeight - contentHeight)
   );
+}
+
+function getSupportedContentSize(browserWindow, requestedWidth, requestedHeight) {
+  const [windowWidth, windowHeight] = browserWindow.getSize();
+  const [contentWidth, contentHeight] = browserWindow.getContentSize();
+  const display = screen.getDisplayMatching(browserWindow.getBounds());
+  return [
+    Math.min(requestedWidth, Math.max(360, display.workAreaSize.width - Math.max(0, windowWidth - contentWidth))),
+    Math.min(requestedHeight, Math.max(200, display.workAreaSize.height - Math.max(0, windowHeight - contentHeight)))
+  ];
+}
+
+function applyWindowContentConstraints({ grow = false } = {}) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const requestedSize = miniModeEnabled
+    ? [360, 200]
+    : queuePanelOpen
+      ? [900, 780]
+      : [720, 520];
+  const [minimumWidth, minimumHeight] = getSupportedContentSize(mainWindow, ...requestedSize);
+  setMinimumContentSize(mainWindow, minimumWidth, minimumHeight);
+  if (!grow) return;
+  const [contentWidth, contentHeight] = mainWindow.getContentSize();
+  if (contentWidth < minimumWidth || contentHeight < minimumHeight) {
+    mainWindow.setContentSize(
+      Math.max(contentWidth, minimumWidth),
+      Math.max(contentHeight, minimumHeight),
+      false
+    );
+  }
 }
 
 function createTray() {
@@ -179,6 +210,7 @@ function createMainWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
     miniModeEnabled = false;
+    queuePanelOpen = false;
     fullWindowBounds = null;
     refreshTrayMenu();
   });
@@ -222,16 +254,24 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
   if (nextEnabled) {
     fullWindowBounds = mainWindow.getBounds();
     miniModeEnabled = true;
-    setMinimumContentSize(mainWindow, 360, 200);
+    queuePanelOpen = false;
+    applyWindowContentConstraints();
     mainWindow.setContentSize(420, 250, true);
   } else {
     miniModeEnabled = false;
-    setMinimumContentSize(mainWindow, 720, 520);
+    applyWindowContentConstraints();
     if (fullWindowBounds) mainWindow.setBounds(fullWindowBounds, true);
     else mainWindow.setContentSize(1100, 760, true);
     fullWindowBounds = null;
   }
   return miniModeEnabled;
+});
+
+ipcMain.handle("window:setQueueOpen", (event, open) => {
+  if (!isTrustedIpcSender(event) || !mainWindow || mainWindow.isDestroyed()) return queuePanelOpen;
+  queuePanelOpen = open === true && !miniModeEnabled;
+  applyWindowContentConstraints({ grow: queuePanelOpen });
+  return queuePanelOpen;
 });
 
 ipcMain.on("app:trayStatus", (_event, status) => {

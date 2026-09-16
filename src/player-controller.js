@@ -701,7 +701,7 @@
       } else if (elements.playlistPanel.contains?.(elements.document.activeElement)) {
         elements.playlistToggleBtn?.focus?.({ preventScroll: true });
       }
-      onLayoutChange();
+      onLayoutChange({ queueOpen: nextOpen, queueExpanded: false });
     }
 
     function toggleExpandedQueue(forceExpanded) {
@@ -720,7 +720,7 @@
         elements.showAllQueueBtn.textContent = t(nextExpanded ? "player.compactQueue" : "player.showAll");
         elements.showAllQueueBtn.title = t(nextExpanded ? "player.compactQueueTitle" : "player.showAllTitle");
       }
-      onLayoutChange();
+      onLayoutChange({ queueOpen: true, queueExpanded: nextExpanded });
     }
 
     function updateVolume() {

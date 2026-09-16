@@ -27,14 +27,14 @@ Published builds are available from the [GitHub Releases page](https://github.co
 
 ## Automated releases
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete non-GUI checks, builds the unsigned Universal DMG and ZIP, creates `SHA256SUMS.txt`, and creates or updates the matching GitHub Release.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete checks plus isolated development and packaged UI smoke tests on macOS and Windows, builds the unsigned Universal DMG/ZIP and Windows x64 NSIS EXE, creates `SHA256SUMS.txt`, and creates a draft GitHub Release.
 
 ```bash
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Rerunning the workflow safely replaces assets on an existing Release instead of creating duplicates.
+Before publishing the draft, download every asset, verify its SHA-256 entry, confirm the expected version and architecture, and complete any required physical Windows checks against the actual candidate. Rerunning the workflow replaces same-named assets on an existing draft with `--clobber` and refuses to overwrite an already published Release; repeat the affected verification after any replacement.
 
 ## First launch on macOS
 
@@ -78,7 +78,7 @@ The output is created in `dist/`:
 - `Infinite-Lo-Fi-<version>-x64.exe`: assisted NSIS installer
 - `win-unpacked/Infinite Lo-Fi.exe`: unpacked application created by `npm run pack:win`
 
-The installer is per-user, allows the destination directory to be changed, and creates desktop and Start Menu shortcuts. Uninstalling preserves the application data under `%APPDATA%/Infinite Lo-Fi`; use the application's own reset or backup controls before manually deleting that directory.
+The installer is per-user, allows the destination directory to be changed, and creates desktop and Start Menu shortcuts. Uninstalling preserves the application data under `%APPDATA%/infinite-lofi-desktop`; use the application's own reset or backup controls before manually deleting that directory.
 
 The Windows beta is intentionally unsigned. SmartScreen may show an unknown-publisher warning, and managed computers may prevent it from running. Do not distribute the unsigned build broadly. Verify the matching entry in `SHA256SUMS.txt` before running a downloaded artifact.
 

@@ -2861,6 +2861,14 @@ body.is-queue-open:not(.is-mini-mode) .timer-content {
   gap: clamp(0.45rem, 1.5vh, 0.9rem);
 }
 
+body.is-queue-open:not(.is-mini-mode) #mainRightColumn {
+  grid-template-rows: minmax(12rem, 1fr) auto;
+}
+
+body.is-queue-open:not(.is-mini-mode) .playlist-container {
+  max-height: min(13rem, 24vh);
+}
+
 body.is-queue-open:not(.is-mini-mode) #timerCard {
   padding-block: clamp(0.65rem, 1.5vh, 1rem);
 }
