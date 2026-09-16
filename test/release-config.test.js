@@ -63,7 +63,7 @@ test("Windows distribution is an x64 assisted NSIS installer", () => {
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
 });
 
-test("CI and tagged release drafts verify both platforms before publication", () => {
+test("CI and tagged releases verify both platforms before publication", () => {
   const ciWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "ci.yml"), "utf8");
   const releaseWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "release.yml"), "utf8");
 
@@ -74,6 +74,8 @@ test("CI and tagged release drafts verify both platforms before publication", ()
   assert.match(releaseWorkflow, /run: npm run smoke:packaged:win/);
   assert.match(releaseWorkflow, /path: dist\/\*\.exe/);
   assert.match(releaseWorkflow, /dist\/\*\.exe dist\/SHA256SUMS\.txt/);
-  assert.match(releaseWorkflow, /--json isDraft --jq \.isDraft/);
-  assert.match(releaseWorkflow, /gh release create[\s\S]*--draft/);
+  assert.match(releaseWorkflow, /gh release upload[\s\S]*--clobber/);
+  assert.match(releaseWorkflow, /gh release edit[\s\S]*--draft=false/);
+  assert.match(releaseWorkflow, /gh release create/);
+  assert.doesNotMatch(releaseWorkflow, /(?:^|\s)--draft(?:\s|\\|$)/m);
 });

@@ -27,14 +27,14 @@ Published builds are available from the [GitHub Releases page](https://github.co
 
 ## Automated releases
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete checks plus isolated development and packaged UI smoke tests on macOS and Windows, builds the unsigned Universal DMG/ZIP and Windows x64 NSIS EXE, creates `SHA256SUMS.txt`, and creates a draft GitHub Release.
+`.github/workflows/release.yml` runs when a `v*` tag is pushed. It requires the tag version to match `package.json`, runs the complete checks plus isolated development and packaged UI smoke tests on macOS and Windows, builds the unsigned Universal DMG/ZIP and Windows x64 NSIS EXE, creates `SHA256SUMS.txt`, and publishes a GitHub Release after every required job succeeds.
 
 ```bash
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Before publishing the draft, download every asset, verify its SHA-256 entry, confirm the expected version and architecture, and complete any required physical Windows checks against the actual candidate. Rerunning the workflow replaces same-named assets on an existing draft with `--clobber` and refuses to overwrite an already published Release; repeat the affected verification after any replacement.
+After publication, download every asset, verify its SHA-256 entry, confirm the expected version and architecture, and complete any required physical Windows checks against the released build. Rerunning the workflow replaces same-named assets with `--clobber`; repeat the affected verification after any replacement.
 
 ## First launch on macOS
 
