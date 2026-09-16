@@ -101,7 +101,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Assemble GitHub Release draft
+    name: Publish GitHub Release
     needs: [macos, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -119,17 +119,18 @@ jobs:
       - name: Create checksums
         run: sha256sum dist/*.dmg dist/*.zip dist/*.exe > dist/SHA256SUMS.txt
 
-      - name: Create or update GitHub Release draft
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = "true"
             gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt --clobber
+            if test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = "true"; then
+              gh release edit "$GITHUB_REF_NAME" --draft=false
+            fi
           else
             gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt \
               --verify-tag \
-              --draft \
               --title "Infinite Lo-Fi $GITHUB_REF_NAME" \
               --generate-notes
           fi
