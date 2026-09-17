@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("desktopApp", {
   sendNativeMediaSessionState: (state) => ipcRenderer.send("media:updateNativeState", state),
   selectMusicFolder: () => ipcRenderer.invoke("music:selectFolder"),
   scanMusicFolder: (folderPath) => ipcRenderer.invoke("music:scanFolder", folderPath),
+  getLyrics: (track, options) => ipcRenderer.invoke("lyrics:get", track, options),
   selectBackgroundImage: () => ipcRenderer.invoke("background:selectImage"),
   selectBackgroundVideo: () => ipcRenderer.invoke("background:selectVideo"),
   getWallpaperBackground: () => ipcRenderer.invoke("background:getWallpaper"),

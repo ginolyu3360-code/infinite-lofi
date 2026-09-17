@@ -272,6 +272,7 @@ try {
         'playlistStatus', 'rescanMusicFolderBtn', 'removeMissingTracksBtn',
         'useDefaultTracksBtn', 'showAllQueueBtn',
         'shuffleModeBtn', 'repeatModeBtn', 'a11yStatus', 'displayLanguageSelect',
+        'lyricsToggleBtn', 'lyricsPanel', 'lyricsViewport', 'lyricsLines',
         'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
         'ambienceVolumeSlider', 'ambienceStatus', 'audioTransitionsEnabled',
         'audioTransitionDuration'
@@ -1128,6 +1129,45 @@ try {
     return result;
   })()`);
 
+  await setWindowSize(720, 520);
+  const lyricsResult = await evaluate(`(async () => {
+    const toggle = document.querySelector('#lyricsToggleBtn');
+    const panel = document.querySelector('#lyricsPanel');
+    const status = document.querySelector('#lyricsStatus');
+    const initial = {
+      hidden: panel.hidden,
+      pressed: toggle.getAttribute('aria-pressed'),
+      expanded: toggle.getAttribute('aria-expanded')
+    };
+    toggle.click();
+    for (let attempt = 0; attempt < 40 && status.textContent.includes('Finding'); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const panelRect = panel.getBoundingClientRect();
+    const enabledState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const enabled = {
+      hidden: panel.hidden,
+      pressed: toggle.getAttribute('aria-pressed'),
+      expanded: toggle.getAttribute('aria-expanded'),
+      bodyClass: document.body.classList.contains('lyrics-enabled'),
+      saved: enabledState.settings.ui.lyricsEnabled,
+      status: status.textContent.trim(),
+      panelInsideViewport: panelRect.left >= -4 && panelRect.right <= innerWidth + 4 && panelRect.bottom <= innerHeight + 4,
+      regionLabel: document.querySelector('#lyricsViewport').getAttribute('aria-label')
+    };
+    toggle.click();
+    const disabledState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const disabled = {
+      hidden: panel.hidden,
+      pressed: toggle.getAttribute('aria-pressed'),
+      expanded: toggle.getAttribute('aria-expanded'),
+      bodyClass: document.body.classList.contains('lyrics-enabled'),
+      saved: disabledState.settings.ui.lyricsEnabled
+    };
+    return { initial, enabled, disabled };
+  })()`);
+
   const audioTransitionResult = await evaluate(`(async () => {
     const music = document.querySelector('#lofiPlayer');
     const userVolume = document.querySelector('#volumeSlider');
@@ -1642,6 +1682,15 @@ try {
     (expectsNativeMedia && (playerResult.mediaSessionTitle || playerResult.mediaPlaybackState !== 'none'))
   ) failures.push("playlist persistence or native media session failed");
   if (
+    !lyricsResult.initial.hidden || lyricsResult.initial.pressed !== 'false' || lyricsResult.initial.expanded !== 'false' ||
+    lyricsResult.enabled.hidden || lyricsResult.enabled.pressed !== 'true' || lyricsResult.enabled.expanded !== 'true' ||
+    !lyricsResult.enabled.bodyClass || lyricsResult.enabled.saved !== true ||
+    !lyricsResult.enabled.status.includes('Artist information is missing') ||
+    !lyricsResult.enabled.panelInsideViewport || lyricsResult.enabled.regionLabel !== 'Song lyrics' ||
+    !lyricsResult.disabled.hidden || lyricsResult.disabled.pressed !== 'false' || lyricsResult.disabled.expanded !== 'false' ||
+    lyricsResult.disabled.bodyClass || lyricsResult.disabled.saved !== false
+  ) failures.push("lyrics opt-in, persistence, status, accessibility, or responsive layout failed");
+  if (
     audioTransitionResult.before.saved.enabled || audioTransitionResult.before.checked ||
     audioTransitionResult.before.duration !== '200' || !audioTransitionResult.before.durationDisabled ||
     !audioTransitionResult.saved.enabled || audioTransitionResult.saved.durationMs !== 200 ||
@@ -1683,7 +1732,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

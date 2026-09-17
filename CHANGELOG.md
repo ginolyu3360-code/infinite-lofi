@@ -2,6 +2,7 @@
 
 ## 1.5.0 — 2026-09-15
 
+- Added an optional synchronized lyrics panel with same-name LRC and embedded-tag priority, opt-in LRCLIB lookup, local caching, and compact responsive player controls
 - Reduced repeat scans of large local libraries from up to five artwork-cache file probes per track to one cache-directory index read per scan
 - Prevented stale folder scans from replacing a newer library selection and exposed a disabled/busy rescan state while scanning
 - Kept Queue event listeners constant for large libraries and avoided rebuilding all track rows during ordinary track changes or swap selection

@@ -6,6 +6,7 @@ const { promisify } = require("util");
 const fs = require("fs");
 const musicMetadata = require("music-metadata");
 const { createMusicLibrary } = require("./src/music-library");
+const { createLyricsService } = require("./src/lyrics-service");
 const { isTrustedNavigationUrl } = require("./src/security");
 const { bindWindowBackgroundLifecycle } = require("./src/window-lifecycle");
 const {
@@ -33,6 +34,7 @@ let miniModeEnabled = false;
 let queuePanelOpen = false;
 let fullWindowBounds = null;
 let musicLibrary = null;
+let lyricsService = null;
 let nativeMediaBridge = null;
 let grantedMusicFolders = new Set();
 let trayStatus = {
@@ -250,6 +252,11 @@ if (!app.requestSingleInstanceLock()) {
       parseFile: musicMetadata.parseFile,
       artworkCacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "artwork")
     });
+    lyricsService = createLyricsService({
+      cacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "lyrics"),
+      getLocalLyrics: (track) => musicLibrary.getLocalLyrics(track),
+      userAgent: `Infinite Lo-Fi/${app.getVersion()} (https://github.com/ginolyu3360-code/infinite-lofi)`
+    });
     createMainWindow();
     createTray();
     powerMonitor.on("suspend", () => sendPowerStateToRenderer("suspend"));
@@ -402,6 +409,31 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
     console.error("Failed to restore music folder:", error);
     return { folderPath, tracks: [], error: "folder-unreadable" };
   }
+});
+
+ipcMain.handle("lyrics:get", async (event, track, options) => {
+  if (!isTrustedIpcSender(event) || !lyricsService) return { status: "unavailable" };
+  const clean = (value, maxLength = 500) => typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+  const normalizedTrack = {
+    key: clean(track?.key, 8192),
+    label: clean(track?.label),
+    title: clean(track?.title),
+    artist: clean(track?.artist),
+    album: clean(track?.album),
+    duration: Number(track?.duration),
+    src: "",
+    isLocal: track?.isLocal === true
+  };
+
+  if (normalizedTrack.isLocal && typeof track?.src === "string" && path.isAbsolute(track.src)) {
+    try {
+      const canonicalPath = await fs.promises.realpath(track.src);
+      const parentPath = path.dirname(canonicalPath);
+      if (grantedMusicFolders.has(parentPath)) normalizedTrack.src = canonicalPath;
+    } catch {}
+  }
+
+  return lyricsService.lookup(normalizedTrack, { allowOnline: options?.allowOnline === true });
 });
 
 async function getCurrentDesktopWallpaperPath() {

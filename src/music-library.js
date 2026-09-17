@@ -2,11 +2,24 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
+const { lyricsFromEmbeddedTags, parseLrc } = require("./lyrics");
 
 const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
 const CACHE_EXTENSIONS = [".jpg", ".png", ".webp", ".gif", ".bmp"];
 const MAX_EMBEDDED_ARTWORK_BYTES = 5 * 1024 * 1024;
+const MAX_SIDECAR_LYRICS_BYTES = 500000;
+
+function metadataFromFileName(fileName) {
+  const label = path.basename(fileName, path.extname(fileName));
+  const separatorIndex = label.indexOf(" - ");
+  return separatorIndex > 0
+    ? {
+        artist: label.slice(0, separatorIndex).trim(),
+        title: label.slice(separatorIndex + 3).trim()
+      }
+    : { artist: "", title: label };
+}
 
 function artworkCandidates(fileName) {
   const baseName = path.basename(fileName, path.extname(fileName));
@@ -65,13 +78,41 @@ function createMusicLibrary({
   fileSystem = fs.promises
 }) {
   if (typeof parseFile !== "function") throw new TypeError("parseFile is required");
+  const metadataCache = new Map();
 
-  async function getArtworkCacheKey(audioPath) {
-    const stat = await fileSystem.stat(audioPath);
+  function getArtworkCacheKey(audioPath, stat) {
     return crypto
       .createHash("sha256")
       .update(`${audioPath}\0${stat.size}\0${stat.mtimeMs}`)
       .digest("hex");
+  }
+
+  function compactMetadata(metadata) {
+    const common = metadata?.common || {};
+    return {
+      common: {
+        title: common.title,
+        artist: common.artist,
+        album: common.album,
+        lyrics: common.lyrics
+      },
+      format: { duration: metadata?.format?.duration }
+    };
+  }
+
+  async function readMetadata(audioPath, stat, { skipCovers = false } = {}) {
+    const fingerprint = `${stat.size}:${stat.mtimeMs}`;
+    const cached = metadataCache.get(audioPath);
+    if (cached?.fingerprint === fingerprint) return cached.metadata;
+    try {
+      const metadata = await parseFile(audioPath, { duration: true, skipCovers });
+      metadataCache.set(audioPath, { fingerprint, metadata: compactMetadata(metadata) });
+      return metadata;
+    } catch {
+      const metadata = { common: {}, format: {} };
+      metadataCache.set(audioPath, { fingerprint, metadata });
+      return metadata;
+    }
   }
 
   async function readArtworkCacheIndex() {
@@ -108,13 +149,10 @@ function createMusicLibrary({
     };
   }
 
-  async function getEmbeddedArtwork(audioPath, cacheIndex) {
+  async function getEmbeddedArtwork(metadata, cacheKey, cacheIndex) {
     try {
-      const cacheKey = artworkCacheDirectory ? await getArtworkCacheKey(audioPath) : "";
       const cached = cacheKey ? findCachedArtwork(cacheKey, cacheIndex) : null;
       if (cached) return cached;
-
-      const metadata = await parseFile(audioPath, { duration: false });
       const picture = Array.isArray(metadata?.common?.picture) ? metadata.common.picture[0] : null;
       if (!picture?.data) return null;
       const artworkData = Buffer.isBuffer(picture.data) ? picture.data : Buffer.from(picture.data);
@@ -139,6 +177,33 @@ function createMusicLibrary({
     }
   }
 
+  async function getLocalLyrics(track) {
+    const audioPath = typeof track?.src === "string" ? track.src : "";
+    if (!audioPath || !path.isAbsolute(audioPath)) return null;
+    try {
+      const folderPath = path.dirname(audioPath);
+      const baseName = path.basename(audioPath, path.extname(audioPath));
+      const entries = await fileSystem.readdir(folderPath, { withFileTypes: true });
+      const sidecar = entries.find((entry) => (
+        (typeof entry === "string" || entry.isFile()) &&
+        (typeof entry === "string" ? entry : entry.name).toLowerCase() === `${baseName}.lrc`.toLowerCase()
+      ));
+      if (sidecar) {
+        const sidecarName = typeof sidecar === "string" ? sidecar : sidecar.name;
+        const sidecarPath = path.join(folderPath, sidecarName);
+        const stat = await fileSystem.stat(sidecarPath);
+        if (stat.isFile() && stat.size > 0 && stat.size <= MAX_SIDECAR_LYRICS_BYTES) {
+          return { source: "sidecar", ...parseLrc(await fileSystem.readFile(sidecarPath, "utf8")) };
+        }
+      }
+      const audioStat = await fileSystem.stat(audioPath);
+      const metadata = await readMetadata(audioPath, audioStat, { skipCovers: true });
+      return lyricsFromEmbeddedTags(metadata?.common?.lyrics);
+    } catch {
+      return null;
+    }
+  }
+
   async function scanFolder(folderPath) {
     const [entries, artworkCacheIndex] = await Promise.all([
       fileSystem.readdir(folderPath, { withFileTypes: true }),
@@ -152,8 +217,23 @@ function createMusicLibrary({
 
     return mapWithConcurrency(audioFiles, concurrency, async (entry) => {
       const audioPath = path.join(folderPath, entry.name);
+      const stat = await fileSystem.stat(audioPath);
+      const cacheKey = artworkCacheDirectory ? getArtworkCacheKey(audioPath, stat) : "";
       const sidecarArtwork = findSidecarArtwork(folderPath, entry.name, fileNameLookup);
-      const artwork = sidecarArtwork || await getEmbeddedArtwork(audioPath, artworkCacheIndex);
+      const cachedArtwork = sidecarArtwork || findCachedArtwork(cacheKey, artworkCacheIndex);
+      const metadata = await readMetadata(audioPath, stat, { skipCovers: Boolean(cachedArtwork) });
+      const artwork = cachedArtwork || await getEmbeddedArtwork(metadata, cacheKey, artworkCacheIndex);
+      const fallback = metadataFromFileName(entry.name);
+      const title = typeof metadata?.common?.title === "string" && metadata.common.title.trim()
+        ? metadata.common.title.trim().slice(0, 500)
+        : fallback.title.slice(0, 500);
+      const artist = typeof metadata?.common?.artist === "string" && metadata.common.artist.trim()
+        ? metadata.common.artist.trim().slice(0, 500)
+        : fallback.artist.slice(0, 500);
+      const album = typeof metadata?.common?.album === "string"
+        ? metadata.common.album.trim().slice(0, 500)
+        : "";
+      const duration = Number(metadata?.format?.duration);
       return {
         id: `local:${entry.name}`,
         key: `local:${entry.name}`,
@@ -162,17 +242,23 @@ function createMusicLibrary({
         src: audioPath,
         srcUrl: pathToFileURL(audioPath).href,
         isLocal: true,
+        title,
+        artist,
+        album,
+        duration: Number.isFinite(duration) && duration > 0 ? duration : 0,
         ...artwork
       };
     });
   }
 
-  return { scanFolder };
+  return { getLocalLyrics, scanFolder };
 }
 
 module.exports = {
   MAX_EMBEDDED_ARTWORK_BYTES,
+  MAX_SIDECAR_LYRICS_BYTES,
   createMusicLibrary,
   findSidecarArtwork,
-  mapWithConcurrency
+  mapWithConcurrency,
+  metadataFromFileName
 };

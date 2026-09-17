@@ -122,6 +122,7 @@
                 <p id="trackLabel">Track 01</p>
               </div>
               <div class="player-utility-actions">
+                <button id="lyricsToggleBtn" class="control-btn" type="button" title="Show or hide lyrics" aria-label="Show or hide lyrics" aria-pressed="false" aria-expanded="false" aria-controls="lyricsPanel" data-i18n="lyrics.toggle" data-i18n-title="lyrics.toggleTitle" data-i18n-aria-label="lyrics.toggleTitle">Lyrics</button>
                 <button id="playlistToggleBtn" class="control-btn" type="button" title="Show or hide playlist" aria-expanded="false" aria-controls="playlistPanel" data-i18n="player.queue" data-i18n-title="player.queue">Queue</button>
                 <button id="statsToggleBtn" class="control-btn" type="button" title="Show or hide stats" aria-expanded="false" aria-controls="statsDrawer" data-i18n="player.stats" data-i18n-title="player.stats">Stats</button>
                 <button id="bgToggleBtn" class="control-btn" type="button" title="Open background options" aria-expanded="false" aria-controls="backgroundDrawer" data-i18n="player.scene" data-i18n-title="player.scene">Scene</button>
@@ -136,23 +137,36 @@
               <button id="repeatModeBtn" class="transport-btn playback-mode-btn" type="button" aria-pressed="false" title="Toggle single track repeat" aria-label="Toggle single track repeat" data-i18n-title="player.repeatOne" data-i18n-aria-label="player.repeatOne">↻</button>
             </div>
 
-            <div class="player-progress">
-              <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="progress-slider" aria-label="Playback progress" title="Seek within the current track" data-i18n-aria-label="player.progress" data-i18n-title="player.seekTitle" />
-              <div class="mt-1 flex items-center justify-between">
-                <span id="currentTimeLabel" class="media-time">00:00</span>
-                <span id="durationLabel" class="media-time">00:00</span>
+            <section id="lyricsPanel" class="lyrics-panel" aria-labelledby="lyricsStatus" hidden>
+              <div class="lyrics-heading">
+                <p id="lyricsStatus" class="lyrics-status" role="status" aria-live="polite" data-i18n="lyrics.loading">Finding lyrics…</p>
+                <span id="lyricsSource" class="lyrics-source"></span>
               </div>
-            </div>
+              <div id="lyricsViewport" class="lyrics-viewport" tabindex="0" aria-label="Song lyrics" data-i18n-aria-label="lyrics.region">
+                <div id="lyricsLines" class="lyrics-lines"></div>
+              </div>
+              <p class="lyrics-privacy" data-i18n="lyrics.privacy">When enabled, track metadata is sent to LRCLIB if no local lyrics are available. Audio and local paths are never sent.</p>
+            </section>
 
-            <div class="player-aux-controls">
-              <label>
-                <span class="media-time" data-i18n="player.volume">Vol</span>
-                <input id="volumeSlider" type="range" min="0" max="100" value="68" class="aux-slider" aria-label="Volume" title="Adjust music volume" data-i18n-aria-label="player.volumeLabel" data-i18n-title="player.volumeTitle" />
-              </label>
-              <label>
-                <span class="media-time" data-i18n="player.light">Light</span>
-                <input id="brightnessSlider" type="range" min="40" max="130" value="100" class="aux-slider" aria-label="Brightness" title="Adjust background brightness" data-i18n-aria-label="player.brightness" data-i18n-title="player.brightnessTitle" />
-              </label>
+            <div class="player-control-deck">
+              <div class="player-progress">
+                <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="progress-slider" aria-label="Playback progress" title="Seek within the current track" data-i18n-aria-label="player.progress" data-i18n-title="player.seekTitle" />
+                <div class="mt-1 flex items-center justify-between">
+                  <span id="currentTimeLabel" class="media-time">00:00</span>
+                  <span id="durationLabel" class="media-time">00:00</span>
+                </div>
+              </div>
+
+              <div class="player-aux-controls">
+                <label>
+                  <span class="media-time" data-i18n="player.volume">Vol</span>
+                  <input id="volumeSlider" type="range" min="0" max="100" value="68" class="aux-slider" aria-label="Volume" title="Adjust music volume" data-i18n-aria-label="player.volumeLabel" data-i18n-title="player.volumeTitle" />
+                </label>
+                <label>
+                  <span class="media-time" data-i18n="player.light">Light</span>
+                  <input id="brightnessSlider" type="range" min="40" max="130" value="100" class="aux-slider" aria-label="Brightness" title="Adjust background brightness" data-i18n-aria-label="player.brightness" data-i18n-title="player.brightnessTitle" />
+                </label>
+              </div>
             </div>
 
             <div id="playlistPanel" class="mt-4 hidden rounded-2xl border border-white/15 bg-black/20 p-3" aria-hidden="true">
@@ -548,6 +562,8 @@
     <script src="./notes.js"></script>
     <script src="./notes-controller.js"></script>
     <script src="./player.js"></script>
+    <script src="./lyrics.js"></script>
+    <script src="./lyrics-controller.js"></script>
     <script src="./media-session.js"></script>
     <script src="./player-controller.js"></script>
     <script src="./ambience-controller.js"></script>
