@@ -2895,7 +2895,7 @@ body.is-mini-mode .progress-slider::-webkit-slider-thumb {
   height: 1rem;
 }
 
-@media (max-width: 52rem) and (min-height: 261px) {
+@media (max-width: 40rem) and (min-height: 261px) {
   .player-control-deck {
     grid-template-columns: 1fr;
   }
