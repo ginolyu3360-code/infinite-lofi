@@ -36,15 +36,20 @@
       }
     }
 
-    function syncPlaybackState() {
+    function setPlaybackState(state) {
       if (!supported) return;
       try {
-        mediaSession.playbackState = !audio.src
-          ? "none"
-          : audio.paused
-          ? "paused"
-          : "playing";
+        mediaSession.playbackState = state;
       } catch {}
+    }
+
+    function syncPlaybackState() {
+      if (!supported) return;
+      setPlaybackState(!audio.src
+        ? "none"
+        : audio.paused
+        ? "paused"
+        : "playing");
     }
 
     function syncPositionState() {
@@ -96,29 +101,49 @@
       syncPositionState();
     }
 
+    function runTransportAction(action, fallback, optimisticState) {
+      // Claim the intended state before an asynchronous fade completes. On
+      // macOS this keeps a paused session resumable instead of briefly leaving
+      // the OS with a stale "playing" session that can be handed to Music.
+      if (optimisticState) setPlaybackState(optimisticState);
+      let result;
+      try {
+        result = typeof action === "function" ? action() : fallback?.();
+      } catch {
+        syncPlaybackState();
+        syncPositionState();
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(result).then(
+        () => {
+          syncPlaybackState();
+          syncPositionState();
+          return true;
+        },
+        () => {
+          syncPlaybackState();
+          syncPositionState();
+          return false;
+        }
+      );
+    }
+
     function installActionHandlers(actions = {}) {
       if (!supported) return false;
-      setActionHandler("play", () => {
-        Promise.resolve(actions.play ? actions.play() : audio.play()).catch(() => {});
-      });
-      setActionHandler("pause", () => {
-        if (actions.pause) actions.pause();
-        else audio.pause();
-      });
-      setActionHandler("stop", () => {
-        if (actions.stop) {
-          actions.stop();
-        } else {
+      setActionHandler("play", () => runTransportAction(actions.play, () => audio.play(), "playing"));
+      setActionHandler("pause", () => runTransportAction(actions.pause, () => audio.pause(), "paused"));
+      setActionHandler("stop", () => runTransportAction(
+        actions.stop,
+        () => {
           audio.pause();
           if (Number.isFinite(Number(audio.duration)) && Number(audio.duration) > 0) {
             audio.currentTime = 0;
           }
-        }
-        syncPlaybackState();
-        syncPositionState();
-      });
-      setActionHandler("previoustrack", () => actions.previousTrack?.());
-      setActionHandler("nexttrack", () => actions.nextTrack?.());
+        },
+        "paused"
+      ));
+      setActionHandler("previoustrack", () => runTransportAction(actions.previousTrack));
+      setActionHandler("nexttrack", () => runTransportAction(actions.nextTrack));
       setActionHandler("seekbackward", (details = {}) => {
         const offset = Number.isFinite(Number(details.seekOffset)) ? Number(details.seekOffset) : 10;
         audio.currentTime = Math.max(0, Number(audio.currentTime || 0) - offset);

@@ -111,3 +111,49 @@ test("degrades safely when Media Session is unavailable", () => {
   assert.doesNotThrow(() => controller.updateMetadata({ label: "Focus" }));
   assert.equal(inferArtworkType("file:///cover.JPG?cache=1"), "image/jpeg");
 });
+
+test("claims a paused media session before an asynchronous fade completes", async () => {
+  const actionHandlers = new Map();
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      actionHandlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const audio = createFakeAudio();
+  audio.paused = false;
+  let finishPause;
+  const controller = createMediaSessionController({
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    audio,
+    logger: { warn() {} }
+  });
+
+  controller.installActionHandlers({
+    pause: () => new Promise((resolve) => {
+      finishPause = () => {
+        audio.pause();
+        resolve();
+      };
+    })
+  });
+  controller.updateMetadata({ label: "Focus Mix" });
+  assert.equal(mediaSession.playbackState, "playing");
+
+  const pendingPause = actionHandlers.get("pause")();
+  assert.equal(mediaSession.playbackState, "paused");
+  assert.equal(mediaSession.metadata.title, "Focus Mix");
+
+  finishPause();
+  assert.equal(await pendingPause, true);
+  assert.equal(mediaSession.playbackState, "paused");
+  assert.equal(mediaSession.metadata.title, "Focus Mix");
+});

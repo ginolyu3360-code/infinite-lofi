@@ -421,10 +421,10 @@ function saveAudioTransitionSettings(nextSettings) {
 
 mediaSessionController.installActionHandlers({
   play: playMusic,
-  pause: () => {
-    pauseMusic();
-    ambienceController.pause();
-  },
+  pause: () => Promise.all([
+    pauseMusic(),
+    ambienceController.pause()
+  ]),
   stop: () => {
     stopMusic();
     ambienceController.stop();
