@@ -111,3 +111,100 @@ test("degrades safely when Media Session is unavailable", () => {
   assert.doesNotThrow(() => controller.updateMetadata({ label: "Focus" }));
   assert.equal(inferArtworkType("file:///cover.JPG?cache=1"), "image/jpeg");
 });
+
+test("claims a paused media session before an asynchronous fade completes", async () => {
+  const actionHandlers = new Map();
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      actionHandlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const audio = createFakeAudio();
+  audio.paused = false;
+  let finishPause;
+  const controller = createMediaSessionController({
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    audio,
+    logger: { warn() {} }
+  });
+
+  controller.installActionHandlers({
+    pause: () => new Promise((resolve) => {
+      finishPause = () => {
+        audio.pause();
+        resolve();
+      };
+    })
+  });
+  controller.updateMetadata({ label: "Focus Mix" });
+  assert.equal(mediaSession.playbackState, "playing");
+
+  const pendingPause = actionHandlers.get("pause")();
+  assert.equal(mediaSession.playbackState, "paused");
+  assert.equal(mediaSession.metadata.title, "Focus Mix");
+
+  finishPause();
+  assert.equal(await pendingPause, true);
+  assert.equal(mediaSession.playbackState, "paused");
+  assert.equal(mediaSession.metadata.title, "Focus Mix");
+});
+
+test("hands macOS media ownership to the native publisher without duplicate browser handlers", () => {
+  const actionHandlers = new Map();
+  const published = [];
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      actionHandlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const audio = createFakeAudio();
+  const controller = createMediaSessionController({
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    audio,
+    publishNativeState: (state) => published.push(state),
+    logger: { warn() {} }
+  });
+
+  controller.installActionHandlers({ play: () => audio.play() });
+  controller.updateMetadata({ label: "Native Focus", isLocal: true });
+  assert.equal(controller.enableNativeMode(), true);
+  assert.equal(controller.isNativeMode(), true);
+  assert.equal(mediaSession.metadata, null);
+  assert.equal(mediaSession.playbackState, "none");
+  assert.ok([...actionHandlers.values()].every((handler) => handler === null));
+  assert.deepEqual(published.at(-1), {
+    title: "Native Focus",
+    artist: "Local Music",
+    album: "Infinite Lo-Fi",
+    duration: 120,
+    position: 20,
+    playbackRate: 1,
+    state: "paused"
+  });
+
+  audio.play();
+  assert.equal(published.at(-1).state, "playing");
+  controller.syncPlaybackIntent("paused");
+  assert.equal(published.at(-1).state, "paused");
+  audio.currentTime = 45;
+  audio.dispatch("timeupdate");
+  assert.equal(published.at(-1).position, 45);
+});

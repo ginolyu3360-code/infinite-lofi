@@ -63,7 +63,9 @@ UI-REFRESH-PLAN.md     # Phase 3 前 UI 基础改版的决策、规则与验收�
 .github/workflows/ci.yml # GitHub Actions 检查与 macOS/Windows 打包验证
 .github/workflows/release.yml # 标签触发的多平台 Release 自动发布
 scripts/smoke-ui.mjs    # Electron 界面冒烟测试
+scripts/build-macos-media-bridge.mjs # 编译 Intel/Apple Silicon 原生媒体桥
 test/                   # 核心、存储与功能模型单元测试
+native/macos-media-bridge.mm # macOS Now Playing 与 AirPods 远程控制桥
 src/
   ├─ index.html         # 应用界面
   ├─ renderer.js        # DOM 编排与交互逻辑
@@ -101,6 +103,11 @@ assets/                 # 内置资源：图标、示例音轨、托盘模板、
 ```
 
 ## 快速开始（开发）
+macOS 开发与打包需要 Xcode Command Line Tools（原生媒体桥会链接 Apple MediaPlayer.framework）：
+```bash
+xcode-select --install
+```
+
 按锁文件安装依赖：
 ```bash
 npm ci
@@ -112,7 +119,7 @@ npm run dev
 # npm 脚本定义：
 # "dev": "concurrently \"npm run dev:css\" \"npm run dev:app\""
 # "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --watch"
-# "dev:app": "electron ."
+# "dev:app": "npm run build:native:mac && electron ."
 ```
 
 构建并运行（会先构建 CSS）：
@@ -186,6 +193,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - 如果版本化存储损坏或来自更高版本，应用会先保留原始值并显示恢复提示，而不是静默覆盖。
 - 天气服务不可用时，应用会使用与当前模式/城市匹配的本地缓存，或显示明确的不可用状态。
 - music-metadata 用于读取嵌入封面；扫描本地音乐文件夹时会查找文件名相匹配的图片（cover.jpg/folder.jpg/front/album等）并尝试读取嵌入图片。
+- macOS 使用 Apple `MPRemoteCommandCenter` 与 `MPNowPlayingInfoCenter` 原生桥接 AirPods、控制中心和媒体键，不需要“辅助功能”权限；Windows 继续使用 Chromium Media Session。
 - Electron 版本在 package.json 中为 ^41.3.0，注意与本地 Node/Electron 运行环境兼容性（如果你遇到二进制或节点版本问题，请升级或使用 nvm 指定合适 Node 版本）。
 
 ## 常见问题（FAQ）
@@ -225,7 +233,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
 - Music player with bundled tracks, local-folder recovery, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
-- Native Media Session metadata, playback, track navigation, stop, and seeking controls
+- Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
 - Versioned local storage with legacy migration and validated backup restore
@@ -254,12 +262,20 @@ See the Chinese section above for a full tree. Key runtime files:
 - src/storage.js — versioned state, legacy migration, and backup validation
 - Feature modules and controllers under src/ separate timer, tasks, atomic focus-session persistence, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
+- scripts/build-macos-media-bridge.mjs — Intel/Apple Silicon native-media build orchestration
+- native/macos-media-bridge.mm — Apple MediaPlayer.framework Now Playing and remote-command bridge
 - test/ — unit tests for core logic, storage, and feature models
 - assets/ — icons and sample tracks
 
 The renderer source is included and has been verified in both development and packaged builds.
 
 ## Quick start
+macOS development and packaging require Xcode Command Line Tools because the native media bridge links Apple MediaPlayer.framework:
+
+```bash
+xcode-select --install
+```
+
 Install dependencies from the lockfile:
 ```bash
 npm ci

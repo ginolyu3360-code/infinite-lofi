@@ -300,7 +300,8 @@ let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().pl
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
   MediaMetadata: window.MediaMetadata,
-  audio: lofiPlayer
+  audio: lofiPlayer,
+  publishNativeState: (state) => window.desktopApp?.sendNativeMediaSessionState?.(state)
 });
 
 const playerController = createPlayerController({
@@ -419,16 +420,33 @@ function saveAudioTransitionSettings(nextSettings) {
   return true;
 }
 
+function pauseAllMedia() {
+  mediaSessionController.syncPlaybackIntent("paused");
+  return Promise.all([
+    pauseMusic(),
+    ambienceController.pause()
+  ]);
+}
+
+function stopAllMedia() {
+  mediaSessionController.syncPlaybackIntent("stopped");
+  stopMusic();
+  ambienceController.stop();
+}
+
+function playFromNativeMediaControl() {
+  mediaSessionController.syncPlaybackIntent("playing");
+  return playMusic();
+}
+
+function toggleFromNativeMediaControl() {
+  return lofiPlayer.paused ? playFromNativeMediaControl() : pauseAllMedia();
+}
+
 mediaSessionController.installActionHandlers({
   play: playMusic,
-  pause: () => {
-    pauseMusic();
-    ambienceController.pause();
-  },
-  stop: () => {
-    stopMusic();
-    ambienceController.stop();
-  },
+  pause: pauseAllMedia,
+  stop: stopAllMedia,
   previousTrack: prevTrack,
   nextTrack: switchTrack
 });
@@ -1713,12 +1731,46 @@ function bindAppCommands() {
   }
 
   window.desktopApp.onCommand((command) => {
-    if (command === "toggle-timer") {
+    const commandType = typeof command === "string" ? command : command?.type;
+    if (commandType === "toggle-timer") {
       toggleTimer();
       return;
     }
-    if (command === "reset-timer") {
+    if (commandType === "reset-timer") {
       resetTimer();
+      return;
+    }
+    if (commandType === "media-play") {
+      playFromNativeMediaControl();
+      return;
+    }
+    if (commandType === "media-pause") {
+      pauseAllMedia();
+      return;
+    }
+    if (commandType === "media-toggle") {
+      toggleFromNativeMediaControl();
+      return;
+    }
+    if (commandType === "media-stop") {
+      stopAllMedia();
+      return;
+    }
+    if (commandType === "media-next") {
+      switchTrack();
+      return;
+    }
+    if (commandType === "media-previous") {
+      prevTrack();
+      return;
+    }
+    if (commandType === "media-seek") {
+      const duration = Number(lofiPlayer.duration);
+      const position = Number(command.position);
+      if (Number.isFinite(duration) && duration > 0 && Number.isFinite(position)) {
+        lofiPlayer.currentTime = Math.min(duration, Math.max(0, position));
+        mediaSessionController.syncPositionState();
+      }
     }
   });
   window.desktopApp.onPowerState?.(() => {
@@ -1758,6 +1810,12 @@ function toggleShortcutHelp(forceOpen) {
 
 
 async function init() {
+  try {
+    const nativeMediaAvailable = await window.desktopApp?.getNativeMediaSessionAvailability?.();
+    if (nativeMediaAvailable) mediaSessionController.enableNativeMode();
+  } catch (error) {
+    console.warn("Native macOS media controls could not be enabled:", error);
+  }
   tasksController.bindEvents();
   ambienceController.bindEvents();
   audioTransitionsEnabled.addEventListener("change", () => {
