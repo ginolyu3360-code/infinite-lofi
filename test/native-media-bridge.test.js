@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
 
 const {
   createNativeMediaBridge,
@@ -100,10 +101,10 @@ test("falls back without loading native code outside macOS", () => {
 test("resolves development and packaged bridge locations", () => {
   assert.equal(
     resolveNativeMediaBridgePath({ appPath: "/repo", isPackaged: false, resourcesPath: "/resources" }),
-    "/repo/native-bin/macos_media_bridge.node"
+    path.join("/repo", "native-bin", "macos_media_bridge.node")
   );
   assert.equal(
     resolveNativeMediaBridgePath({ appPath: "/repo", isPackaged: true, resourcesPath: "/resources" }),
-    "/resources/native/macos_media_bridge.node"
+    path.join("/resources", "native", "macos_media_bridge.node")
   );
 });
