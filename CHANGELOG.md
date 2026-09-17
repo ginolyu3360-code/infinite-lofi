@@ -14,7 +14,7 @@
 - Made isolated UI smoke cleanup wait for Electron exit and retry transient Windows profile locks
 - Prevented window focus events from being misread as timer timestamps and immediately ending active focus or break phases
 - Kept native media controls responsive while the window is minimized, restoring normal background throttling when the window returns
-- Kept the paused macOS media session claimed while audio fades out so AirPods resume and track controls do not fall through to Apple Music
+- Added a native macOS Now Playing and remote-command bridge so paused AirPods play and track controls remain assigned to Infinite Lo-Fi without Accessibility permission
 - Reduced repeated Focus Review normalization and state cloning during range changes, keeping the 5,000-session reference fixture below its 100 ms p95 target on Windows
 - Allowed the UI smoke runner a four-pixel native-resize tolerance while retaining strict content-overflow and control-visibility checks at the 360 × 200 Mini target
 - Made tag-triggered release builds run development and packaged UI smoke tests on both platforms and publish the Release after all required jobs pass

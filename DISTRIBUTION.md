@@ -2,6 +2,12 @@
 
 ## macOS local build
 
+Install Xcode Command Line Tools before the first local build. The macOS application compiles a small Node-API bridge against Apple's public MediaPlayer.framework:
+
+```bash
+xcode-select --install
+```
+
 From the project root:
 
 ```bash
@@ -15,7 +21,7 @@ The output is created in `dist/`:
 - `Infinite-Lo-Fi-<version>-universal.zip`: zipped Universal application
 - `mac-universal/Infinite Lo-Fi.app`: unpacked Universal `.app` bundle
 
-The default build contains both Intel (`x86_64`) and Apple Silicon (`arm64`) code. Architecture-specific builds remain available:
+The default build contains both Intel (`x86_64`) and Apple Silicon (`arm64`) code in both the Electron executable and `Resources/native/macos_media_bridge.node`. The bridge publishes Now Playing metadata and handles AirPods/system remote commands through `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`; it does not request Accessibility permission. Architecture-specific builds remain available:
 
 ```bash
 npm run dist:x64

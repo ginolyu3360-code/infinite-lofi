@@ -1108,6 +1108,7 @@ try {
     const shufflePressed = document.querySelector('#shuffleModeBtn').getAttribute('aria-pressed');
     const repeatPressed = document.querySelector('#repeatModeBtn').getAttribute('aria-pressed');
     const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const nativeMediaAvailable = await window.desktopApp?.getNativeMediaSessionAvailability?.();
     const result = {
       source: player.currentSrc || player.src,
       pausedAfterClick: player.paused,
@@ -1118,6 +1119,7 @@ try {
       shuffleState,
       shufflePressed,
       repeatPressed,
+      nativeMediaAvailable: nativeMediaAvailable === true,
       mediaSessionSupported: Boolean(navigator.mediaSession),
       mediaSessionTitle: navigator.mediaSession?.metadata?.title || '',
       mediaPlaybackState: navigator.mediaSession?.playbackState || 'none'
@@ -1626,6 +1628,7 @@ try {
   ) {
     failures.push("curated Scene preset adaptation or persistence failed");
   }
+  const expectsNativeMedia = process.platform === "darwin";
   if (
     playerResult.pausedAfterClick ||
     !playerResult.source ||
@@ -1634,8 +1637,9 @@ try {
     playerResult.repeatState !== 'repeat-one' || !playerResult.repeatLoop ||
     playerResult.shuffleState !== 'shuffle' || playerResult.shufflePressed !== 'true' || playerResult.repeatPressed !== 'false' ||
     !playerResult.mediaSessionSupported ||
-    !playerResult.mediaSessionTitle ||
-    playerResult.mediaPlaybackState !== 'playing'
+    playerResult.nativeMediaAvailable !== expectsNativeMedia ||
+    (!expectsNativeMedia && (!playerResult.mediaSessionTitle || playerResult.mediaPlaybackState !== 'playing')) ||
+    (expectsNativeMedia && (playerResult.mediaSessionTitle || playerResult.mediaPlaybackState !== 'none'))
   ) failures.push("playlist persistence or native media session failed");
   if (
     audioTransitionResult.before.saved.enabled || audioTransitionResult.before.checked ||

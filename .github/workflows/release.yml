@@ -45,6 +45,8 @@ jobs:
         run: |
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q x86_64
           lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi" | grep -q arm64
+          lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/Resources/native/macos_media_bridge.node" | grep -q x86_64
+          lipo -archs "dist/mac-universal/Infinite Lo-Fi.app/Contents/Resources/native/macos_media_bridge.node" | grep -q arm64
 
       - name: Run packaged UI smoke test
         run: npm run smoke:packaged:mac

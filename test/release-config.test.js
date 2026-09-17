@@ -63,6 +63,24 @@ test("Windows distribution is an x64 assisted NSIS installer", () => {
   assert.equal(packageJson.build.nsis.deleteAppDataOnUninstall, false);
 });
 
+test("macOS packages an official-framework Universal native media bridge", () => {
+  const buildScript = fs.readFileSync(
+    path.join(projectDirectory, "scripts", "build-macos-media-bridge.mjs"),
+    "utf8"
+  );
+  const releaseWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "release.yml"), "utf8");
+
+  assert.match(packageJson.scripts["pack:universal"], /build:native:universal/);
+  assert.match(packageJson.scripts["dist:universal"], /build:native:universal/);
+  assert.deepEqual(packageJson.build.mac.extraResources, [{
+    from: "native-bin/macos_media_bridge.node",
+    to: "native/macos_media_bridge.node"
+  }]);
+  assert.match(buildScript, /\["x64", "arm64"\]/);
+  assert.match(buildScript, /spawnSync\("lipo"/);
+  assert.match(releaseWorkflow, /Resources\/native\/macos_media_bridge\.node/);
+});
+
 test("CI and tagged releases verify both platforms before publication", () => {
   const ciWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "ci.yml"), "utf8");
   const releaseWorkflow = fs.readFileSync(path.join(projectDirectory, ".github", "workflows", "release.yml"), "utf8");

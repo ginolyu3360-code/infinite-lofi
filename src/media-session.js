@@ -16,17 +16,62 @@
       mediaSession,
       MediaMetadata,
       audio,
+      publishNativeState,
       logger = globalScope.console
     } = options;
-    const supported = Boolean(
+    const browserSupported = Boolean(
       mediaSession &&
       typeof mediaSession.setActionHandler === "function" &&
       typeof MediaMetadata === "function" &&
       audio
     );
+    const nativePublisherSupported = typeof publishNativeState === "function" && Boolean(audio);
+    let nativeMode = false;
+    let currentMetadata = null;
+
+    const actionNames = [
+      "play",
+      "pause",
+      "stop",
+      "previoustrack",
+      "nexttrack",
+      "seekbackward",
+      "seekforward",
+      "seekto"
+    ];
+
+    function getPlaybackState() {
+      return !audio?.src
+        ? "none"
+        : audio.paused
+        ? "paused"
+        : "playing";
+    }
+
+    function publishNativeMediaState(stateOverride) {
+      if (!nativeMode || !nativePublisherSupported) return;
+      const duration = Number(audio.duration);
+      const position = Number(audio.currentTime);
+      const playbackRate = Number(audio.playbackRate);
+      publishNativeState({
+        title: currentMetadata?.title || "",
+        artist: currentMetadata?.artist || "",
+        album: currentMetadata?.album || "",
+        duration: Number.isFinite(duration) && duration > 0 ? duration : 0,
+        position: Number.isFinite(position) && position > 0 ? position : 0,
+        playbackRate: Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1,
+        state: currentMetadata ? stateOverride || getPlaybackState() : "none"
+      });
+    }
+
+    function syncPlaybackIntent(state) {
+      if (!["playing", "paused", "stopped"].includes(state)) return;
+      if (nativeMode) publishNativeMediaState(state);
+      else setPlaybackState(state === "stopped" ? "paused" : state);
+    }
 
     function setActionHandler(action, handler) {
-      if (!supported) return false;
+      if (!browserSupported) return false;
       try {
         mediaSession.setActionHandler(action, handler);
         return true;
@@ -37,23 +82,26 @@
     }
 
     function setPlaybackState(state) {
-      if (!supported) return;
+      if (!browserSupported || nativeMode) return;
       try {
         mediaSession.playbackState = state;
       } catch {}
     }
 
     function syncPlaybackState() {
-      if (!supported) return;
-      setPlaybackState(!audio.src
-        ? "none"
-        : audio.paused
-        ? "paused"
-        : "playing");
+      if (nativeMode) {
+        publishNativeMediaState();
+        return;
+      }
+      setPlaybackState(getPlaybackState());
     }
 
     function syncPositionState() {
-      if (!supported || typeof mediaSession.setPositionState !== "function") return;
+      if (nativeMode) {
+        publishNativeMediaState();
+        return;
+      }
+      if (!browserSupported || typeof mediaSession.setPositionState !== "function") return;
       const duration = Number(audio.duration);
       const currentTime = Number(audio.currentTime);
       const playbackRate = Number(audio.playbackRate);
@@ -67,13 +115,25 @@
       } catch {}
     }
 
+    function syncAllState() {
+      if (nativeMode) {
+        publishNativeMediaState();
+        return;
+      }
+      syncPlaybackState();
+      syncPositionState();
+    }
+
     function updateMetadata(track) {
-      if (!supported) return;
       if (!track || track.isMissing === true) {
-        try {
-          mediaSession.metadata = null;
-        } catch {}
-        syncPlaybackState();
+        currentMetadata = null;
+        if (nativeMode) publishNativeMediaState();
+        else if (browserSupported) {
+          try {
+            mediaSession.metadata = null;
+          } catch {}
+          syncPlaybackState();
+        }
         return;
       }
       const artwork = [];
@@ -89,6 +149,12 @@
         album: "Infinite Lo-Fi",
         artwork
       };
+      currentMetadata = metadata;
+      if (nativeMode) {
+        publishNativeMediaState();
+        return;
+      }
+      if (!browserSupported) return;
       try {
         mediaSession.metadata = new MediaMetadata(metadata);
       } catch (error) {
@@ -97,8 +163,7 @@
           mediaSession.metadata = new MediaMetadata({ ...metadata, artwork: [] });
         } catch {}
       }
-      syncPlaybackState();
-      syncPositionState();
+      syncAllState();
     }
 
     function runTransportAction(action, fallback, optimisticState) {
@@ -110,26 +175,24 @@
       try {
         result = typeof action === "function" ? action() : fallback?.();
       } catch {
-        syncPlaybackState();
-        syncPositionState();
+        syncAllState();
         return Promise.resolve(false);
       }
       return Promise.resolve(result).then(
         () => {
-          syncPlaybackState();
-          syncPositionState();
+          syncAllState();
           return true;
         },
         () => {
-          syncPlaybackState();
-          syncPositionState();
+          syncAllState();
           return false;
         }
       );
     }
 
     function installActionHandlers(actions = {}) {
-      if (!supported) return false;
+      if (!audio || (!browserSupported && !nativePublisherSupported)) return false;
+      if (!browserSupported) return true;
       setActionHandler("play", () => runTransportAction(actions.play, () => audio.play(), "playing"));
       setActionHandler("pause", () => runTransportAction(actions.pause, () => audio.pause(), "paused"));
       setActionHandler("stop", () => runTransportAction(
@@ -168,18 +231,32 @@
 
       ["play", "pause", "ended", "loadedmetadata", "durationchange", "ratechange", "timeupdate", "emptied"]
         .forEach((eventName) => {
-          audio.addEventListener(eventName, eventName === "timeupdate" ? syncPositionState : () => {
-            syncPlaybackState();
-            syncPositionState();
-          });
+          audio.addEventListener(eventName, eventName === "timeupdate" ? syncPositionState : syncAllState);
         });
       syncPlaybackState();
       return true;
     }
 
+    function enableNativeMode() {
+      if (!nativePublisherSupported) return false;
+      nativeMode = true;
+      if (browserSupported) {
+        actionNames.forEach((action) => setActionHandler(action, null));
+        try {
+          mediaSession.metadata = null;
+          mediaSession.playbackState = "none";
+        } catch {}
+      }
+      publishNativeMediaState();
+      return true;
+    }
+
     return {
+      enableNativeMode,
       installActionHandlers,
-      isSupported: () => supported,
+      isNativeMode: () => nativeMode,
+      isSupported: () => browserSupported || nativePublisherSupported,
+      syncPlaybackIntent,
       syncPlaybackState,
       syncPositionState,
       updateMetadata
