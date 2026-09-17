@@ -132,6 +132,11 @@ const shuffleModeBtn = document.getElementById("shuffleModeBtn");
 const progressSlider = document.getElementById("progressSlider");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const durationLabel = document.getElementById("durationLabel");
+const lyricsToggleBtn = document.getElementById("lyricsToggleBtn");
+const lyricsPanel = document.getElementById("lyricsPanel");
+const lyricsStatus = document.getElementById("lyricsStatus");
+const lyricsSource = document.getElementById("lyricsSource");
+const lyricsLines = document.getElementById("lyricsLines");
 const playlistToggleBtn = document.getElementById("playlistToggleBtn");
 const trackLabel = document.getElementById("trackLabel");
 const playlistPanel = document.getElementById("playlistPanel");
@@ -296,12 +301,32 @@ let completionSaveErrorShown = false;
 let tasksController = null;
 let weatherController = null;
 let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().player?.audioTransitions);
+let lyricsEnabled = false;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
   MediaMetadata: window.MediaMetadata,
   audio: lofiPlayer,
   publishNativeState: (state) => window.desktopApp?.sendNativeMediaSessionState?.(state)
+});
+
+const lyricsController = window.InfiniteLofiLyricsController.createLyricsController({
+  audio: lofiPlayer,
+  desktopApp: window.desktopApp,
+  elements: {
+    document,
+    toggleButton: lyricsToggleBtn,
+    panel: lyricsPanel,
+    status: lyricsStatus,
+    source: lyricsSource,
+    lines: lyricsLines
+  },
+  onEnabledChange: (enabled) => {
+    lyricsEnabled = enabled;
+    saveUiSettings();
+    requestAnimationFrame(adjustTimerFont);
+  },
+  t
 });
 
 const playerController = createPlayerController({
@@ -338,7 +363,10 @@ const playerController = createPlayerController({
     renderBackgroundUi();
     applyBackground();
   },
-  onTrackChange: mediaSessionController.updateMetadata,
+  onTrackChange: (track) => {
+    mediaSessionController.updateMetadata(track);
+    lyricsController.setTrack(track);
+  },
   onLayoutChange: ({ queueOpen } = {}) => {
     requestAnimationFrame(adjustTimerFont);
     const resizeRequest = window.desktopWindow?.setQueueOpen?.(queueOpen === true);
@@ -608,6 +636,8 @@ function loadUiSettings() {
   backgroundSettings = normalizeBackgroundSettings(stored.background);
   weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings(stored.weather);
   showcaseModeEnabled = Boolean(stored.showcaseMode);
+  lyricsEnabled = stored.lyricsEnabled === true;
+  lyricsController.setEnabled(lyricsEnabled, { persist: false });
 
   // volume
   const storedVol = Number(stored.volume);
@@ -637,6 +667,7 @@ function saveUiSettings() {
     background: backgroundSettings,
     weather: weatherSettings,
     showcaseMode: showcaseModeEnabled,
+    lyricsEnabled,
     language: i18n.getLanguage()
   };
   appStorage.update((state) => {
@@ -657,6 +688,7 @@ function refreshLocalizedUi() {
   refreshShortcutLabels();
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
+  lyricsController.refreshLanguage();
   ambienceController.refreshLanguage();
   renderAudioTransitionSettings();
   tasksController?.render();

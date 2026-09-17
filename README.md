@@ -22,6 +22,7 @@
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目、本地文件夹异步扫描、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放
+- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时可按歌曲信息从 LRCLIB 匹配同步歌词并缓存。开关默认关闭，且不会上传音频或本地路径
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
@@ -203,6 +204,9 @@ A: 先运行 `npm ci` 和 `npm run check`；确认通过后再运行 `npm start`
 Q: 如何加载本地音乐？
 A: 在 Queue 中选择 **Load Folder**，然后选择本地音乐目录。应用会保存已授权目录及 Queue 顺序；目录内容变化后可选择 **Rescan**。
 
+Q: 如何显示歌词？
+A: 点击播放器右上角的 **Lyrics / 歌词** 开关。应用会先查找与歌曲同名、位于同一文件夹的 `.lrc` 文件，再检查 MP3 的内嵌歌词；如果本地都没有，才会把曲名、歌手、专辑和时长发送给 LRCLIB 查找并在本机缓存结果。音频内容和本地文件路径不会发送。关闭开关后不会查找在线歌词。
+
 Q: 我想在 CI 中打包并自动签名 mac 应用，需哪些准备？
 A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私钥）、并在构建机上配置证书或使用钥匙串；若要自动 notarize，还需将 API key/凭据配置到构建流程。是否需要我为你写一个 CI 示例（GitHub Actions）？
 
@@ -233,6 +237,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
 - Music player with bundled tracks, local-folder recovery, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
+- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then performs an opt-in LRCLIB metadata lookup with local caching; audio data and local paths are never uploaded
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
@@ -306,7 +311,7 @@ Run the automated Electron UI smoke test with:
 npm run smoke
 ```
 
-The smoke test exercises Focus Intent, timer attribution and recovery, Focus Plan, notes, player, statistics, scenes, accessibility, responsive/Mini layouts, and the maximum retained task/history fixture. It restores the previous local storage after the run.
+The smoke test exercises Focus Intent, timer attribution and recovery, Focus Plan, notes, player and lyrics preferences, statistics, scenes, accessibility, responsive/Mini layouts, and the maximum retained task/history fixture. It restores the previous local storage after the run.
 Each launched smoke-test app now uses a fresh temporary profile, so the test cannot modify the normal application profile even if it fails midway.
 
 Run both the checks and UI smoke test with:

@@ -61,7 +61,7 @@ test("scans asynchronously with bounded metadata concurrency and cached file art
   assert.equal(perArtworkAccessChecks, 0);
 });
 
-test("uses a sidecar cover without parsing embedded metadata", async (t) => {
+test("uses a sidecar cover while still reading track metadata", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "infinite-lofi-sidecar-"));
   await fs.promises.writeFile(path.join(root, "focus.mp3"), "audio");
   await fs.promises.writeFile(path.join(root, "focus.jpg"), "cover");
@@ -72,13 +72,43 @@ test("uses a sidecar cover without parsing embedded metadata", async (t) => {
     artworkCacheDirectory: path.join(root, "cache"),
     parseFile: async () => {
       parseCount += 1;
-      return {};
+      return { common: { title: "Focus", artist: "Artist" }, format: { duration: 90 } };
     }
   });
   const tracks = await library.scanFolder(root);
 
-  assert.equal(parseCount, 0);
+  assert.equal(parseCount, 1);
   assert.equal(tracks[0].artworkName, "focus.jpg");
+  assert.equal(tracks[0].title, "Focus");
+  assert.equal(tracks[0].artist, "Artist");
+  assert.equal(tracks[0].duration, 90);
+});
+
+test("reads synchronized sidecar lyrics before embedded lyrics", async (t) => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "infinite-lofi-lyrics-"));
+  const audioPath = path.join(root, "Artist - Focus.mp3");
+  await fs.promises.writeFile(audioPath, "audio");
+  await fs.promises.writeFile(path.join(root, "Artist - Focus.lrc"), "[00:01.00]First line\n[00:02.50]Second line");
+  t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+
+  const library = createMusicLibrary({
+    artworkCacheDirectory: path.join(root, "cache"),
+    parseFile: async () => ({
+      common: { lyrics: [{ text: "Embedded fallback" }] },
+      format: { duration: 60 }
+    })
+  });
+  const [track] = await library.scanFolder(root);
+  const lyrics = await library.getLocalLyrics(track);
+
+  assert.equal(track.title, "Focus");
+  assert.equal(track.artist, "Artist");
+  assert.equal(lyrics.source, "sidecar");
+  assert.equal(lyrics.synced, true);
+  assert.deepEqual(lyrics.lines, [
+    { time: 1, text: "First line" },
+    { time: 2.5, text: "Second line" }
+  ]);
 });
 
 test("keeps damaged audio entries usable when metadata parsing fails", async (t) => {
