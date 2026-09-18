@@ -2,6 +2,7 @@
 
 ## 1.5.0 — 2026-09-15
 
+- Skipped duplicate tracks during local-folder scans using normalized title, artist, duration, and copy-name fallbacks while preserving the highest-quality source file
 - Added an optional synchronized lyrics panel with same-name LRC and embedded-tag priority, opt-in LRCLIB lookup, local caching, and compact responsive player controls
 - Reduced repeat scans of large local libraries from up to five artwork-cache file probes per track to one cache-directory index read per scan
 - Prevented stale folder scans from replacing a newer library selection and exposed a disabled/busy rescan state while scanning

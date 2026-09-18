@@ -440,6 +440,50 @@ test("a late folder scan cannot replace a newer folder selection", async () => {
   assert.equal(elements.playlistPanel.attributes["aria-busy"], "false");
 });
 
+test("reports duplicate files skipped while loading a folder", async () => {
+  const desktopApp = {
+    selectMusicFolder: async () => ({
+      duplicateCount: 2,
+      folderPath: "/Focus",
+      tracks: [{ key: "local:one.mp3", label: "One", relativePath: "one.mp3", src: "/Focus/one.mp3", isLocal: true }]
+    })
+  };
+  const { controller, elements } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: ""
+  }, desktopApp);
+
+  await controller.loadMusicFolder();
+
+  assert.match(elements.playlistStatus.textContent, /2 duplicate files were skipped/);
+  assert.equal(elements.trackLabel.textContent, "One");
+});
+
+test("removes previously saved duplicates instead of restoring them as missing", async () => {
+  const original = { key: "local:focus.mp3", label: "Focus", relativePath: "focus.mp3", src: "/Focus/focus.mp3", isLocal: true };
+  const duplicate = { key: "local:focus (1).mp3", label: "Focus (1)", relativePath: "focus (1).mp3", src: "/Focus/focus (1).mp3", isLocal: true };
+  const desktopApp = {
+    scanMusicFolder: async () => ({
+      duplicateCount: 1,
+      duplicateKeys: [duplicate.key],
+      folderPath: "/Focus",
+      tracks: [original]
+    })
+  };
+  const { controller, elements, getState } = createHarness({
+    folderPath: "/Focus",
+    queue: [original, duplicate],
+    activeTrackKey: original.key
+  }, desktopApp);
+
+  await controller.restorePersistedPlayer();
+
+  assert.deepEqual(getState().player.queue.map((track) => track.key), [original.key]);
+  assert.doesNotMatch(elements.playlistStatus.textContent, /unavailable/);
+  assert.match(elements.playlistStatus.textContent, /1 duplicate file was skipped/);
+});
+
 test("audio transitions keep mute separate, cancel stale pauses, switch sequentially, and stop immediately", async () => {
   let now = 0;
   let nextHandle = 1;

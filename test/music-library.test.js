@@ -158,3 +158,51 @@ test("keeps scanning when the optional artwork cache cannot be read", async (t) 
   assert.equal(tracks.length, 1);
   assert.equal(tracks[0].label, "focus");
 });
+
+test("skips copy-name and metadata duplicates while keeping the highest-quality source", async (t) => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "infinite-lofi-deduplicate-"));
+  const files = [
+    "Focus.mp3",
+    "Focus (1).mp3",
+    "studio-low.mp3",
+    "studio-high.m4a",
+    "studio-live.mp3",
+    "other-artist.mp3"
+  ];
+  await Promise.all(files.map((name) => fs.promises.writeFile(path.join(root, name), "audio")));
+  t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+
+  const library = createMusicLibrary({
+    artworkCacheDirectory: path.join(root, "cache"),
+    parseFile: async (filePath) => {
+      const name = path.basename(filePath);
+      if (name.startsWith("Focus")) return { common: {}, format: { duration: 60 } };
+      if (name === "other-artist.mp3") {
+        return { common: { title: "Studio", artist: "Another Artist" }, format: { bitrate: 256000, duration: 180 } };
+      }
+      if (name === "studio-live.mp3") {
+        return { common: { title: "Studio", artist: "Example Artist" }, format: { bitrate: 320000, duration: 220 } };
+      }
+      return {
+        common: { title: "Studio", artist: "Example Artist" },
+        format: {
+          bitrate: name === "studio-high.m4a" ? 320000 : 128000,
+          duration: name === "studio-high.m4a" ? 181.5 : 180
+        }
+      };
+    }
+  });
+
+  const tracks = await library.scanFolder(root);
+
+  assert.equal(tracks.duplicateCount, 2);
+  assert.deepEqual(tracks.duplicateKeys.sort(), ["local:Focus (1).mp3", "local:studio-low.mp3"].sort());
+  assert.equal(tracks.length, 4);
+  assert.ok(tracks.some((track) => track.label === "Focus"));
+  assert.ok(!tracks.some((track) => track.label === "Focus (1)"));
+  assert.ok(tracks.some((track) => track.label === "studio-high"));
+  assert.ok(!tracks.some((track) => track.label === "studio-low"));
+  assert.ok(tracks.some((track) => track.label === "studio-live"));
+  assert.ok(tracks.some((track) => track.label === "other-artist"));
+  assert.ok(tracks.every((track) => !("_dedupe" in track)));
+});

@@ -174,6 +174,8 @@
     "player.savedMissing": "{count} saved tracks are unavailable. Restore the files and rescan, or remove missing entries.",
     "player.savedMissingOne": "1 saved track is unavailable. Restore the file and rescan, or remove the missing entry.",
     "player.localStatus": "Queue order and the current track are saved automatically.",
+    "player.duplicateSkippedOne": "1 duplicate file was skipped.",
+    "player.duplicatesSkipped": "{count} duplicate files were skipped.",
     "player.missing": "Missing",
     "player.trackUnavailableTitle": "{title} is unavailable. Restore it and choose Rescan.",
     "player.playTrackTitle": "Play {title}",
@@ -660,6 +662,21 @@
   });
   Object.assign(SPANISH, {
     "lyrics.toggle":"Letras","lyrics.toggleTitle":"Mostrar u ocultar letras sincronizadas","lyrics.region":"Letras de la canción","lyrics.loading":"Buscando letras…","lyrics.noTrack":"Elige una pista reproducible para mostrar la letra.","lyrics.notFound":"No se encontró letra para esta pista.","lyrics.unavailable":"Las letras no están disponibles temporalmente.","lyrics.metadataMissing":"Falta el artista, por lo que no se puede buscar una coincidencia fiable.","lyrics.rateLimited":"El servicio de letras está ocupado. Inténtalo más tarde.","lyrics.instrumental":"Esta pista está marcada como instrumental.","lyrics.synced":"La letra sigue la posición de reproducción.","lyrics.unsynced":"Letra sin sincronizar · desplázate manualmente","lyrics.privacy":"Al activarlo, si no hay letra local, se envían los datos de la pista a LRCLIB. Nunca se envían el audio ni las rutas locales.","lyrics.sourceSidecar":"LRC local","lyrics.sourceEmbedded":"Incrustada","lyrics.sourceOnline":"LRCLIB","lyrics.sourceCache":"Caché local","lyrics.sourceLocal":"Local"
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "player.duplicateSkippedOne":"已跳过 1 个重复文件。","player.duplicatesSkipped":"已跳过 {count} 个重复文件。"
+  });
+  Object.assign(JAPANESE, {
+    "player.duplicateSkippedOne":"重複ファイル1件をスキップしました。","player.duplicatesSkipped":"重複ファイル{count}件をスキップしました。"
+  });
+  Object.assign(FRENCH, {
+    "player.duplicateSkippedOne":"1 fichier en double a été ignoré.","player.duplicatesSkipped":"{count} fichiers en double ont été ignorés."
+  });
+  Object.assign(KOREAN, {
+    "player.duplicateSkippedOne":"중복 파일 1개를 건너뛰었습니다.","player.duplicatesSkipped":"중복 파일 {count}개를 건너뛰었습니다."
+  });
+  Object.assign(SPANISH, {
+    "player.duplicateSkippedOne":"Se omitió 1 archivo duplicado.","player.duplicatesSkipped":"Se omitieron {count} archivos duplicados."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(
