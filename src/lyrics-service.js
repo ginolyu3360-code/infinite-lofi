@@ -5,9 +5,14 @@ const { lyricsFromRemoteRecord, normalizeLyrics } = require("./lyrics");
 
 const LRCLIB_ENDPOINT = "https://lrclib.net/api/get";
 const LRCLIB_SEARCH_ENDPOINT = "https://lrclib.net/api/search";
-const CACHE_VERSION = 2;
+const QQ_SEARCH_ENDPOINT = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp";
+const QQ_LYRICS_ENDPOINT = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg";
+const LYRICS_OVH_ENDPOINT = "https://api.lyrics.ovh/v1";
+const CACHE_VERSION = 3;
 const MISS_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CACHE_BYTES = 600000;
+const HIGH_CONFIDENCE = 95;
+const PROVIDER_PRIORITY = Object.freeze({ lrclib: 3, qqmusic: 2, lyricsovh: 1 });
 
 function cleanQueryValue(value, maxLength = 500) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -74,6 +79,37 @@ function lyricsFingerprint(record) {
   return normalizeMatchText(String(text || "").replace(/\[\d{1,3}:[^\]]+\]/g, ""));
 }
 
+function decodeXmlEntities(value) {
+  return String(value || "").replace(/&(amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);/giu, (entity, token) => {
+    const named = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'" };
+    const normalized = token.toLowerCase();
+    if (named[normalized]) return named[normalized];
+    const codePoint = normalized.startsWith("#x")
+      ? Number.parseInt(normalized.slice(2), 16)
+      : Number.parseInt(normalized.slice(1), 10);
+    try {
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : entity;
+    } catch {
+      return entity;
+    }
+  });
+}
+
+function lyricsResultFingerprint(result) {
+  if (result?.lyrics?.instrumental === true) return "instrumental";
+  return normalizeMatchText((result?.lyrics?.lines || []).map((line) => line?.text || "").join("\n"));
+}
+
+function matchConfidence({ exactTitleMatch, relaxedTitleMatch, artistMatch, albumMatch, durationDifference, hasComparableDuration }) {
+  const titleScore = exactTitleMatch ? 45 : relaxedTitleMatch ? 35 : 0;
+  const durationScore = hasComparableDuration
+    ? durationDifference <= 2 ? 30 : Math.max(12, 30 - durationDifference * 2)
+    : 0;
+  return Math.min(100, Math.round(
+    titleScore + durationScore + (artistMatch ? 20 : 0) + (albumMatch ? 5 : 0)
+  ));
+}
+
 function selectSearchRecord(records, query) {
   if (!Array.isArray(records) || !query?.trackName) return null;
   const exactTitle = normalizeMatchText(query.trackName);
@@ -96,28 +132,65 @@ function selectSearchRecord(records, query) {
     if (query.duration <= 0 && !artistMatch) continue;
     if (record.instrumental === true && !artistMatch) continue;
 
-    const albumMatch = normalizeMatchText(query.albumName) &&
+    const albumMatch = Boolean(normalizeMatchText(query.albumName)) &&
       normalizeMatchText(query.albumName) === normalizeMatchText(record.albumName);
-    const score = (exactTitleMatch ? 100 : 75) +
-      (hasComparableDuration ? Math.max(0, 45 - durationDifference * 3) : 0) +
-      (artistMatch ? 25 : 0) +
-      (albumMatch ? 5 : 0);
-    candidates.push({ artistMatch, durationDifference, record, score });
+    const confidence = matchConfidence({
+      exactTitleMatch,
+      relaxedTitleMatch,
+      artistMatch,
+      albumMatch,
+      durationDifference,
+      hasComparableDuration
+    });
+    candidates.push({ artistMatch, confidence, durationDifference, record });
   }
 
-  candidates.sort((left, right) => right.score - left.score || left.durationDifference - right.durationDifference);
+  candidates.sort((left, right) => right.confidence - left.confidence || left.durationDifference - right.durationDifference);
   const best = candidates[0];
   if (!best) return null;
   const runnerUp = candidates[1];
   if (runnerUp && !best.artistMatch && !runnerUp.artistMatch &&
-      Math.abs(best.score - runnerUp.score) <= 2 &&
+      Math.abs(best.confidence - runnerUp.confidence) <= 2 &&
       lyricsFingerprint(best.record) !== lyricsFingerprint(runnerUp.record)) {
     return null;
   }
   return {
+    artistMatch: best.artistMatch,
+    confidence: best.confidence,
+    durationDifference: best.durationDifference,
     record: best.record,
     preferPlain: !best.artistMatch || best.durationDifference > 2
   };
+}
+
+function selectBestLyricsResult(results) {
+  const candidates = (Array.isArray(results) ? results : []).filter((result) => result?.status === "ok" && result.lyrics);
+  if (candidates.length === 0) return null;
+  const fingerprints = new Map();
+  for (const candidate of candidates) {
+    const fingerprint = lyricsResultFingerprint(candidate);
+    if (!fingerprint) continue;
+    fingerprints.set(fingerprint, (fingerprints.get(fingerprint) || 0) + 1);
+  }
+  const ranked = candidates.map((candidate) => {
+    const fingerprint = lyricsResultFingerprint(candidate);
+    const consensusBonus = fingerprint && fingerprints.get(fingerprint) > 1 ? 5 : 0;
+    return {
+      ...candidate,
+      resolvedConfidence: Math.min(100, Number(candidate.confidence || 0) + consensusBonus)
+    };
+  }).sort((left, right) => (
+    right.resolvedConfidence - left.resolvedConfidence ||
+    (PROVIDER_PRIORITY[right.provider] || 0) - (PROVIDER_PRIORITY[left.provider] || 0)
+  ));
+  const best = ranked[0];
+  if (best?.lyrics?.instrumental === true) {
+    const lyricCandidate = ranked.find((candidate) => (
+      candidate.lyrics?.instrumental !== true && candidate.resolvedConfidence >= best.resolvedConfidence - 5
+    ));
+    if (lyricCandidate) return lyricCandidate;
+  }
+  return best;
 }
 
 function createCacheKey(query) {
@@ -188,7 +261,7 @@ function createLyricsService(options = {}) {
     } catch {}
   }
 
-  async function requestJson(url) {
+  async function requestJson(url, extraHeaders = {}) {
     if (typeof fetchImpl !== "function") return { status: "unavailable" };
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -197,7 +270,8 @@ function createLyricsService(options = {}) {
         cache: "no-store",
         headers: {
           Accept: "application/json",
-          "User-Agent": userAgent
+          "User-Agent": userAgent,
+          ...extraHeaders
         },
         signal: controller.signal
       });
@@ -212,7 +286,7 @@ function createLyricsService(options = {}) {
     }
   }
 
-  async function fetchExactRecord(query) {
+  async function fetchLrclibExact(query) {
     if (!query.artistName) return { status: "not-found" };
     const url = new URL(LRCLIB_ENDPOINT);
     url.searchParams.set("track_name", query.trackName);
@@ -222,10 +296,12 @@ function createLyricsService(options = {}) {
     const response = await requestJson(url);
     if (response.status !== "ok") return response;
     const lyrics = lyricsFromRemoteRecord(response.payload);
-    return lyrics ? { status: "ok", lyrics } : { status: "not-found" };
+    return lyrics
+      ? { status: "ok", confidence: 100, lyrics, provider: "lrclib" }
+      : { status: "not-found" };
   }
 
-  async function fetchSearchRecord(query) {
+  async function fetchLrclibSearch(query) {
     for (const trackName of searchTrackNames(query.trackName)) {
       const url = new URL(LRCLIB_SEARCH_ENDPOINT);
       url.searchParams.set("track_name", trackName);
@@ -234,15 +310,106 @@ function createLyricsService(options = {}) {
       const selection = selectSearchRecord(response.payload, query);
       if (!selection) continue;
       const lyrics = lyricsFromRemoteRecord(selection.record, { preferPlain: selection.preferPlain });
-      if (lyrics) return { status: "ok", lyrics };
+      if (lyrics) {
+        return {
+          status: "ok",
+          confidence: selection.confidence,
+          lyrics,
+          provider: "lrclib"
+        };
+      }
     }
     return { status: "not-found" };
   }
 
+  async function fetchLrclib(query) {
+    const exact = await fetchLrclibExact(query);
+    if (exact.status === "ok") return exact;
+    if (["rate-limited", "unavailable"].includes(exact.status)) return exact;
+    const search = await fetchLrclibSearch(query);
+    if (search.status === "ok") return search;
+    return search;
+  }
+
+  function qqMusicRecords(payload) {
+    const songs = Array.isArray(payload?.data?.song?.list) ? payload.data.song.list : [];
+    return songs.map((song) => ({
+      albumName: song?.albumname || "",
+      artistName: (song?.singer || []).map((artist) => artist?.name).filter(Boolean).join(" / "),
+      duration: Number(song?.interval),
+      id: song?.songmid,
+      trackName: song?.songname || ""
+    })).filter((record) => record.id && record.trackName);
+  }
+
+  async function fetchQqMusic(query) {
+    for (const trackName of searchTrackNames(query.trackName)) {
+      const url = new URL(QQ_SEARCH_ENDPOINT);
+      url.searchParams.set("format", "json");
+      url.searchParams.set("p", "1");
+      url.searchParams.set("n", "20");
+      url.searchParams.set("w", [trackName, query.artistName].filter(Boolean).join(" "));
+      url.searchParams.set("aggr", "1");
+      url.searchParams.set("lossless", "1");
+      url.searchParams.set("cr", "1");
+      const response = await requestJson(url, { Referer: "https://y.qq.com/" });
+      if (["rate-limited", "unavailable"].includes(response.status)) return response;
+      const selection = selectSearchRecord(qqMusicRecords(response.payload), query);
+      if (!selection) continue;
+
+      const lyricsUrl = new URL(QQ_LYRICS_ENDPOINT);
+      lyricsUrl.searchParams.set("songmid", String(selection.record.id));
+      lyricsUrl.searchParams.set("format", "json");
+      lyricsUrl.searchParams.set("nobase64", "1");
+      lyricsUrl.searchParams.set("g_tk", "5381");
+      const lyricsResponse = await requestJson(lyricsUrl, { Referer: "https://y.qq.com/" });
+      if (lyricsResponse.status !== "ok") return lyricsResponse;
+      const text = decodeXmlEntities(lyricsResponse.payload?.lyric);
+      if (!text.trim()) continue;
+      const parsed = lyricsFromRemoteRecord({ syncedLyrics: text }, { preferPlain: selection.preferPlain });
+      const lyrics = normalizeLyrics({ ...parsed, source: "qqmusic" });
+      if (lyrics) {
+        return {
+          status: "ok",
+          confidence: selection.confidence,
+          lyrics,
+          provider: "qqmusic"
+        };
+      }
+    }
+    return { status: "not-found" };
+  }
+
+  async function fetchLyricsOvh(query) {
+    if (!query.artistName || !query.trackName) return { status: "not-found" };
+    const url = new URL(`${LYRICS_OVH_ENDPOINT}/${encodeURIComponent(query.artistName)}/${encodeURIComponent(query.trackName)}`);
+    const response = await requestJson(url);
+    if (response.status !== "ok") return response;
+    const text = response.payload?.lyrics;
+    if (typeof text !== "string" || !text.trim()) return { status: "not-found" };
+    const parsed = lyricsFromRemoteRecord({ plainLyrics: text }, { preferPlain: true });
+    const lyrics = normalizeLyrics({ ...parsed, source: "lyricsovh" });
+    return lyrics
+      ? { status: "ok", confidence: 65, lyrics, provider: "lyricsovh" }
+      : { status: "not-found" };
+  }
+
+  function fallbackStatus(results) {
+    if (results.some((result) => result?.status === "rate-limited")) return { status: "rate-limited" };
+    if (results.length > 0 && results.every((result) => result?.status === "unavailable")) return { status: "unavailable" };
+    return { status: "not-found" };
+  }
+
   async function fetchRemoteLyrics(query) {
-    const exact = await fetchExactRecord(query);
-    if (exact.status === "ok" || ["rate-limited", "unavailable"].includes(exact.status)) return exact;
-    return fetchSearchRecord(query);
+    const lrclib = await fetchLrclib(query);
+    if (lrclib.status === "ok" && lrclib.confidence >= HIGH_CONFIDENCE) return lrclib;
+
+    const qqMusic = await fetchQqMusic(query);
+    const primaryBest = selectBestLyricsResult([lrclib, qqMusic]);
+    if (primaryBest) return primaryBest;
+
+    const lyricsOvh = await fetchLyricsOvh(query);
+    return selectBestLyricsResult([lyricsOvh]) || fallbackStatus([lrclib, qqMusic, lyricsOvh]);
   }
 
   async function lookup(track, { allowOnline = false } = {}) {
@@ -267,12 +434,17 @@ function createLyricsService(options = {}) {
 module.exports = {
   LRCLIB_ENDPOINT,
   LRCLIB_SEARCH_ENDPOINT,
+  LYRICS_OVH_ENDPOINT,
+  QQ_LYRICS_ENDPOINT,
+  QQ_SEARCH_ENDPOINT,
   artistsMatch,
   createCacheKey,
   createLyricsService,
+  decodeXmlEntities,
   normalizeMatchText,
   normalizeQuery,
   relaxedTrackName,
   searchTrackNames,
+  selectBestLyricsResult,
   selectSearchRecord
 };

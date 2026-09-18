@@ -64,7 +64,7 @@
 
   function normalizeLyrics(value) {
     if (!value || typeof value !== "object") return null;
-    const source = ["sidecar", "embedded", "lrclib", "cache"].includes(value.source)
+    const source = ["sidecar", "embedded", "lrclib", "qqmusic", "lyricsovh", "cache"].includes(value.source)
       ? value.source
       : "embedded";
     const rawLines = Array.isArray(value.lines) ? value.lines : [];

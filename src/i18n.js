@@ -214,10 +214,12 @@
     "lyrics.instrumental": "This track is marked as instrumental.",
     "lyrics.synced": "Lyrics follow the current playback position.",
     "lyrics.unsynced": "Plain lyrics · scroll manually",
-    "lyrics.privacy": "When enabled, track metadata is sent to LRCLIB if no local lyrics are available. Audio and local paths are never sent.",
+    "lyrics.privacy": "When enabled, track metadata may be sent to LRCLIB, QQ Music, or lyrics.ovh if no local lyrics are available. Audio and local paths are never sent.",
     "lyrics.sourceSidecar": "Local LRC",
     "lyrics.sourceEmbedded": "Embedded",
     "lyrics.sourceOnline": "LRCLIB",
+    "lyrics.sourceQqMusic": "QQ Music",
+    "lyrics.sourceLyricsOvh": "lyrics.ovh",
     "lyrics.sourceCache": "Local cache",
     "lyrics.sourceLocal": "Local",
     "ambience.title": "Ambient sound",
@@ -664,7 +666,8 @@
     "lyrics.toggle":"Letras","lyrics.toggleTitle":"Mostrar u ocultar letras sincronizadas","lyrics.region":"Letras de la canción","lyrics.loading":"Buscando letras…","lyrics.noTrack":"Elige una pista reproducible para mostrar la letra.","lyrics.notFound":"No se encontró letra para esta pista.","lyrics.unavailable":"Las letras no están disponibles temporalmente.","lyrics.metadataMissing":"Falta el artista, por lo que no se puede buscar una coincidencia fiable.","lyrics.rateLimited":"El servicio de letras está ocupado. Inténtalo más tarde.","lyrics.instrumental":"Esta pista está marcada como instrumental.","lyrics.synced":"La letra sigue la posición de reproducción.","lyrics.unsynced":"Letra sin sincronizar · desplázate manualmente","lyrics.privacy":"Al activarlo, si no hay letra local, se envían los datos de la pista a LRCLIB. Nunca se envían el audio ni las rutas locales.","lyrics.sourceSidecar":"LRC local","lyrics.sourceEmbedded":"Incrustada","lyrics.sourceOnline":"LRCLIB","lyrics.sourceCache":"Caché local","lyrics.sourceLocal":"Local"
   });
   Object.assign(TRANSLATIONS["zh-CN"], {
-    "player.duplicateSkippedOne":"已跳过 1 个重复文件。","player.duplicatesSkipped":"已跳过 {count} 个重复文件。"
+    "player.duplicateSkippedOne":"已跳过 1 个重复文件。","player.duplicatesSkipped":"已跳过 {count} 个重复文件。",
+    "lyrics.privacy":"开启后，如果本地没有歌词，可能会向 LRCLIB、QQ 音乐或 lyrics.ovh 发送歌曲信息；不会发送音频或本地路径。","lyrics.sourceQqMusic":"QQ 音乐","lyrics.sourceLyricsOvh":"lyrics.ovh"
   });
   Object.assign(JAPANESE, {
     "player.duplicateSkippedOne":"重複ファイル1件をスキップしました。","player.duplicatesSkipped":"重複ファイル{count}件をスキップしました。"
@@ -679,16 +682,16 @@
     "player.duplicateSkippedOne":"Se omitió 1 archivo duplicado.","player.duplicatesSkipped":"Se omitieron {count} archivos duplicados."
   });
   Object.assign(JAPANESE, {
-    "lyrics.notFound":"歌詞が見つかりません。インストゥルメンタルか、歌詞ライブラリに未登録の可能性があります。","lyrics.metadataMissing":"信頼できる照合に必要な曲情報が不足しています。"
+    "lyrics.notFound":"歌詞が見つかりません。インストゥルメンタルか、歌詞ライブラリに未登録の可能性があります。","lyrics.metadataMissing":"信頼できる照合に必要な曲情報が不足しています。","lyrics.privacy":"有効時、ローカル歌詞がない場合に曲情報をLRCLIB、QQ Music、lyrics.ovhへ送信することがあります。音声とローカルパスは送信しません。"
   });
   Object.assign(FRENCH, {
-    "lyrics.notFound":"Aucune parole trouvée. Cette piste est peut-être instrumentale ou absente de la bibliothèque.","lyrics.metadataMissing":"Les informations de piste sont insuffisantes pour une correspondance fiable."
+    "lyrics.notFound":"Aucune parole trouvée. Cette piste est peut-être instrumentale ou absente de la bibliothèque.","lyrics.metadataMissing":"Les informations de piste sont insuffisantes pour une correspondance fiable.","lyrics.privacy":"Si cette option est activée et qu’aucune parole locale n’existe, les informations de la piste peuvent être envoyées à LRCLIB, QQ Music ou lyrics.ovh. L’audio et les chemins locaux ne sont jamais envoyés."
   });
   Object.assign(KOREAN, {
-    "lyrics.notFound":"가사를 찾지 못했습니다. 연주곡이거나 아직 가사 라이브러리에 없을 수 있습니다.","lyrics.metadataMissing":"신뢰할 수 있는 검색에 필요한 곡 정보가 부족합니다."
+    "lyrics.notFound":"가사를 찾지 못했습니다. 연주곡이거나 아직 가사 라이브러리에 없을 수 있습니다.","lyrics.metadataMissing":"신뢰할 수 있는 검색에 필요한 곡 정보가 부족합니다.","lyrics.privacy":"사용 설정 시 로컬 가사가 없으면 곡 정보가 LRCLIB, QQ Music 또는 lyrics.ovh로 전송될 수 있습니다. 오디오와 로컬 경로는 전송하지 않습니다."
   });
   Object.assign(SPANISH, {
-    "lyrics.notFound":"No se encontró letra. Puede ser instrumental o no estar aún en la biblioteca.","lyrics.metadataMissing":"Faltan datos de la pista para encontrar una coincidencia fiable."
+    "lyrics.notFound":"No se encontró letra. Puede ser instrumental o no estar aún en la biblioteca.","lyrics.metadataMissing":"Faltan datos de la pista para encontrar una coincidencia fiable.","lyrics.privacy":"Si se activa y no hay letra local, los datos de la pista pueden enviarse a LRCLIB, QQ Music o lyrics.ovh. Nunca se envían el audio ni las rutas locales."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(

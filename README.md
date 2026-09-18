@@ -22,7 +22,7 @@
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目、本地文件夹异步扫描与自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放
-- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时先从 LRCLIB 精确匹配，再以歌名搜索并按时长安全筛选翻唱或元数据有差异的版本，结果会在本地静默缓存。开关默认关闭，且不会上传音频或本地路径
+- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时依次使用 LRCLIB、QQ 音乐与 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
@@ -237,7 +237,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
 - Music player with bundled tracks, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
-- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then tries an exact LRCLIB lookup followed by a guarded title-and-duration fallback with silent local caching; audio data and local paths are never uploaded
+- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then ranks guarded results from LRCLIB, QQ Music, and lyrics.ovh with silent local caching; audio data and local paths are never uploaded
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes

@@ -6,8 +6,10 @@ const path = require("node:path");
 
 const {
   createLyricsService,
+  decodeXmlEntities,
   normalizeQuery,
   relaxedTrackName,
+  selectBestLyricsResult,
   selectSearchRecord
 } = require("../src/lyrics-service");
 
@@ -69,6 +71,9 @@ test("falls back to title and duration search for covers without trusting their 
     fetchImpl: async (url) => {
       requests.push(url);
       if (url.pathname === "/api/get") return { ok: false, status: 404 };
+      if (url.hostname === "c.y.qq.com") {
+        return { ok: true, status: 200, async json() { return { data: { song: { list: [] } } }; } };
+      }
       assert.equal(url.pathname, "/api/search");
       assert.equal(url.searchParams.get("track_name"), "小幸运");
       assert.equal(url.searchParams.has("artist_name"), false);
@@ -94,10 +99,103 @@ test("falls back to title and duration search for covers without trusting their 
     duration: 245
   }, { allowOnline: true });
 
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 3);
   assert.equal(result.status, "ok");
+  assert.equal(result.lyrics.source, "lrclib");
   assert.equal(result.lyrics.synced, false);
   assert.equal(result.lyrics.lines[0].text, "我听见雨滴落在青青草地");
+});
+
+test("prefers a stronger QQ Music metadata match over a weak LRCLIB cover match", async () => {
+  const requests = [];
+  const service = createLyricsService({
+    getLocalLyrics: async () => null,
+    fetchImpl: async (url, options) => {
+      requests.push(url);
+      if (url.hostname === "lrclib.net" && url.pathname === "/api/get") {
+        return { ok: false, status: 404 };
+      }
+      if (url.hostname === "lrclib.net") {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return [{
+              trackName: "后来",
+              artistName: "Unrelated Artist",
+              duration: 246,
+              plainLyrics: "Weak match"
+            }];
+          }
+        };
+      }
+      assert.equal(options.headers.Referer, "https://y.qq.com/");
+      if (url.pathname === "/soso/fcgi-bin/client_search_cp") {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { data: { song: { list: [{
+              songmid: "qq-mid-123",
+              songname: "后来",
+              singer: [{ name: "刘若英" }],
+              albumname: "我等你",
+              interval: 250
+            }] } } };
+          }
+        };
+      }
+      assert.equal(url.pathname, "/lyric/fcgi-bin/fcg_query_lyric_new.fcg");
+      return {
+        ok: true,
+        status: 200,
+        async json() { return { lyric: "[00:01.00]后来 我总算学会了如何去爱" }; }
+      };
+    }
+  });
+
+  const result = await service.lookup({
+    title: "后来",
+    artist: "刘若英",
+    album: "我等你",
+    duration: 250
+  }, { allowOnline: true });
+
+  assert.equal(requests.length, 4);
+  assert.equal(result.status, "ok");
+  assert.equal(result.lyrics.source, "qqmusic");
+  assert.equal(result.lyrics.synced, true);
+});
+
+test("uses lyrics.ovh only as a plain-lyrics last resort", async () => {
+  const service = createLyricsService({
+    getLocalLyrics: async () => null,
+    fetchImpl: async (url) => {
+      if (url.hostname === "lrclib.net" && url.pathname === "/api/get") return { ok: false, status: 404 };
+      if (url.hostname === "lrclib.net") {
+        return { ok: true, status: 200, async json() { return []; } };
+      }
+      if (url.hostname === "c.y.qq.com") {
+        return { ok: true, status: 200, async json() { return { data: { song: { list: [] } } }; } };
+      }
+      assert.equal(url.hostname, "api.lyrics.ovh");
+      return {
+        ok: true,
+        status: 200,
+        async json() { return { lyrics: "Fallback line one\nFallback line two" }; }
+      };
+    }
+  });
+
+  const result = await service.lookup({
+    title: "Rare Song",
+    artist: "Small Artist",
+    duration: 180
+  }, { allowOnline: true });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.lyrics.source, "lyricsovh");
+  assert.equal(result.lyrics.synced, false);
 });
 
 test("remembers an instrumental result locally without another request", async () => {
@@ -149,9 +247,22 @@ test("does not mark a cover instrumental from another artist's search result", (
   assert.equal(selection, null);
 });
 
+test("uses provider priority only when match confidence is tied", () => {
+  const lyrics = { instrumental: false, synced: false, lines: [{ text: "Same confidence" }] };
+  const result = selectBestLyricsResult([
+    { status: "ok", confidence: 80, lyrics, provider: "qqmusic" },
+    { status: "ok", confidence: 80, lyrics: { ...lyrics, lines: [{ text: "Different" }] }, provider: "lrclib" }
+  ]);
+  assert.equal(result.provider, "lrclib");
+});
+
 test("relaxes common version suffixes for a guarded fallback search", () => {
   assert.equal(relaxedTrackName("后来（Live 版）"), "后来");
   assert.equal(relaxedTrackName("Song - Acoustic"), "Song");
+});
+
+test("decodes QQ Music lyric entities without interpreting markup", () => {
+  assert.equal(decodeXmlEntities("A &amp; B &#58; &#x4E2D;"), "A & B : 中");
 });
 
 test("bounds and normalizes remote lookup metadata", () => {

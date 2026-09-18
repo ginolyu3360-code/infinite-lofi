@@ -24,6 +24,8 @@
         sidecar: "lyrics.sourceSidecar",
         embedded: "lyrics.sourceEmbedded",
         lrclib: "lyrics.sourceOnline",
+        qqmusic: "lyrics.sourceQqMusic",
+        lyricsovh: "lyrics.sourceLyricsOvh",
         cache: "lyrics.sourceCache"
       }[source] || "lyrics.sourceLocal");
     }
