@@ -136,7 +136,9 @@ try {
       awaitPromise: true,
       returnByValue: true
     });
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) {
+      throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+    }
     return result.result.value;
   }
 
@@ -361,7 +363,19 @@ try {
     location.reload();
     return results;
   })()`);
-  await delay(900);
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    try {
+      const rendererReady = await evaluate(`(
+        document.readyState === 'complete' &&
+        Boolean(window.InfiniteLofiAccessibility) &&
+        Boolean(window.InfiniteLofiBindings) &&
+        Boolean(document.querySelector('#displayLanguageSelect'))
+      )`);
+      if (rendererReady) break;
+    } catch {}
+    if (attempt === 59) throw new Error("Timed out waiting for the renderer to finish reloading");
+    await delay(100);
+  }
   const languagePersistenceResult = await evaluate(`(() => {
     const select = document.querySelector('#displayLanguageSelect');
     const before = {
