@@ -99,6 +99,7 @@ function createHarness(playerState, desktopApp, controllerOptions = {}) {
     document: { createElement, body: createElement("body"), activeElement: null },
     lofiPlayer: audio,
     playPauseBtn: createElement("button"),
+    playlistToggleBtn: createElement("button"),
     playlistPanel: createElement(),
     playlistItems: createElement(),
     playlistStatus: createElement(),
@@ -347,6 +348,7 @@ test("expands and closes the full queue manager without losing the compact queue
   await controller.restorePersistedPlayer();
   assert.equal(elements.showAllQueueBtn.hidden, false);
   controller.togglePlaylistPanel(true);
+  assert.equal(elements.playlistToggleBtn.attributes["aria-expanded"], "true");
   controller.toggleExpandedQueue(true);
   assert.equal(elements.playlistPanel.classList.contains("is-expanded"), true);
   assert.equal(elements.drawerBackdrop.classList.contains("visible"), true);
@@ -356,6 +358,7 @@ test("expands and closes the full queue manager without losing the compact queue
   assert.equal(elements.playlistPanel.classList.contains("is-expanded"), false);
   assert.equal(elements.playlistPanel.parentNode.tagName, "FOOTER");
   controller.togglePlaylistPanel(false);
+  assert.equal(elements.playlistToggleBtn.attributes["aria-expanded"], "false");
   assert.deepEqual(layoutChanges, [
     { queueOpen: true, queueExpanded: false },
     { queueOpen: true, queueExpanded: true },

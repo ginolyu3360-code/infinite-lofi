@@ -106,6 +106,7 @@ test("meets WCAG AA contrast for every curated interface theme", () => {
 
 test("reduced-motion CSS removes meaningful transitions and repeated animation", () => {
   const stylesheet = fs.readFileSync(path.join(__dirname, "../src/styles/components.css"), "utf8");
+  assert.match(stylesheet, /#playlistToggleBtn\[aria-expanded="true"\]/);
   assert.match(stylesheet, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(stylesheet, /transition-duration:\s*0\.01ms !important/);
   assert.match(stylesheet, /animation-duration:\s*0\.01ms !important/);

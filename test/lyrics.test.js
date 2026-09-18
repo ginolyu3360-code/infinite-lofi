@@ -43,6 +43,15 @@ test("normalizes embedded and remote lyric payloads", () => {
   });
   assert.equal(lyricsFromRemoteRecord({ instrumental: true }).instrumental, true);
   assert.equal(lyricsFromRemoteRecord({ syncedLyrics: "[00:01]Remote" }).lines[0].time, 1);
+  assert.deepEqual(lyricsFromRemoteRecord({
+    plainLyrics: "First\nSecond",
+    syncedLyrics: "[00:01]First\n[00:02]Second"
+  }, { preferPlain: true }), {
+    source: "lrclib",
+    synced: false,
+    instrumental: false,
+    lines: [{ text: "First" }, { text: "Second" }]
+  });
   assert.equal(normalizeLyrics(null), null);
 });
 

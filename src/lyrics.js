@@ -99,16 +99,24 @@
     return normalizeLyrics({ source: "embedded", ...parseLrc(plain.text) });
   }
 
-  function lyricsFromRemoteRecord(record) {
+  function lyricsFromRemoteRecord(record, { preferPlain = false } = {}) {
     if (!record || typeof record !== "object") return null;
     if (record.instrumental === true) {
       return normalizeLyrics({ source: "lrclib", instrumental: true, synced: false, lines: [] });
     }
-    const text = typeof record.syncedLyrics === "string" && record.syncedLyrics.trim()
-      ? record.syncedLyrics
-      : record.plainLyrics;
+    const syncedLyrics = typeof record.syncedLyrics === "string" ? record.syncedLyrics.trim() : "";
+    const plainLyrics = typeof record.plainLyrics === "string" ? record.plainLyrics.trim() : "";
+    const text = preferPlain && plainLyrics ? plainLyrics : syncedLyrics || plainLyrics;
     if (typeof text !== "string" || !text.trim()) return null;
-    return normalizeLyrics({ source: "lrclib", ...parseLrc(text) });
+    const parsed = parseLrc(text);
+    if (preferPlain && parsed.synced) {
+      return normalizeLyrics({
+        source: "lrclib",
+        synced: false,
+        lines: parsed.lines.map((line) => ({ text: line.text }))
+      });
+    }
+    return normalizeLyrics({ source: "lrclib", ...parsed });
   }
 
   function findActiveLyricIndex(lines, currentTime) {
