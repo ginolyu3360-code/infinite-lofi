@@ -1,6 +1,6 @@
 {
   "name": "infinite-lofi-desktop",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
   "main": "main.js",
   "scripts": {
