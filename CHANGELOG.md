@@ -1,10 +1,15 @@
 # Changelog
 
+## 1.5.1 — 2026-09-18
+
+- Added a native macOS Now Playing and remote-command bridge so AirPods can resume paused music and control tracks without Accessibility permission
+- Added an optional synchronized lyrics panel with same-name `.lrc` and embedded-tag priority, followed by confidence-ranked LRCLIB and QQ Music matching with a lyrics.ovh fallback
+- Cached lyrics, instrumental classifications, and misses locally while rejecting ambiguous matches and keeping all online lookup strictly opt-in
+- Skipped duplicate tracks during local-folder scans using normalized title, artist, duration, and copy-name fallbacks while preserving the highest-quality source file
+- Made tag-triggered release builds publish macOS Universal and Windows x64 artifacts only after both platforms pass checks and packaged smoke tests
+
 ## 1.5.0 — 2026-09-15
 
-- Improved lyrics discovery with cached instrumental recognition, confidence-ranked LRCLIB/QQ Music/lyrics.ovh fallbacks, safer cover matching, ambiguity rejection, and a visible active state for the Queue button
-- Skipped duplicate tracks during local-folder scans using normalized title, artist, duration, and copy-name fallbacks while preserving the highest-quality source file
-- Added an optional synchronized lyrics panel with same-name LRC and embedded-tag priority, opt-in LRCLIB lookup, local caching, and compact responsive player controls
 - Reduced repeat scans of large local libraries from up to five artwork-cache file probes per track to one cache-directory index read per scan
 - Prevented stale folder scans from replacing a newer library selection and exposed a disabled/busy rescan state while scanning
 - Kept Queue event listeners constant for large libraries and avoided rebuilding all track rows during ordinary track changes or swap selection
@@ -17,10 +22,9 @@
 - Made isolated UI smoke cleanup wait for Electron exit and retry transient Windows profile locks
 - Prevented window focus events from being misread as timer timestamps and immediately ending active focus or break phases
 - Kept native media controls responsive while the window is minimized, restoring normal background throttling when the window returns
-- Added a native macOS Now Playing and remote-command bridge so paused AirPods play and track controls remain assigned to Infinite Lo-Fi without Accessibility permission
 - Reduced repeated Focus Review normalization and state cloning during range changes, keeping the 5,000-session reference fixture below its 100 ms p95 target on Windows
 - Allowed the UI smoke runner a four-pixel native-resize tolerance while retaining strict content-overflow and control-visibility checks at the 360 × 200 Mini target
-- Made tag-triggered release builds run development and packaged UI smoke tests on both platforms and publish the Release after all required jobs pass
+- Made tag-triggered release builds run development and packaged UI smoke tests on both platforms and create a draft Release for final artifact review
 - Expanded the desktop window to a display-safe 900 × 780 content target while Queue is open, prevented resize clipping, and restored the ordinary minimum after Queue closes
 
 ## 1.4.1 — 2026-09-14
