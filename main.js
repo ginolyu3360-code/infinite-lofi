@@ -381,7 +381,12 @@ ipcMain.handle("music:selectFolder", async (event) => {
   }
   const folderPath = await grantMusicFolder(result.filePaths[0]);
   const tracks = await musicLibrary.scanFolder(folderPath);
-  return { folderPath, tracks };
+  return {
+    folderPath,
+    tracks,
+    duplicateCount: Number(tracks.duplicateCount) || 0,
+    duplicateKeys: Array.isArray(tracks.duplicateKeys) ? tracks.duplicateKeys : []
+  };
 });
 
 ipcMain.handle("music:scanFolder", async (event, folderPath) => {
@@ -403,6 +408,8 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
     return {
       folderPath: canonicalPath,
       tracks,
+      duplicateCount: Number(tracks.duplicateCount) || 0,
+      duplicateKeys: Array.isArray(tracks.duplicateKeys) ? tracks.duplicateKeys : [],
       error: tracks.length > 0 ? null : "no-audio-files"
     };
   } catch (error) {

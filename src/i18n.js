@@ -174,6 +174,8 @@
     "player.savedMissing": "{count} saved tracks are unavailable. Restore the files and rescan, or remove missing entries.",
     "player.savedMissingOne": "1 saved track is unavailable. Restore the file and rescan, or remove the missing entry.",
     "player.localStatus": "Queue order and the current track are saved automatically.",
+    "player.duplicateSkippedOne": "1 duplicate file was skipped.",
+    "player.duplicatesSkipped": "{count} duplicate files were skipped.",
     "player.missing": "Missing",
     "player.trackUnavailableTitle": "{title} is unavailable. Restore it and choose Rescan.",
     "player.playTrackTitle": "Play {title}",
@@ -205,17 +207,19 @@
     "lyrics.region": "Song lyrics",
     "lyrics.loading": "Finding lyrics…",
     "lyrics.noTrack": "Choose a playable track to show lyrics.",
-    "lyrics.notFound": "No lyrics were found for this track.",
+    "lyrics.notFound": "No lyrics were found. This may be instrumental or not yet available in the lyrics library.",
     "lyrics.unavailable": "Lyrics are temporarily unavailable.",
-    "lyrics.metadataMissing": "Artist information is missing, so online lyrics cannot be matched safely.",
+    "lyrics.metadataMissing": "Track information is incomplete, so online lyrics cannot be matched safely.",
     "lyrics.rateLimited": "The lyrics service is busy. Try this track again later.",
     "lyrics.instrumental": "This track is marked as instrumental.",
     "lyrics.synced": "Lyrics follow the current playback position.",
     "lyrics.unsynced": "Plain lyrics · scroll manually",
-    "lyrics.privacy": "When enabled, track metadata is sent to LRCLIB if no local lyrics are available. Audio and local paths are never sent.",
+    "lyrics.privacy": "When enabled, track metadata may be sent to LRCLIB, QQ Music, or lyrics.ovh if no local lyrics are available. Audio and local paths are never sent.",
     "lyrics.sourceSidecar": "Local LRC",
     "lyrics.sourceEmbedded": "Embedded",
     "lyrics.sourceOnline": "LRCLIB",
+    "lyrics.sourceQqMusic": "QQ Music",
+    "lyrics.sourceLyricsOvh": "lyrics.ovh",
     "lyrics.sourceCache": "Local cache",
     "lyrics.sourceLocal": "Local",
     "ambience.title": "Ambient sound",
@@ -452,7 +456,7 @@
       "plan.eyebrow":"节奏","plan.title":"专注计划","plan.close":"关闭专注计划","plan.description":"设置一个专注循环的节奏。完成设定数量的专注时段后进入长休息。","plan.focusMinutes":"专注分钟数","plan.shortBreak":"短休息","plan.longBreak":"长休息","plan.focusesPerCycle":"每循环专注次数","plan.dailyGoal":"每日目标分钟数","plan.dailyGoalHint":"0 表示关闭 · 可尝试 120","plan.autoBreaks":"自动开始休息","plan.autoBreaksHint":"自动开始短休息和长休息。","plan.autoFocus":"自动开始专注","plan.autoFocusHint":"休息结束后自动开始下一轮专注。","plan.readyHint":"更改会开始新的专注循环。","plan.lockedHint":"请先暂停计时器再修改计划。","plan.apply":"应用计划","plan.applied":"专注计划已应用，新循环已准备好。",
       "tasks.eyebrow":"专注意图","tasks.title":"任务","tasks.close":"关闭任务","tasks.description":"为下一轮专注选择一个可选意图。笔记仍是自由记录区。","tasks.currentSession":"本轮时段","tasks.nextSession":"下轮时段","tasks.newTask":"新任务","tasks.shortTitle":"简短标题","tasks.open":"进行中","tasks.completed":"已完成","tasks.noOpen":"没有进行中的任务，仍可在未指定状态下专注。","tasks.noCompleted":"没有已完成的任务。","tasks.capacity":"{count} / {max} 个任务","tasks.openCount":"{count} 个进行中","tasks.completedCount":"{count} 个已完成","tasks.page":"第 {page}/{pages} 页","tasks.previousPage":"上一页{section}任务","tasks.nextPage":"下一页{section}任务","tasks.sectionOpen":"进行中","tasks.sectionCompleted":"已完成","tasks.select":"选择","tasks.selected":"已选择","tasks.rename":"改名","tasks.complete":"完成","tasks.reopen":"重新打开","tasks.actionLabel":"{action}任务 {title}","tasks.renameLabel":"重命名任务 {title}","tasks.added":"任务已添加。","tasks.renamed":"任务已改名，本轮及历史时段名称未改变。","tasks.unselected":"下轮时段现为未指定。","tasks.selectedAnnouncement":"已为下一轮专注选择 {title}。","tasks.completedAnnouncement":"{title} 已完成，计时器未改变。","tasks.reopenedAnnouncement":"{title} 已重新打开。","tasks.deleteConfirm":"删除“{title}”？已记录的名称仍会保留在时段历史中，包括进行中的时段。此操作无法撤销。","tasks.deletedAnnouncement":"{title} 已删除，已记录的时段名称已保留。","tasks.saveError":"无法保存此任务更改。",
       "player.nowPlaying":"正在播放","player.queue":"队列","player.stats":"统计","player.hideStats":"隐藏统计","player.scene":"场景","player.play":"播放","player.pause":"暂停","player.previousTrack":"上一曲","player.nextTrack":"下一曲","player.playPauseTitle":"播放或暂停音乐","player.progress":"播放进度","player.seekTitle":"在当前曲目中跳转","player.volume":"音量","player.volumeLabel":"音量","player.volumeTitle":"调整音乐音量","player.light":"亮度","player.brightness":"亮度","player.brightnessTitle":"调整背景亮度","player.loadFolder":"载入文件夹","player.reconnectFolder":"重新连接","player.rescan":"重新扫描","player.useDefaults":"使用默认曲目","player.clearMissing":"清除缺失项","player.bundledStatus":"正在使用内置离线播放列表。","player.bundledTitle":"Infinite Lo-Fi 内置曲目","player.folderTracks":"{folder} · {count} 首曲目","player.scanning":"{folder} · 正在扫描……","player.reconnectNeeded":"{folder} · 需要重新连接","player.missingCount":"缺失 {count} 首","player.folderUnavailable":"无法读取已保存的文件夹。请选择“重新连接”重新定位。","player.savedMissing":"有 {count} 首已保存曲目不可用。请恢复文件后重新扫描，或移除缺失项。","player.savedMissingOne":"有 1 首已保存曲目不可用。请恢复文件后重新扫描，或移除缺失项。","player.localStatus":"队列顺序和当前曲目会自动保存。","player.missing":"缺失","player.trackUnavailableTitle":"{title} 不可用。请恢复文件后重新扫描。","player.playTrackTitle":"播放 {title}","player.trackMissingAlert":"此曲目缺失。请恢复文件后重新扫描，或移除缺失项。","player.noPlayable":"没有可播放的曲目","player.empty":"播放列表为空","player.cover":"{title} 封面","player.nowPlayingAnnouncement":"正在播放 {title}。","player.folderUnsupported":"不支持选择音乐文件夹。","player.noMusicFiles":"所选文件夹中未找到音乐文件。","player.folderUnreadable":"文件夹无法读取 · 请尝试其他文件夹","player.started":"音乐已开始播放。","player.paused":"音乐已暂停。",
-      "lyrics.toggle":"歌词","lyrics.toggleTitle":"显示或隐藏同步歌词","lyrics.region":"歌曲歌词","lyrics.loading":"正在查找歌词……","lyrics.noTrack":"请选择可播放的曲目以显示歌词。","lyrics.notFound":"未找到这首歌的歌词。","lyrics.unavailable":"歌词暂时不可用。","lyrics.metadataMissing":"缺少歌手信息，无法可靠匹配在线歌词。","lyrics.rateLimited":"歌词服务繁忙，请稍后重试这首歌曲。","lyrics.instrumental":"这首曲目被标记为纯音乐。","lyrics.synced":"歌词会跟随当前播放进度。","lyrics.unsynced":"普通歌词 · 请手动滚动","lyrics.privacy":"开启后，如果本地没有歌词，会向 LRCLIB 发送歌曲信息；不会发送音频或本地路径。","lyrics.sourceSidecar":"本地 LRC","lyrics.sourceEmbedded":"内嵌歌词","lyrics.sourceOnline":"LRCLIB","lyrics.sourceCache":"本地缓存","lyrics.sourceLocal":"本地歌词",
+      "lyrics.toggle":"歌词","lyrics.toggleTitle":"显示或隐藏同步歌词","lyrics.region":"歌曲歌词","lyrics.loading":"正在查找歌词……","lyrics.noTrack":"请选择可播放的曲目以显示歌词。","lyrics.notFound":"未找到歌词；可能是纯音乐，也可能尚未被歌词库收录。","lyrics.unavailable":"歌词暂时不可用。","lyrics.metadataMissing":"缺少可用于可靠匹配的歌曲信息。","lyrics.rateLimited":"歌词服务繁忙，请稍后重试这首歌曲。","lyrics.instrumental":"这首曲目被标记为纯音乐。","lyrics.synced":"歌词会跟随当前播放进度。","lyrics.unsynced":"普通歌词 · 请手动滚动","lyrics.privacy":"开启后，如果本地没有歌词，会向 LRCLIB 发送歌曲信息；不会发送音频或本地路径。","lyrics.sourceSidecar":"本地 LRC","lyrics.sourceEmbedded":"内嵌歌词","lyrics.sourceOnline":"LRCLIB","lyrics.sourceCache":"本地缓存","lyrics.sourceLocal":"本地歌词",
       "stats.review":"回顾","stats.headingToday":"专注统计（今天）","stats.headingWeek":"专注统计（本周）","stats.headingMonth":"专注统计（本月）","stats.close":"关闭统计","stats.range":"统计范围","stats.today":"今天","stats.week":"本周","stats.month":"本月","stats.csv":"CSV","stats.backup":"备份","stats.restore":"恢复","stats.clear":"清空","stats.total":"总计","stats.average":"日均","stats.peak":"峰值","stats.activeDays":"活跃天数","stats.streak":"当前连续","stats.vsPrevious":"对比上一周期","stats.chart":"可滚动专注图表","stats.minutesByDay":"每日专注分钟数","stats.ledger":"记录","stats.recentSessions":"最近专注时段","stats.date":"日期","stats.minutes":"分钟","stats.addSession":"添加时段","stats.noSessions":"还没有专注时段。","stats.historyNote":"显示最近 12 条记录。导入的每日总计仍以每天一条记录编辑。","stats.savedCount":"已保存 {count} 条","stats.sessionDate":"专注时段日期","stats.sessionMinutes":"专注时段分钟数","stats.imported":"导入的每日总计","stats.timer":"计时器","stats.manual":"手动","stats.snapshotLabel":"{text}。已保存的任务标题快照。","stats.saveSession":"保存 {day} 的专注时段","stats.deleteSession":"删除 {day} 的专注时段","stats.todayProgress":"今天 {current}/{goal} 分钟{complete}","stats.todayOff":"今天 {current} 分钟 · 每日目标关闭","stats.goalComplete":" · 目标完成","stats.goalAria":"今天已完成 {current}/{goal} 分钟专注","stats.goalOffAria":"今天已完成 {current} 分钟专注；每日目标关闭","stats.dayGoalTitle":"此范围内有 {count} 天达成每日目标","stats.activeTitle":"此范围内有专注记录的天数","stats.new":"新增","stats.previousTitle":"上一相同周期共 {duration}","stats.barAria":"{day} {minutes} 分钟","stats.minuteShort":"{minutes} 分钟","stats.hourMinute":"{hours} 小时 {minutes} 分钟","stats.minutesShort":"{minutes} 分钟","stats.daysShort":"{days} 天","stats.updated":"已更新 {day} 的专注时段：{minutes} 分钟。","stats.added":"已添加 {day} 的专注时段：{minutes} 分钟。","stats.deleted":"专注时段已删除。","stats.futureDate":"时段日期不能在未来。","stats.deleteConfirm":"删除此专注时段？此操作无法撤销。","stats.restoreConfirm":"恢复此备份（{notes} 条笔记、{tasks} 个任务、{sessions} 个专注时段）？当前本地数据将被替换。","stats.restoreSuccess":"备份恢复成功，Infinite Lo-Fi 即将重新载入。","stats.restoreError":"无法恢复备份：{error}","stats.unknownBackupError":"未知备份错误","stats.clearConfirm":"清空全部专注统计？此操作无法撤销。","stats.cleared":"全部专注统计已清空。",
       "weather.title":"天气","weather.offOption":"关闭","weather.autoOption":"自动（IP）","weather.cityOption":"选择城市","weather.cityPlaceholder":"城市名称","weather.cityLabel":"天气城市","weather.modeTitle":"选择天气隐私模式","weather.off":"天气已关闭","weather.enterCity":"请输入城市","weather.loading":"正在载入天气……","weather.unavailable":"天气不可用","weather.autoPrivacy":"自动模式会将你的 IP 地址发送到 ipapi.co，再将坐标发送到 Open-Meteo。","weather.cityPrivacy":"城市模式只会将城市名称及查询所得坐标发送到 Open-Meteo。","weather.offPrivacy":"天气已关闭，不会发出天气或位置请求。","weather.updated":"{age}更新","weather.justNow":"刚刚","weather.minutesAgo":"{count} 分钟前","weather.hoursAgo":"{count} 小时前","weather.daysAgo":"{count} 天前","weather.clear":"晴朗","weather.partlyCloudy":"局部多云","weather.cloudy":"多云","weather.fog":"雾","weather.drizzle":"毛毛雨","weather.rain":"雨","weather.snow":"雪","weather.thunderstorm":"雷暴","weather.unknown":"未知",
       "scene.atmosphere":"氛围","scene.title":"场景","scene.close":"关闭背景","scene.description":"选择精选氛围、当前曲目封面或自己的本地媒体。","scene.presets":"精选预设","scene.quietStudio":"静谧工作室","scene.warmCharcoal":"暖调炭黑","scene.midnight":"午夜","scene.deepBlue":"深蓝","scene.moss":"苔藓","scene.forestGreen":"森林绿","scene.paper":"纸张","scene.warmLight":"暖白","scene.localMedia":"本地媒体","scene.video":"视频","scene.trackCover":"曲目封面","scene.wallpaper":"桌面壁纸","scene.importImage":"导入图片","scene.preset":"预设：","scene.source":"来源：","scene.media":"媒体：","scene.builtIn":"内置","scene.image":"图片","scene.customMedia":"自定义媒体","scene.importedImage":"已导入图片","scene.importedVideo":"已导入视频","scene.builtInVideo":"内置视频","scene.noTrackCover":"当前曲目没有封面","scene.selected":"已选择{name}预设。","scene.wallpaperUnsupported":"不支持桌面壁纸背景。","scene.wallpaperUnreadable":"无法读取当前桌面壁纸。","scene.imageUnsupported":"不支持选择背景图片。","scene.videoUnsupported":"不支持选择背景视频。",
@@ -660,6 +664,34 @@
   });
   Object.assign(SPANISH, {
     "lyrics.toggle":"Letras","lyrics.toggleTitle":"Mostrar u ocultar letras sincronizadas","lyrics.region":"Letras de la canción","lyrics.loading":"Buscando letras…","lyrics.noTrack":"Elige una pista reproducible para mostrar la letra.","lyrics.notFound":"No se encontró letra para esta pista.","lyrics.unavailable":"Las letras no están disponibles temporalmente.","lyrics.metadataMissing":"Falta el artista, por lo que no se puede buscar una coincidencia fiable.","lyrics.rateLimited":"El servicio de letras está ocupado. Inténtalo más tarde.","lyrics.instrumental":"Esta pista está marcada como instrumental.","lyrics.synced":"La letra sigue la posición de reproducción.","lyrics.unsynced":"Letra sin sincronizar · desplázate manualmente","lyrics.privacy":"Al activarlo, si no hay letra local, se envían los datos de la pista a LRCLIB. Nunca se envían el audio ni las rutas locales.","lyrics.sourceSidecar":"LRC local","lyrics.sourceEmbedded":"Incrustada","lyrics.sourceOnline":"LRCLIB","lyrics.sourceCache":"Caché local","lyrics.sourceLocal":"Local"
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "player.duplicateSkippedOne":"已跳过 1 个重复文件。","player.duplicatesSkipped":"已跳过 {count} 个重复文件。",
+    "lyrics.privacy":"开启后，如果本地没有歌词，可能会向 LRCLIB、QQ 音乐或 lyrics.ovh 发送歌曲信息；不会发送音频或本地路径。","lyrics.sourceQqMusic":"QQ 音乐","lyrics.sourceLyricsOvh":"lyrics.ovh"
+  });
+  Object.assign(JAPANESE, {
+    "player.duplicateSkippedOne":"重複ファイル1件をスキップしました。","player.duplicatesSkipped":"重複ファイル{count}件をスキップしました。"
+  });
+  Object.assign(FRENCH, {
+    "player.duplicateSkippedOne":"1 fichier en double a été ignoré.","player.duplicatesSkipped":"{count} fichiers en double ont été ignorés."
+  });
+  Object.assign(KOREAN, {
+    "player.duplicateSkippedOne":"중복 파일 1개를 건너뛰었습니다.","player.duplicatesSkipped":"중복 파일 {count}개를 건너뛰었습니다."
+  });
+  Object.assign(SPANISH, {
+    "player.duplicateSkippedOne":"Se omitió 1 archivo duplicado.","player.duplicatesSkipped":"Se omitieron {count} archivos duplicados."
+  });
+  Object.assign(JAPANESE, {
+    "lyrics.notFound":"歌詞が見つかりません。インストゥルメンタルか、歌詞ライブラリに未登録の可能性があります。","lyrics.metadataMissing":"信頼できる照合に必要な曲情報が不足しています。","lyrics.privacy":"有効時、ローカル歌詞がない場合に曲情報をLRCLIB、QQ Music、lyrics.ovhへ送信することがあります。音声とローカルパスは送信しません。"
+  });
+  Object.assign(FRENCH, {
+    "lyrics.notFound":"Aucune parole trouvée. Cette piste est peut-être instrumentale ou absente de la bibliothèque.","lyrics.metadataMissing":"Les informations de piste sont insuffisantes pour une correspondance fiable.","lyrics.privacy":"Si cette option est activée et qu’aucune parole locale n’existe, les informations de la piste peuvent être envoyées à LRCLIB, QQ Music ou lyrics.ovh. L’audio et les chemins locaux ne sont jamais envoyés."
+  });
+  Object.assign(KOREAN, {
+    "lyrics.notFound":"가사를 찾지 못했습니다. 연주곡이거나 아직 가사 라이브러리에 없을 수 있습니다.","lyrics.metadataMissing":"신뢰할 수 있는 검색에 필요한 곡 정보가 부족합니다.","lyrics.privacy":"사용 설정 시 로컬 가사가 없으면 곡 정보가 LRCLIB, QQ Music 또는 lyrics.ovh로 전송될 수 있습니다. 오디오와 로컬 경로는 전송하지 않습니다."
+  });
+  Object.assign(SPANISH, {
+    "lyrics.notFound":"No se encontró letra. Puede ser instrumental o no estar aún en la biblioteca.","lyrics.metadataMissing":"Faltan datos de la pista para encontrar una coincidencia fiable.","lyrics.privacy":"Si se activa y no hay letra local, los datos de la pista pueden enviarse a LRCLIB, QQ Music o lyrics.ovh. Nunca se envían el audio ni las rutas locales."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(

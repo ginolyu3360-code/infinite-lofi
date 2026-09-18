@@ -34,6 +34,7 @@
     let pendingSingleClick = null;
     let localMusicFolder = null;
     let folderUnavailable = false;
+    let duplicateCount = 0;
     let isScanning = false;
     let scanCommandVersion = 0;
     let playbackMode = "sequential";
@@ -138,13 +139,17 @@
       elements.musicFolderDisplay.textContent = status;
       elements.musicFolderDisplay.title = localMusicFolder || t("player.bundledTitle");
       if (elements.playlistStatus) {
-        elements.playlistStatus.textContent = folderUnavailable
+        const baseStatus = folderUnavailable
           ? t("player.folderUnavailable")
           : missingCount > 0
           ? t(missingCount === 1 ? "player.savedMissingOne" : "player.savedMissing", { count: missingCount })
           : localMusicFolder
           ? t("player.localStatus")
           : t("player.bundledStatus");
+        const duplicateStatus = duplicateCount > 0
+          ? t(duplicateCount === 1 ? "player.duplicateSkippedOne" : "player.duplicatesSkipped", { count: duplicateCount })
+          : "";
+        elements.playlistStatus.textContent = [baseStatus, duplicateStatus].filter(Boolean).join(" ");
       }
       if (elements.loadMusicFolderBtn) {
         elements.loadMusicFolderBtn.textContent = t(folderUnavailable ? "player.reconnectFolder" : "player.loadFolder");
@@ -380,12 +385,20 @@
       updateTrack();
     }
 
+    function removeSkippedDuplicates(savedQueue, duplicateKeys) {
+      const skippedKeys = new Set(Array.isArray(duplicateKeys) ? duplicateKeys.filter((key) => typeof key === "string") : []);
+      return skippedKeys.size > 0
+        ? savedQueue.filter((track) => !skippedKeys.has(playerModel.getTrackKey(track)))
+        : savedQueue;
+    }
+
     function loadDefaultLibrary(savedQueue = [], activeTrackKey = "", { shouldStop = true } = {}) {
       scanCommandVersion += 1;
       isScanning = false;
       if (shouldStop) stop();
       localMusicFolder = null;
       folderUnavailable = false;
+      duplicateCount = 0;
       setPlaylistFromScan(bundledTracks, savedQueue, activeTrackKey);
       persistState();
     }
@@ -416,8 +429,13 @@
           return false;
         }
         localMusicFolder = result.folderPath || localMusicFolder;
+        duplicateCount = Math.max(0, Math.floor(Number(result.duplicateCount) || 0));
         const resumeAfterScan = shouldResume && playbackCommandVersion === playbackVersionBeforeScan;
-        setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
+        setPlaylistFromScan(
+          result.tracks,
+          removeSkippedDuplicates(savedQueue, result.duplicateKeys),
+          activeTrackKey
+        );
         persistState();
         if (resumeAfterScan && playerModel.isTrackPlayable(getActiveTrack())) {
           play();
@@ -475,7 +493,12 @@
         scanCommandVersion += 1;
         isScanning = false;
         localMusicFolder = result.folderPath;
-        setPlaylistFromScan(result.tracks, savedQueue, activeTrackKey);
+        duplicateCount = Math.max(0, Math.floor(Number(result.duplicateCount) || 0));
+        setPlaylistFromScan(
+          result.tracks,
+          removeSkippedDuplicates(savedQueue, result.duplicateKeys),
+          activeTrackKey
+        );
         persistState();
       } catch (error) {
         logger.error("Error loading music folder:", error);

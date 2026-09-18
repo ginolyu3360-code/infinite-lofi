@@ -9,6 +9,96 @@ const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bm
 const CACHE_EXTENSIONS = [".jpg", ".png", ".webp", ".gif", ".bmp"];
 const MAX_EMBEDDED_ARTWORK_BYTES = 5 * 1024 * 1024;
 const MAX_SIDECAR_LYRICS_BYTES = 500000;
+const DUPLICATE_DURATION_TOLERANCE_SECONDS = 2;
+
+function stripCopySuffix(value) {
+  return String(value || "")
+    .replace(/\s*[（(\[]\s*(?:\d+|copy|副本)\s*[）)\]]\s*$/iu, "")
+    .replace(/\s+(?:copy|副本)(?:\s+\d+)?\s*$/iu, "")
+    .trim();
+}
+
+function normalizeIdentityText(value, { removeCopySuffix = false } = {}) {
+  const source = removeCopySuffix ? stripCopySuffix(value) : String(value || "");
+  return source
+    .normalize("NFKC")
+    .toLocaleLowerCase("en-US")
+    .replace(/[\p{P}\p{S}\s]+/gu, "")
+    .trim();
+}
+
+function durationsMatch(left, right) {
+  const leftDuration = Number(left);
+  const rightDuration = Number(right);
+  return Number.isFinite(leftDuration) && leftDuration > 0 &&
+    Number.isFinite(rightDuration) && rightDuration > 0 &&
+    Math.abs(leftDuration - rightDuration) <= DUPLICATE_DURATION_TOLERANCE_SECONDS;
+}
+
+function areDuplicateTracks(left, right) {
+  const leftTitle = normalizeIdentityText(left?.title, { removeCopySuffix: left?._dedupe?.taggedTitle !== true });
+  const rightTitle = normalizeIdentityText(right?.title, { removeCopySuffix: right?._dedupe?.taggedTitle !== true });
+  const leftArtist = normalizeIdentityText(left?.artist);
+  const rightArtist = normalizeIdentityText(right?.artist);
+  const sameMetadata = leftTitle && rightTitle && leftArtist && rightArtist &&
+    leftTitle === rightTitle && leftArtist === rightArtist;
+  const leftLabel = normalizeIdentityText(left?.label, { removeCopySuffix: true });
+  const rightLabel = normalizeIdentityText(right?.label, { removeCopySuffix: true });
+  const sameCopyName = leftLabel && rightLabel && leftLabel === rightLabel;
+  if (!sameMetadata && !sameCopyName) return false;
+  if (durationsMatch(left?.duration, right?.duration)) return true;
+  const leftSize = Number(left?._dedupe?.fileSize);
+  const rightSize = Number(right?._dedupe?.fileSize);
+  return sameCopyName && leftSize > 0 && leftSize === rightSize;
+}
+
+function trackQuality(track) {
+  const details = track?._dedupe || {};
+  return [
+    details.lossless === true ? 1 : 0,
+    Number.isFinite(Number(details.bitrate)) ? Number(details.bitrate) : 0,
+    Number(details.taggedTitle === true) + Number(details.taggedArtist === true) + Number(details.taggedAlbum === true),
+    track?.artworkUrl ? 1 : 0,
+    stripCopySuffix(track?.label) === String(track?.label || "").trim() ? 1 : 0,
+    Number.isFinite(Number(details.fileSize)) ? Number(details.fileSize) : 0
+  ];
+}
+
+function isHigherQualityTrack(candidate, current) {
+  const candidateQuality = trackQuality(candidate);
+  const currentQuality = trackQuality(current);
+  for (let index = 0; index < candidateQuality.length; index += 1) {
+    if (candidateQuality[index] !== currentQuality[index]) {
+      return candidateQuality[index] > currentQuality[index];
+    }
+  }
+  return String(candidate?.label || "").localeCompare(String(current?.label || ""), undefined, { numeric: true }) < 0;
+}
+
+function deduplicateTracks(tracks) {
+  const uniqueTracks = [];
+  const duplicates = [];
+  for (const track of Array.isArray(tracks) ? tracks : []) {
+    const duplicateIndex = uniqueTracks.findIndex((candidate) => areDuplicateTracks(candidate, track));
+    if (duplicateIndex < 0) {
+      uniqueTracks.push(track);
+      continue;
+    }
+    if (isHigherQualityTrack(track, uniqueTracks[duplicateIndex])) {
+      duplicates.push(uniqueTracks[duplicateIndex]);
+      uniqueTracks[duplicateIndex] = track;
+    } else {
+      duplicates.push(track);
+    }
+  }
+  return { duplicates, tracks: uniqueTracks };
+}
+
+function withoutDedupeDetails(track) {
+  if (!track || typeof track !== "object") return track;
+  const { _dedupe, ...publicTrack } = track;
+  return publicTrack;
+}
 
 function metadataFromFileName(fileName) {
   const label = path.basename(fileName, path.extname(fileName));
@@ -96,7 +186,11 @@ function createMusicLibrary({
         album: common.album,
         lyrics: common.lyrics
       },
-      format: { duration: metadata?.format?.duration }
+      format: {
+        bitrate: metadata?.format?.bitrate,
+        duration: metadata?.format?.duration,
+        lossless: metadata?.format?.lossless
+      }
     };
   }
 
@@ -215,7 +309,7 @@ function createMusicLibrary({
       .filter((entry) => AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }));
 
-    return mapWithConcurrency(audioFiles, concurrency, async (entry) => {
+    const scannedTracks = await mapWithConcurrency(audioFiles, concurrency, async (entry) => {
       const audioPath = path.join(folderPath, entry.name);
       const stat = await fileSystem.stat(audioPath);
       const cacheKey = artworkCacheDirectory ? getArtworkCacheKey(audioPath, stat) : "";
@@ -234,6 +328,7 @@ function createMusicLibrary({
         ? metadata.common.album.trim().slice(0, 500)
         : "";
       const duration = Number(metadata?.format?.duration);
+      const bitrate = Number(metadata?.format?.bitrate);
       return {
         id: `local:${entry.name}`,
         key: `local:${entry.name}`,
@@ -246,9 +341,32 @@ function createMusicLibrary({
         artist,
         album,
         duration: Number.isFinite(duration) && duration > 0 ? duration : 0,
+        _dedupe: {
+          bitrate: Number.isFinite(bitrate) && bitrate > 0 ? bitrate : 0,
+          fileSize: stat.size,
+          lossless: metadata?.format?.lossless === true,
+          taggedAlbum: typeof metadata?.common?.album === "string" && Boolean(metadata.common.album.trim()),
+          taggedArtist: typeof metadata?.common?.artist === "string" && Boolean(metadata.common.artist.trim()),
+          taggedTitle: typeof metadata?.common?.title === "string" && Boolean(metadata.common.title.trim())
+        },
         ...artwork
       };
     });
+    const deduplicated = deduplicateTracks(scannedTracks);
+    const tracks = deduplicated.tracks.map(withoutDedupeDetails);
+    Object.defineProperty(tracks, "duplicateCount", {
+      configurable: false,
+      enumerable: false,
+      value: deduplicated.duplicates.length,
+      writable: false
+    });
+    Object.defineProperty(tracks, "duplicateKeys", {
+      configurable: false,
+      enumerable: false,
+      value: deduplicated.duplicates.map((track) => track.key).filter(Boolean),
+      writable: false
+    });
+    return tracks;
   }
 
   return { getLocalLyrics, scanFolder };
@@ -257,8 +375,13 @@ function createMusicLibrary({
 module.exports = {
   MAX_EMBEDDED_ARTWORK_BYTES,
   MAX_SIDECAR_LYRICS_BYTES,
+  DUPLICATE_DURATION_TOLERANCE_SECONDS,
+  areDuplicateTracks,
   createMusicLibrary,
+  deduplicateTracks,
   findSidecarArtwork,
   mapWithConcurrency,
-  metadataFromFileName
+  metadataFromFileName,
+  normalizeIdentityText,
+  stripCopySuffix
 };

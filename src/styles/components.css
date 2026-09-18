@@ -693,7 +693,8 @@ body.has-visual-background .glass-panel {
   color: var(--accent-strong);
 }
 
-#lyricsToggleBtn[aria-pressed="true"] {
+#lyricsToggleBtn[aria-pressed="true"],
+#playlistToggleBtn[aria-expanded="true"] {
   border-color: rgba(243, 199, 127, 0.58);
   background: rgba(232, 182, 107, 0.2);
   color: var(--accent-strong);

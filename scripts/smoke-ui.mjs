@@ -1685,7 +1685,7 @@ try {
     !lyricsResult.initial.hidden || lyricsResult.initial.pressed !== 'false' || lyricsResult.initial.expanded !== 'false' ||
     lyricsResult.enabled.hidden || lyricsResult.enabled.pressed !== 'true' || lyricsResult.enabled.expanded !== 'true' ||
     !lyricsResult.enabled.bodyClass || lyricsResult.enabled.saved !== true ||
-    !lyricsResult.enabled.status.includes('Artist information is missing') ||
+    !lyricsResult.enabled.status.includes('Track information is incomplete') ||
     !lyricsResult.enabled.panelInsideViewport || lyricsResult.enabled.regionLabel !== 'Song lyrics' ||
     !lyricsResult.disabled.hidden || lyricsResult.disabled.pressed !== 'false' || lyricsResult.disabled.expanded !== 'false' ||
     lyricsResult.disabled.bodyClass || lyricsResult.disabled.saved !== false
