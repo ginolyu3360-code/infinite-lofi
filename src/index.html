@@ -129,6 +129,14 @@
               </div>
             </div>
 
+            <div class="playback-source-row">
+              <div class="playback-source-switch" role="group" aria-label="Playback source" data-i18n-aria-label="playback.sourceLabel">
+                <button id="localPlaybackSourceBtn" class="playback-source-btn is-active" type="button" aria-pressed="true" data-i18n="playback.local">Local</button>
+                <button id="externalPlaybackSourceBtn" class="playback-source-btn" type="button" aria-pressed="false" data-i18n="playback.external">External</button>
+              </div>
+              <p id="playbackSourceStatus" class="playback-source-status" role="status" aria-live="polite" data-i18n="playback.localStatus">Infinite Lo-Fi owns playback and system media controls.</p>
+            </div>
+
             <div class="player-transport">
               <button id="shuffleModeBtn" class="transport-btn playback-mode-btn" type="button" aria-pressed="false" title="Toggle shuffle" aria-label="Toggle shuffle" data-i18n-title="player.shuffle" data-i18n-aria-label="player.shuffle">⤨</button>
               <button id="prevTrackBtn" class="transport-btn" title="Previous track" aria-label="Previous track" data-i18n-title="player.previousTrack" data-i18n-aria-label="player.previousTrack">‹</button>
@@ -557,6 +565,7 @@
     <script src="./tasks.js"></script>
     <script src="./ambience.js"></script>
     <script src="./audio-transition.js"></script>
+    <script src="./playback-backends.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>

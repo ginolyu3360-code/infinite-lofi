@@ -6,6 +6,7 @@ const { createMediaSessionController, inferArtworkType } = require("../src/media
 function createFakeAudio() {
   const listeners = new Map();
   return {
+    __listeners: listeners,
     src: "file:///music/focus.mp3",
     paused: true,
     duration: 120,
@@ -112,6 +113,40 @@ test("degrades safely when Media Session is unavailable", () => {
   assert.equal(inferArtworkType("file:///cover.JPG?cache=1"), "image/jpeg");
 });
 
+test("can start without claiming media ownership until the selected backend activates", () => {
+  const handlers = new Map();
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      handlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const controller = createMediaSessionController({
+    audio: createFakeAudio(),
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    initialOwnershipEnabled: false
+  });
+
+  controller.installActionHandlers({ play() {} });
+  controller.updateMetadata({ label: "Deferred Focus" });
+  assert.equal(controller.hasOwnership(), false);
+  assert.equal(handlers.size, 0);
+  assert.equal(mediaSession.metadata, null);
+
+  controller.acquireOwnership();
+  assert.equal(controller.hasOwnership(), true);
+  assert.equal(mediaSession.metadata.title, "Deferred Focus");
+  assert.equal(typeof handlers.get("play"), "function");
+});
+
 test("claims a paused media session before an asynchronous fade completes", async () => {
   const actionHandlers = new Map();
   const mediaSession = {
@@ -207,4 +242,112 @@ test("hands macOS media ownership to the native publisher without duplicate brow
   audio.currentTime = 45;
   audio.dispatch("timeupdate");
   assert.equal(published.at(-1).position, 45);
+});
+
+test("releases and reacquires browser media ownership without duplicate listeners", () => {
+  const actionHandlers = new Map();
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      actionHandlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const audio = createFakeAudio();
+  let playCount = 0;
+  const controller = createMediaSessionController({
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    audio,
+    logger: { warn() {} }
+  });
+
+  controller.installActionHandlers({
+    play: () => {
+      playCount += 1;
+      return audio.play();
+    }
+  });
+  controller.updateMetadata({ label: "Local Focus" });
+  assert.equal(controller.hasOwnership(), true);
+
+  assert.equal(controller.releaseOwnership(), true);
+  assert.equal(controller.hasOwnership(), false);
+  assert.equal(mediaSession.metadata, null);
+  assert.equal(mediaSession.playbackState, "none");
+  assert.ok([...actionHandlers.values()].every((handler) => handler === null));
+
+  controller.updateMetadata({ label: "Still Local" });
+  assert.equal(mediaSession.metadata, null);
+  assert.equal(controller.acquireOwnership(), true);
+  assert.equal(controller.hasOwnership(), true);
+  assert.equal(mediaSession.metadata.title, "Still Local");
+  assert.equal(typeof actionHandlers.get("play"), "function");
+  actionHandlers.get("play")();
+  assert.equal(playCount, 1);
+
+  const listenerCounts = Object.fromEntries(
+    [...audio.__listeners.entries()].map(([name, handlers]) => [name, handlers.length])
+  );
+  assert.ok(Object.values(listenerCounts).every((count) => count === 1));
+});
+
+test("releases native media ownership by publishing an empty session", () => {
+  const published = [];
+  const controller = createMediaSessionController({
+    audio: createFakeAudio(),
+    publishNativeState: (state) => published.push(state)
+  });
+  controller.installActionHandlers();
+  controller.updateMetadata({ label: "Native Focus" });
+  controller.enableNativeMode();
+
+  controller.releaseOwnership();
+  assert.equal(controller.hasOwnership(), false);
+  assert.equal(published.at(-1).state, "none");
+  assert.equal(published.at(-1).title, "");
+
+  controller.acquireOwnership();
+  assert.equal(controller.hasOwnership(), true);
+  assert.equal(published.at(-1).title, "Native Focus");
+  assert.equal(published.at(-1).state, "paused");
+});
+
+test("falls back from native mode to browser media ownership", () => {
+  const actionHandlers = new Map();
+  const mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler(name, handler) {
+      actionHandlers.set(name, handler);
+    },
+    setPositionState() {}
+  };
+  class FakeMediaMetadata {
+    constructor(value) {
+      Object.assign(this, value);
+    }
+  }
+  const controller = createMediaSessionController({
+    audio: createFakeAudio(),
+    mediaSession,
+    MediaMetadata: FakeMediaMetadata,
+    publishNativeState() {}
+  });
+  controller.installActionHandlers({ play() {} });
+  controller.updateMetadata({ label: "Fallback Song" });
+  controller.enableNativeMode();
+  controller.releaseOwnership();
+
+  assert.equal(controller.disableNativeMode(), true);
+  assert.equal(controller.acquireOwnership(), true);
+  assert.equal(controller.isNativeMode(), false);
+  assert.equal(mediaSession.metadata.title, "Fallback Song");
+  assert.equal(typeof actionHandlers.get("play"), "function");
 });

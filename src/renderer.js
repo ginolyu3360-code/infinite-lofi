@@ -26,6 +26,9 @@ if (!window.InfiniteLofiCore) {
 if (!window.InfiniteLofiStorage) {
   throw new Error("Infinite Lo-Fi storage helpers failed to load");
 }
+if (!window.InfiniteLofiPlaybackBackends) {
+  throw new Error("Infinite Lo-Fi playback backend helpers failed to load");
+}
 if (!window.InfiniteLofiI18n) {
   throw new Error("Infinite Lo-Fi language helpers failed to load");
 }
@@ -82,6 +85,10 @@ const { createAmbienceController } = window.InfiniteLofiAmbienceController;
 const { normalizeAudioTransitions } = window.InfiniteLofiAudioTransition;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
+  createPlaybackBackend,
+  normalizePlaybackSourceMode
+} = window.InfiniteLofiPlaybackBackends;
+const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
   applyBackgroundSource,
   applyCuratedPreset,
@@ -124,6 +131,10 @@ const noteDeleteBtn = document.getElementById("noteDeleteBtn");
 const bgVideo = document.getElementById("bgVideo");
 const bgImage = document.getElementById("bgImage");
 const lofiPlayer = document.getElementById("lofiPlayer");
+const playerPanel = document.getElementById("playerPanel");
+const localPlaybackSourceBtn = document.getElementById("localPlaybackSourceBtn");
+const externalPlaybackSourceBtn = document.getElementById("externalPlaybackSourceBtn");
+const playbackSourceStatus = document.getElementById("playbackSourceStatus");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const nextTrackBtn = document.getElementById("nextTrackBtn");
 const prevTrackBtn = document.getElementById("prevTrackBtn");
@@ -293,6 +304,7 @@ let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
 let weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings();
 let showcaseModeEnabled = false;
 let currentTrackArtwork = null;
+let currentLocalTrack = null;
 let backgroundRenderKey = "";
 let backgroundFadeRaf = 0;
 let isRestoringBackup = false;
@@ -302,11 +314,14 @@ let tasksController = null;
 let weatherController = null;
 let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().player?.audioTransitions);
 let lyricsEnabled = false;
+let playbackSourceMode = normalizePlaybackSourceMode(appStorage.getState().player?.sourceMode);
+let playbackSourceSwitching = false;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
   MediaMetadata: window.MediaMetadata,
   audio: lofiPlayer,
+  initialOwnershipEnabled: false,
   publishNativeState: (state) => window.desktopApp?.sendNativeMediaSessionState?.(state)
 });
 
@@ -364,8 +379,9 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: (track) => {
+    currentLocalTrack = track;
     mediaSessionController.updateMetadata(track);
-    lyricsController.setTrack(track);
+    lyricsController.setTrack(playbackSourceMode === "local" ? track : null);
   },
   onLayoutChange: ({ queueOpen } = {}) => {
     requestAnimationFrame(adjustTimerFont);
@@ -421,6 +437,137 @@ const ambienceController = createAmbienceController({
   t
 });
 
+const localPlaybackBackend = createPlaybackBackend({
+  id: "local",
+  mode: "local",
+  label: "Infinite Lo-Fi",
+  capabilities: {
+    playlists: true,
+    currentTrack: true,
+    play: true,
+    pause: true,
+    stop: true,
+    previous: true,
+    next: true,
+    seek: true,
+    volume: true
+  },
+  async activate() {
+    const nativeOwned = await window.desktopApp?.setNativeMediaSessionOwnership?.(true);
+    if (nativeOwned === true) mediaSessionController.enableNativeMode();
+    else mediaSessionController.disableNativeMode();
+    mediaSessionController.acquireOwnership();
+    return true;
+  },
+  deactivate: () => pauseMusic()
+});
+
+const externalPlaybackBackend = createPlaybackBackend({
+  id: "external",
+  mode: "external",
+  label: "External player",
+  capabilities: {},
+  async activate() {
+    mediaSessionController.releaseOwnership();
+    await window.desktopApp?.setNativeMediaSessionOwnership?.(false);
+    return true;
+  }
+});
+
+const playbackBackendByMode = Object.freeze({
+  local: localPlaybackBackend,
+  external: externalPlaybackBackend
+});
+
+function renderPlaybackSource() {
+  const isLocal = playbackSourceMode === "local";
+  playerPanel.dataset.playbackSource = playbackSourceMode;
+  localPlaybackSourceBtn.classList.toggle("is-active", isLocal);
+  externalPlaybackSourceBtn.classList.toggle("is-active", !isLocal);
+  localPlaybackSourceBtn.setAttribute("aria-pressed", String(isLocal));
+  externalPlaybackSourceBtn.setAttribute("aria-pressed", String(!isLocal));
+  localPlaybackSourceBtn.disabled = playbackSourceSwitching;
+  externalPlaybackSourceBtn.disabled = playbackSourceSwitching;
+  playbackSourceStatus.textContent = t(isLocal ? "playback.localStatus" : "playback.externalStatus");
+  [
+    playPauseBtn,
+    nextTrackBtn,
+    prevTrackBtn,
+    repeatModeBtn,
+    shuffleModeBtn,
+    progressSlider,
+    volumeSlider,
+    playlistToggleBtn,
+    lyricsToggleBtn
+  ].forEach((element) => {
+    if (element) element.disabled = !isLocal || playbackSourceSwitching;
+  });
+  if (!isLocal) {
+    togglePlaylistPanel(false);
+    lyricsPanel.hidden = true;
+    lyricsToggleBtn.setAttribute("aria-expanded", "false");
+  } else if (lyricsEnabled) {
+    lyricsController.setEnabled(true, { persist: false });
+  }
+}
+
+async function setPlaybackSourceMode(rawMode, options = {}) {
+  const nextMode = normalizePlaybackSourceMode(rawMode);
+  const { persist = true, announce = true, force = false } = options;
+  if (playbackSourceSwitching || (!force && nextMode === playbackSourceMode)) return false;
+  const previousMode = playbackSourceMode;
+  playbackSourceSwitching = true;
+  renderPlaybackSource();
+  try {
+    if (previousMode !== nextMode) {
+      await playbackBackendByMode[previousMode].deactivate();
+    }
+    await playbackBackendByMode[nextMode].activate();
+    if (persist) {
+      appStorage.update((state) => {
+        state.player.sourceMode = nextMode;
+      });
+    }
+    playbackSourceMode = nextMode;
+    lyricsController.setTrack(nextMode === "local" ? currentLocalTrack : null);
+    if (announce) {
+      announceStatus(t(nextMode === "local"
+        ? "playback.localAnnouncement"
+        : "playback.externalAnnouncement"));
+    }
+    return true;
+  } catch (error) {
+    console.warn("Playback source switch failed:", error);
+    playbackSourceMode = "local";
+    await localPlaybackBackend.activate().catch?.(() => {});
+    announceStatus(t("playback.switchError"));
+    return false;
+  } finally {
+    playbackSourceSwitching = false;
+    renderPlaybackSource();
+  }
+}
+
+function playSelectedSource() {
+  return playbackSourceMode === "local" ? playMusic() : Promise.resolve(false);
+}
+
+function pauseSelectedSource() {
+  return playbackSourceMode === "local" ? pauseMusic() : Promise.resolve(false);
+}
+
+function toggleSelectedSource() {
+  return playbackSourceMode === "local" ? togglePlayback() : false;
+}
+
+function nextSelectedSource() {
+  return playbackSourceMode === "local" ? switchTrack() : false;
+}
+
+function previousSelectedSource() {
+  return playbackSourceMode === "local" ? prevTrack() : false;
+}
+
 function renderAudioTransitionSettings() {
   audioTransitionsEnabled.checked = audioTransitionSettings.enabled;
   audioTransitionDuration.value = String(audioTransitionSettings.durationMs);
@@ -451,23 +598,24 @@ function saveAudioTransitionSettings(nextSettings) {
 function pauseAllMedia() {
   mediaSessionController.syncPlaybackIntent("paused");
   return Promise.all([
-    pauseMusic(),
+    pauseSelectedSource(),
     ambienceController.pause()
   ]);
 }
 
 function stopAllMedia() {
   mediaSessionController.syncPlaybackIntent("stopped");
-  stopMusic();
+  if (playbackSourceMode === "local") stopMusic();
   ambienceController.stop();
 }
 
 function playFromNativeMediaControl() {
   mediaSessionController.syncPlaybackIntent("playing");
-  return playMusic();
+  return playSelectedSource();
 }
 
 function toggleFromNativeMediaControl() {
+  if (playbackSourceMode !== "local") return false;
   return lofiPlayer.paused ? playFromNativeMediaControl() : pauseAllMedia();
 }
 
@@ -478,6 +626,7 @@ mediaSessionController.installActionHandlers({
   previousTrack: prevTrack,
   nextTrack: switchTrack
 });
+if (playbackSourceMode === "external") mediaSessionController.releaseOwnership();
 
 const notesController = createNotesController({
   appStorage,
@@ -688,6 +837,7 @@ function refreshLocalizedUi() {
   refreshShortcutLabels();
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
+  renderPlaybackSource();
   lyricsController.refreshLanguage();
   ambienceController.refreshLanguage();
   renderAudioTransitionSettings();
@@ -1462,7 +1612,7 @@ function stopTimer() {
     currentFocusSession = committed.timerRuntime.focusSession;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
     sendTrayStatus();
     return true;
   } catch (error) {
@@ -1548,7 +1698,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
     timerId = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
   }
   refreshTimerGoalSummary(committed, new Date(completedAtMs));
   renderStats();
@@ -1557,8 +1707,8 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   sendTrayStatus();
   notifyPhaseSwitch();
   announceStatus(t("timer.phaseStartedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
-  if (timerId !== null && lofiPlayer.paused) {
-    playMusic();
+  if (timerId !== null && playbackSourceMode === "local" && lofiPlayer.paused) {
+    playSelectedSource();
   }
   return true;
 }
@@ -1621,7 +1771,7 @@ function toggleTimer() {
     showStorageFailure(error, t("storage.timerStartError"));
     return;
   }
-  playMusic();
+  playSelectedSource();
   sendTrayStatus();
   announceStatus(t("timer.startedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
 }
@@ -1648,7 +1798,7 @@ function resetTimer() {
     currentFocusSession = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
     tasksController?.render(committed);
   } catch (error) {
     showStorageFailure(error, t("storage.timerResetError"));
@@ -1789,11 +1939,11 @@ function bindAppCommands() {
       return;
     }
     if (commandType === "media-next") {
-      switchTrack();
+      nextSelectedSource();
       return;
     }
     if (commandType === "media-previous") {
-      prevTrack();
+      previousSelectedSource();
       return;
     }
     if (commandType === "media-seek") {
@@ -1842,12 +1992,11 @@ function toggleShortcutHelp(forceOpen) {
 
 
 async function init() {
-  try {
-    const nativeMediaAvailable = await window.desktopApp?.getNativeMediaSessionAvailability?.();
-    if (nativeMediaAvailable) mediaSessionController.enableNativeMode();
-  } catch (error) {
-    console.warn("Native macOS media controls could not be enabled:", error);
-  }
+  await setPlaybackSourceMode(playbackSourceMode, {
+    persist: false,
+    announce: false,
+    force: true
+  });
   tasksController.bindEvents();
   ambienceController.bindEvents();
   audioTransitionsEnabled.addEventListener("change", () => {
@@ -1864,6 +2013,7 @@ async function init() {
   });
   renderAudioTransitionSettings();
   loadUiSettings();
+  renderPlaybackSource();
   loadStatsRange();
   loadTimerSettings();
   loadTimerRuntime();
@@ -1941,6 +2091,8 @@ async function init() {
       timerCard,
       timerDisplay,
       playPauseBtn,
+      localPlaybackSourceBtn,
+      externalPlaybackSourceBtn,
       nextTrackBtn,
       prevTrackBtn,
       repeatModeBtn,
@@ -1996,9 +2148,10 @@ async function init() {
       },
       toggleShowcaseMode,
       isShowcaseModeEnabled: () => showcaseModeEnabled,
-      togglePlayback,
-      switchTrack,
-      prevTrack,
+      togglePlayback: toggleSelectedSource,
+      setPlaybackSourceMode,
+      switchTrack: nextSelectedSource,
+      prevTrack: previousSelectedSource,
       handleTrackEnded,
       togglePlaylistPanel,
       toggleExpandedQueue,
@@ -2077,6 +2230,7 @@ async function init() {
     },
     isShortcutEnabled,
     isShowcaseModeEnabled: () => showcaseModeEnabled,
+    isLocalPlaybackMode: () => playbackSourceMode === "local",
     clamp
   });
   applyHoverHints(document, HTMLElement);

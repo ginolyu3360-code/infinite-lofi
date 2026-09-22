@@ -1,157 +1,179 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-15
+Updated: 2026-09-22
 
 ## Start of the next session
 
-1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not recreate the removed `/Users/lvjunhao/Documents/ChatGPT/infinite lofi` checkout or create an extra worktree.
-2. For an ordinary continuation, read the post-v1.4 implementation summary and remaining boundary near the end of this handoff, then inspect only changes since the recorded baseline. Do not repeatedly reread the complete historical roadmap, verification log, and UI plan unless planning a release/migration, resolving a contradiction, or changing the relevant subsystem.
-3. Published release baseline: annotated `v1.4.1` peels to `089bdf65ba30a1a386477ca3aafa1814cee868d5`; exact-head main CI `34865480996` and Release workflow `34866263548` passed. Before making changes, fetch and compare the working tree, `main`, tags, and latest exact-commit CI against this baseline.
-4. Package version 1.4.1 is published. Do not create later tags or releases, or begin signing/notarization work, without a new instruction.
-5. Windows x64 support is delivered on post-v1.4.1 `main` through PR #32 as `7220844`; final PR CI `34944611079` and exact-merge main CI `34944930190` passed both platforms. Keep installer lifecycle and physical-device behavior explicitly separate from the verified native unpacked-app smoke coverage.
+1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not create another checkout or worktree unless the user explicitly requests isolation.
+2. Begin by checking the working tree, current branch, `main`, tags, and the latest GitHub CI/Release status. Preserve any user changes.
+3. Third-party provider Slice 0 and the provider-neutral part of Slice 1 are now implemented on `codex/external-player-mode`. Read `docs/third-party-music-feasibility.md` before selecting a provider.
+4. Before selecting an integration, research the current official documentation, account requirements, playback restrictions, platform support, and commercial terms for the candidate providers. These details change and must not be assumed from memory.
+5. Continue the normal delivery workflow for future implementation: `codex/` feature branch → Pull Request → passing Windows/macOS CI → squash merge. A version tag or Release still requires a separate explicit instruction.
 
-## Current project state
+## Current baseline
 
-- Windows x64 support is delivered through [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) as `7220844`; exact-merge [main CI `34944930190`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34944930190) passed native macOS Universal and Windows x64 jobs. Package version remains 1.4.1; no tag or Release was created.
-- Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) passed final CI `34861869716`, squash-merged as `5bb67c6`, and passed exact-merge main CI `34863054603`. Release-preparation [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) final head `a99e64f` passed CI `34865115885` and squash-merged as `089bdf6`; exact-head [main CI `34865480996`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34865480996) passed on its second attempt after one inspector-disconnect-only packaged-smoke failure.
-- Current package and latest published release: v1.4.1. Annotated tag `v1.4.1` peels exactly to `089bdf6`. [Release workflow `34866263548`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34866263548) published the latest non-draft, non-prerelease [GitHub Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.4.1) with unsigned Universal DMG/ZIP and SHA-256 checksums.
-- Phase 0 through Phase 4C2, seven-language display settings, and the post-v1.4 Queue/playback/responsive feedback pass are complete and packaged in v1.4.1.
-- The audited Phase 4 sequence is **4A Focus Intent → 4B Focus Review → 4C1 Ambient Layer → 4C2 Audio Transitions**. Older descriptions assigning Soundscapes to B or broad Focus Insights to C are obsolete.
-- Phase 4A is complete, squash-merged through [PR #16](https://github.com/ginolyu3360-code/infinite-lofi/pull/16) as `cd8bdb9868d1752e4d2cc0f45da18da5de772aba`, and verified on the exact merge commit by passing [main CI run 34593481248](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593481248). The final feature head `4086636bc5912962450410a5a483efcb8fdd91c0` passed [PR CI run 34593226577](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34593226577), including checks, development smoke, Universal packaging, and packaged smoke.
-- Phase 4B Focus Review was locally committed as `5123207` on `codex/phase4-focus-depth` and delivered with 4C1/C2 through PR #20.
-- Phase 4C1 Ambient Layer is locally committed as `e7aa161` on the same branch. Its combined Universal playback, packaging, and 60-second performance evidence is now complete; only explicitly human OS-control/listening checks remain pending.
-- Phase 4C2 Audio Transitions is complete. Its dedicated local phase commit was `185138c`; 4B, 4C1, and 4C2 shared [PR #20](https://github.com/ginolyu3360-code/infinite-lofi/pull/20), whose final head `8393f7c` passed CI `34794492670` and was squash-merged as `c36e325`. Exact-merge main CI `34794688203` exposed a smoke-runner timing race; repair [PR #21](https://github.com/ginolyu3360-code/infinite-lofi/pull/21) head `7b16c2b` passed CI `34794996675`, was squash-merged as `b52be34`, and exact-head [main CI 34795181140](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34795181140) passed the complete workflow.
-- Post-4A display-language settings are complete through [PR #18](https://github.com/ginolyu3360-code/infinite-lofi/pull/18). Final head `0d4b9723841d235375b60509f782cc967bfffcff` passed [PR CI run 34701126047](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701126047), was squash-merged as `500865184756a7288fa7baee31dcb040259a31b5`, and passed exact-merge [main CI run 34701318256](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34701318256). It adds seven immediate interface languages in Keys while keeping schema v5 and package version 1.3.0.
+- Branch: `main`; exact current commit: `a10fc3f` (`test: wait for renderer after smoke reload (#41)`).
+- Package version and latest public release: `v1.5.1`. The annotated tag peels to `a10fc3f`.
+- [Release v1.5.1](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.1) is public, non-draft, and non-prerelease. Release workflow `35351586911` passed and published:
+  - unsigned macOS Universal DMG and ZIP for Intel and Apple Silicon;
+  - Windows x64 NSIS installer;
+  - `SHA256SUMS.txt`.
+- Release-preparation [PR #40](https://github.com/ginolyu3360-code/infinite-lofi/pull/40) and the Windows packaged-smoke race repair [PR #41](https://github.com/ginolyu3360-code/infinite-lofi/pull/41) are merged.
+- The external-player feature work is based directly on `a10fc3f` in branch `codex/external-player-mode`; the package version remains 1.5.1 and no release tag is part of this work.
+- The current player supports bundled music, explicitly selected local folders, duplicate filtering, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, a separate bundled ambient layer, and native media controls.
+- Optional lyrics prefer same-name `.lrc` and embedded lyrics, then use confidence-ranked LRCLIB and QQ Music matching with a lyrics.ovh fallback. Lyrics, instrumental classifications, and misses are cached locally. Online lookup remains opt-in and never uploads audio or local paths.
+- macOS native Now Playing/AirPods ownership is deliberate. Local playback registers Infinite Lo-Fi as the media owner so paused AirPods Play resumes this app instead of Apple Music.
+- Releases remain unsigned and unnotarized. Do not imply Apple signing or notarization.
 
-## Display language behavior
+## Proposed next feature: third-party playback and playlists
 
-- Keys contains a keyboard-accessible selector with native language names for 简体中文, 繁體中文, English, 日本語, Français, 한국어, and Español.
-- Switching updates static copy plus current timer/task/player/statistics/weather state, dates, tooltips, screen-reader labels, notifications, and tray-menu commands without restarting or resetting application state.
-- The selected value is written to `settings.ui.language`, normalized to one of the seven supported codes, included in schema-v5 backups, and restored on relaunch. Unsupported values fall back to English.
-- A failed language write leaves both persisted state and the displayed language unchanged and surfaces the existing storage failure path.
-- Language labels remain native rather than translating the language names, so users can always recover a familiar choice.
+### 2026-09-22 implementation update
 
-## Phase 4A delivered behavior
+- Slice 0 is complete in `docs/third-party-music-feasibility.md`, using current official sources only. Apple Music and Spotify have documented playlist and playback surfaces with substantial membership/subscription/quota/commercial constraints; QQ Music's reviewed official surfaces are scoped to AI skills or IoT/partner products; no suitable public NetEase desktop developer product was established.
+- The provider-neutral External Player Mode foundation is implemented without connecting an account or selecting a provider. Local/External mode is additive schema-v5 state and backup data; remote playlists are not written into the local Queue.
+- External mode pauses local music, disables local-only controls and shortcuts, clears Chromium Media Session state, and destroys the macOS native media bridge so AirPods/media keys remain with the external player. Local mode recreates the native bridge and metadata ownership without autoplay.
+- A capability-based backend contract is present for later provider adapters. The external placeholder intentionally advertises no transport, playlist, account, or status capability until an official provider adapter exists.
+- No OAuth client, token, keychain entry, remote API request, audio cache, tag, or Release is part of this slice.
+- Local verification passes 153 unit/controller tests, syntax checks, the development Electron smoke, Universal macOS packaging, and the packaged-app smoke. Both smoke paths cover Local → External → Local, pause/no-autoplay, persisted state, disabled local controls, browser-session cleanup, native bridge release/reacquisition, 44 px source controls, lyrics layout, and the existing responsive/accessibility/performance suite.
 
-- Schema v5 adds at most 100 short-title tasks, with add, select/unselect, rename, complete, reopen, confirmed deletion, stable IDs, stored creation order, a separately sorted completed view, and 20-row pagination.
-- `selectedTaskId` is only the next-session choice. Starting focus freezes a separate stable session ID plus task ID/title snapshot; pause, resume, relaunch, rename, completion, deletion, and later selection changes do not rewrite that snapshot.
-- Completing a timer never completes a task, and completing a task never stops the timer. Reset and Focus Plan application discard only unfinished session context while preserving the next selection.
-- Live and restored-expiry focus completion use the same tested atomic repository boundary: one write records the immutable snapshot and saves the next timer runtime. Duplicate callbacks reuse the session ID and cannot create duplicate history.
-- v1–v4 and legacy migration remain supported. A running or partially elapsed v4 focus timer becomes a stable unassigned session; a ready timer remains context-free. v5 validates task IDs/titles/counts and runtime context.
-- Backup restore validates the wrapper and inner schema versions before replacement, rejects future, mismatched, malformed, duplicate-ID, and oversized task data, and includes task count in the confirmation summary.
-- Repository state is published in memory only after its serialized write succeeds. Task, timer, statistics, and Notes quota failures keep the last committed state and surface an error.
-- The main timer shows current or next intention; the Tasks drawer distinguishes both. Mini Mode shows intention text only. History shows immutable task-title snapshots while manual history remains unassigned.
-- The timer's per-tick goal display now reads a cached summary instead of cloning/scanning the complete repository every second.
+### User goal
 
-## Phase 4B implemented behavior
+Let users use music from another music service with Infinite Lo-Fi. Possible meanings must be separated before implementation:
 
-- Stats now labels its stored-day windows as Today, Last 7 Days, and Last 30 Days rather than implying calendar-week or calendar-month navigation.
-- A pure ledger selector provides exact-second total time, active recorded days, previous equal-period comparison, and task-time groups without persisting aggregates or changing schema v5.
-- Identifiable sessions group by stable task ID. Existing tasks use their current title; deleted tasks use the latest retained snapshot and a deleted marker. The interface shows a stable ID so same-title tasks remain distinguishable.
-- Snapshot-only sessions remain individual entries rather than being matched by title. Unassigned time is included, and imported daily totals contribute duration without being presented as real individual sessions.
-- The review states covered dates, 366-day/5,000-entry retention, absence-of-record limits, current-target goal semantics, zero-denominator behavior, and any per-row display-rounding difference. Daily CSV and full JSON backup behavior remain unchanged.
-- Rendering is capped at eight groups per keyboard-accessible page. Review selectors run when Stats data, range, or language changes, not on timer ticks.
-- All new presentation copy is available in Simplified Chinese, Traditional Chinese, English, Japanese, French, Korean, and Spanish.
+| Experience | Audio owner | What Infinite Lo-Fi does | Complexity |
+| --- | --- | --- | --- |
+| External Player Mode | The provider's installed app or web player | Opens or selects provider content and exposes supported transport/status controls | Lowest and safest |
+| Provider Playlist Mode | Usually the provider | Lets users connect an account and browse/select their provider playlists inside Infinite Lo-Fi | Medium; requires official OAuth/API support |
+| In-app Online Playback | Infinite Lo-Fi or an official embedded SDK | Streams provider audio inside the existing player | Highest; DRM, SDK, subscription, policy, and platform restrictions apply |
 
-## Phase 4C1 implemented behavior
+These are not interchangeable. Importing playlist metadata does not automatically grant permission or a technical path to stream the tracks.
 
-- Scene contains Soft Rain, Quiet Cafe, and Brown Noise as original deterministic MIT-licensed 12-second offline WAV loops. Generation source, authorship, attribution, and the packaged license are retained under `assets/ambience`; their combined size is about 3 MiB.
-- One lazy-loaded ambient media element can play beside music. Selection and a separate exact-zero-capable volume persist as `player.ambience` under schema v5, while runtime playback never persists and every launch/restore starts paused with no decoded source loaded.
-- Sound switches stop and release the old source before the newest selection plays; paused selection remains paused, and stale asynchronous callbacks cannot stop the latest source. Decode failures become visible without disabling music or the timer, and unload cleanup releases the source.
-- Music Play/Pause remains music-only. Native Media Session play remains music-only, while its pause and stop handlers silence both channels; metadata and seek remain owned by music.
-- All ambient copy is localized into the seven supported display languages. The main player and Mini Mode remain compact because controls live in the existing Scene drawer.
+### Recommended product direction
 
-## Phase 4C2 implemented behavior
+Use a phased provider-adapter design:
 
-- Scene provides an optional audio-transition switch and a duration normalized between 0 and 500 ms, defaulting off at 200 ms. The additive schema-v5 preference survives backup/restore without persisting playback or an in-progress fade.
-- Music and ambience each own one cancellable envelope. Saved user volume remains separate from transient gain, exact zero remains silent, and a newer command cancels stale callbacks without idle polling.
-- Explicit play/pause and sequential track/sound changes fade when enabled. The previous source reaches zero before replacement, so no overlapping crossfade or second ambient layer is introduced.
-- Native stop cancels transitions and silences both channels immediately; native pause settles both within the configured bound; native play remains music-only. Suspend/resume and unload settle gains safely.
-- Timer-triggered music uses the same controller transport. Timer state never starts ambience, and rapid timer/user commands keep the newest playback intent authoritative.
+1. **Discovery and provider selection** — confirm the user's first provider and desired experience, then verify only official integration paths.
+2. **External Player Mode MVP** — add a clear Local/External playback source choice. When external mode is active, the provider keeps audio and operating-system media ownership.
+3. **One official provider pilot** — if the provider offers suitable OAuth and playback APIs, add account connection, playlist browsing, current-track state, and supported transport operations.
+4. **Evaluate embedded online playback separately** — implement only if the provider explicitly supports Electron/desktop embedding and the account/subscription requirements are acceptable.
+5. **Add further providers through the same capability interface** — do not pretend every provider supports the same operations.
 
-## Local verification completed
+The default recommendation is to prove the architecture with one officially supported provider before attempting several services. Spotify is a likely technical research candidate because it has documented account and playback APIs, but it must not be selected automatically; availability, subscription requirements, and the user's actual service preference should decide. Apple Music, QQ Music, and NetEase Cloud Music must each be evaluated independently against their current official offerings.
 
-- Combined Phase 4C2 `npm run check` passed with 98 tests, all JavaScript syntax checks, and a minified stylesheet rebuild. New fake-clock and controller tests cover clamping, exact mute, gain composition, cancellation/no idle polling, rapid reversals, sequential switching, late folder scans, failures, suspend settlement, and immediate stop.
-- Final isolated development and Universal packaged Electron smoke passed with no renderer exceptions. It measured real 200 ms mid-fade gains, final gain/state, rapid pause/play, mute during a fade, old-source retention during fade-out, source replacement afterward, ambient independence, persistence, and paused/source-free restart.
-- The full 4B performance fixture remained within target: final development range-switch p95 was 78.3 ms and packaged p95 was 84.8 ms over 30 repetitions at 100 tasks / 5,000 sessions. All existing task, timer, backup, recovery, language, Notes, music, history, scene, contrast, keyboard, IME, and focus assertions remained green.
-- Final responsive checks passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1024 × 677, 1100 × 760, and 1440 × 794; both sides of the 900 px Notes breakpoint and Mini 420 × 250 / 360 × 200 passed. Transition and ambient controls measured at least 44 px.
-- Final `npm run pack:universal` passed with electron-builder 26.15.3 / Electron 41.10.7. `file` and `lipo` confirmed `x86_64 arm64`; `app.asar` contains all three loops, `ATTRIBUTION.txt`, `LICENSE.txt`, and the transition module.
-- Ambient WAVs total 3.04 MiB and the positive unpacked-content delta from `main` is 3.17 MiB, below the 15 MiB asset and 20 MiB content budgets. Deterministic SHA-256, PCM structure, and bounded loop discontinuity are regression-tested.
-- The macOS process comparison used the packaged executable, fresh profiles, the main process plus every descendant, a five-second warm-up, and 60 one-second `ps` samples per condition. Music-only averaged 8.82% CPU / 454.98 MiB summed RSS; music plus ambience averaged 9.03% / 450.28 MiB. Incremental cost was +0.21 percentage points / -4.70 MiB, passing the +5 / +50 MiB budgets. Both runs reported zero HTTP(S) resources.
+### Decisions to obtain from the user first
 
-- Phase 4B `npm run check` passed with 82 unit/controller tests, all syntax checks, and a minified stylesheet rebuild.
-- Isolated development and packaged Electron smoke both passed the Phase 4B selector, rendering, accessibility, seven-language, layout, timer/task/history, Notes, player, scene, backup, and recovery paths without renderer exceptions.
-- At the 5,000-session/100-task fixture over 30 repetitions, development range-switch p95 was 75.8 ms and packaged p95 was 84.5 ms. Each review page rendered 8 of up to 5,000 groups; task-drawer performance remained below its existing reference targets.
-- Responsive Focus Review passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and the current display maximum of 1440 × 794, with 44 px range controls and the drawer fully inside the available viewport. Mini 420 × 250 and 360 × 200 plus the 900 px Notes breakpoint remained green.
-- `npm run check`: passed with 70 unit/controller tests, syntax checks, and a minified stylesheet rebuild.
-- The display-language feature passes `npm run check` with 75 tests, isolated development Electron smoke, Universal packaging, `x86_64 arm64` architecture inspection, and isolated packaged-app smoke. Both smoke paths switched all seven languages, retained focus and the open Keys dialog, persisted Spanish across reload, restored English, and reported no renderer exceptions.
-- Development Electron smoke: passed with a fresh temporary profile and no renderer exceptions.
-- Universal packaging: passed; `dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi` is a Mach-O Universal binary containing `x86_64` and `arm64`.
-- Packaged-app Electron smoke: passed with a fresh temporary profile and no renderer exceptions.
-- Task smoke covers add/select/unselect semantics, rename, complete, reopen, confirmed delete copy, frozen current vs next intent, pause/resume, live auto-start in both directions, reset, immutable history display, and expired recovery recorded exactly once across a second reload.
-- Accessibility smoke covers IME/consumed-key boundaries, typing `?`, edit-local Escape, drawer Escape, focus entry/return, Tab containment, predictable focus after row removal, named Tasks dialog, live status, reduced motion, and new intention colors in Quiet Studio, Midnight, Moss, and Paper.
-- Layout smoke passed at 720 × 520, 800 × 600, 899 × 700, 901 × 700, 1100 × 760, and 1440 × 797, with zero timer overflow and 44 px full-view timer controls. Both sides of the 900 px Notes breakpoint passed.
-- Mini Mode passed at 420 × 250 and 360 × 200 with `360:00`, a 120-code-point title, visible primary controls, hidden task editor, zero timer overflow, and full-window bounds restoration.
-- Performance fixture: 100 maximum-title tasks plus 5,000 maximum-title sessions, 30 repetitions. The final pre-PR local rerun measured development p95 at 17.4 ms drawer-open / 38.0 ms selection-update and packaged p95 at 17.1 ms / 37.9 ms.
-- Regression paths covered Notes creation and quota rollback, bundled music and native Media Session state, all curated scenes, session creation/editing/totals, backup validation/restore, storage recovery, app reload, Mini/full native resizing, and renderer-to-tray status updates. `main.js` and `preload.js` were unchanged by Phase 4A.
+1. Is the priority controlling an already-open third-party app, browsing the user's playlists inside Infinite Lo-Fi, or hearing the provider's audio directly inside Infinite Lo-Fi?
+2. Which provider should be first: Apple Music, Spotify, QQ Music, NetEase Cloud Music, or another named service?
+3. Should the first version target macOS only, or must macOS and Windows ship together?
+4. Is requiring provider login, OAuth consent, a paid subscription, or a developer application acceptable?
 
-## Explicit limitations and boundaries
+Recommended defaults if the user has no preference: external/player-owned playback first, one provider only, both operating systems considered in the interface but only capabilities proven by official APIs implemented.
 
-- Automated Phase 4B/C1/C2 runs exposed at most a 1440 × 794 renderer viewport (earlier runs reached 1440 × 797). The user subsequently confirmed native 1440 × 900 verification passed on 2026-09-14; keep the older automated limitation as provenance rather than treating it as the current acceptance state.
-- Subjective audible loop/seam/fade quality and physical operating-system Media Session pause/stop buttons require human interaction and remain pending. Automated action-handler delegation, waveform seam bounds, actual decode/playback, final state, and native Media Session state all pass; those checks are not mislabeled as subjective listening.
-- The current v1.4.1 Universal build is intentionally unsigned and not notarized. Its version tag and GitHub Release were a separate explicitly authorized release step.
-- Tray menu rendering and OS notification presentation are not directly introspected by the renderer smoke; their unchanged IPC paths were exercised without exceptions, and existing main-process behavior was not modified.
-- Tasks remain title-only and optional. Phase 4B/C1/C2 do not add attribution editing, time-of-day reconstruction, historical goal compliance, productivity scores, predictions, streaming, custom ambient imports, multiple ambient layers, crossfades, phase ducking, or sleep timers.
+## Proposed architecture
 
-## Post-v1.4 feedback implementation
+### Playback backend contract
 
-Delivered through [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) as merge commit `5bb67c6` and released in v1.4.1. Signing and notarization remain outside scope.
+Keep local playback as one backend and add provider backends behind a small capability-based contract. A provider must explicitly advertise what it supports rather than receiving fake or disabled behavior.
 
-- Implemented responsive large timer sizing in full, Queue, and Mini layouts. Queue-open timer content is reduced to time plus Start/Pause and Reset; Mini retains previous/next and seeking at 360 × 200 without overflow.
-- Implemented vertically scrollable compact Queue plus a large in-app `Show All` manager for folders with more than six tracks. Drag reorder remains; single-click selects and swaps, repeat-click or Escape cancels, double-click plays, and Shift+Enter is the keyboard play action.
-- Implemented persisted, mutually exclusive Single Track Repeat and non-repeating-cycle Shuffle modes, including shuffle history for Previous and safe reset when the queue changes.
-- Raised the bounded audio-transition maximum from 500 to 3000 ms while retaining the 200 ms default and existing cancellation/exact-mute behavior. Starting focus while music is already playing is now a no-op for music transport, avoiding a redundant fade or restart.
-- Implemented a more transparent Show-mode timer card, backdrop-click closing/focus restoration for large drawers, and Notes Delete All recreation of one empty localized `Note 1`.
-- Moved the full Queue panel to the viewport layer while expanded so `Show All` is not constrained by the player's glass/backdrop-filter containing block. Expanded the draggable header surface across the non-interactive status area.
-- Corrected the neutral tag example in `DISTRIBUTION.md`; future handoffs should update only changed feature/version/tag/commit/CI evidence and limitations.
-- User-confirmed native 1440 × 900 remains accepted. Automated smoke also covers its available 1440-wide viewport plus 720 × 520 through 1100 × 760 and Mini 420 × 250 / 360 × 200.
-- Final local verification passed 102 tests, development smoke, Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions. Both smoke paths verify the Queue viewport portal/restoration and the enlarged header drag surface.
+Suggested responsibilities:
 
-## Post-v1.4.1 library-scan optimization
+- connect, disconnect, and report authentication state;
+- report capabilities such as playlists, play, pause, next, previous, seek, volume, and current-track state;
+- list playlists and load a selected playlist when officially supported;
+- expose current playback state through polling or provider events with bounded frequency;
+- cancel stale requests so an old provider response cannot replace a newer user selection;
+- normalize provider track metadata without treating it as a local file.
 
-Delivered through [PR #29](https://github.com/ginolyu3360-code/infinite-lofi/pull/29) as merge commit `64d5380`; exact-merge [main CI `34916714525`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34916714525) passed. Package version remains 1.4.1; this is an unreleased post-v1.4.1 optimization.
+Do not force provider queues into the existing local-file persistence format. Store a lightweight provider reference, such as provider ID and playlist ID, while the provider remains authoritative for the remote playlist.
 
-- Repeat local-folder scans now index the embedded-artwork cache once instead of probing up to five possible cache files for every track. Audio files are not duplicated or persistently cached.
-- Folder scan results use latest-request-wins semantics, so an older restore/rescan cannot replace a newer folder selected by the user. The Queue reports `aria-busy` and disables Rescan while a scan is active; Load Folder remains available as an intentional override.
-- The optional artwork cache remains fail-open: an unreadable cache cannot prevent the music folder itself from loading.
-- Local acceptance passed 104 tests, syntax/style checks, development smoke, unsigned Universal packaging, `x86_64 arm64` inspection, and packaged-app smoke with no renderer exceptions.
+### Media ownership and AirPods behavior
 
-## Post-v1.4.1 Queue-render optimization
+This is the most important regression boundary:
 
-Delivered through [PR #30](https://github.com/ginolyu3360-code/infinite-lofi/pull/30) as merge commit `fb31a94`; exact-merge [main CI `34936384466`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34936384466) passed. Package version remains 1.4.1; this is another unreleased post-v1.4.1 optimization.
+- In Local mode, keep the existing native macOS media bridge and Media Session behavior.
+- In External Player Mode, Infinite Lo-Fi must unregister/clear its native Now Playing ownership and must not intercept AirPods commands. The provider app should remain the operating-system media owner.
+- If Infinite Lo-Fi remotely controls a provider through an API, avoid publishing a second competing media session unless the provider's official integration model explicitly requires it.
+- Switching back to Local mode must restore Infinite Lo-Fi ownership only when local playback is selected, without launching Apple Music or resuming stale audio.
 
-- Queue interaction now uses eight delegated listeners on the list container instead of eight listeners per row. At the supported 1,000-track maximum, this keeps the listener count at eight instead of up to 8,000.
-- Ordinary track changes and click-swap selection patch active/selected row state in place instead of rebuilding every Queue row. Full rebuilding remains limited to actual queue membership/order or language changes.
-- Single-click swap, repeat-click/Escape cancellation, double-click and Shift+Enter playback, missing-track handling, and drag reorder retain their prior behavior.
-- Development and packaged smoke launch with an explicit disposable Electron `userData` and `sessionData` profile. This closes a test-runner isolation gap where packaged startup could otherwise recover state from the installed app profile before the smoke script backed it up.
-- Local acceptance passed 107 tests, development smoke, unsigned Universal packaging, final `x86_64 arm64` inspection, and two consecutive packaged-app smoke runs from clean profiles.
+### Authentication and privacy
 
-## Post-v1.4.1 Windows x64 support
+- Use the provider's official OAuth flow in the system browser with PKCE where supported.
+- Keep refresh/access tokens out of localStorage, exported backups, logs, renderer messages, and crash text. Store secrets in the operating-system credential store through the main process.
+- Persist only non-sensitive preferences and stable provider/playlist identifiers needed to restore the UI.
+- Make network access and account connection explicit, disconnectable, and clearly described.
+- Keep the renderer sandbox and restrictive CSP. Provider network requests should use narrowly allowlisted main-process/provider modules rather than arbitrary renderer access.
+- Never ask users to paste cookies, scrape a logged-in browser, hardcode credentials, bypass DRM, or depend on an unofficial proxy/API for playback.
+- Do not download, permanently cache, export, or redistribute provider audio unless official terms explicitly allow it.
 
-Delivered through [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) as merge commit `7220844`; exact-merge [main CI `34944930190`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34944930190) passed. Package version remains 1.4.1; no tag or Release was created.
+### Timer, Queue, lyrics, and ambience behavior
 
-- Adds an assisted per-user NSIS installer and unpacked Windows x64 application, Windows CI development/packaged smoke, and multi-platform tag workflow assembly without claiming a new release.
-- Windows uses an opaque initial window, a sized tray icon, single-instance restoration, and a hidden macOS-only desktop-wallpaper action; local image/video import remains available.
-- The smoke runner uses Electron's native executable on Windows instead of the Unix npm shim. The minimized-window path restores before show/focus.
-- Local acceptance on macOS passed 111 tests, workflow YAML parsing, isolated development smoke, Windows x64 PE/ASAR inspection, current-code NSIS generation, Universal `x86_64 arm64` packaging, and isolated packaged-macOS smoke.
-- [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) initial CI `34942919532` passed macOS. Windows successfully launched the development app and exercised the smoke suite, then exposed that native window chrome reduced the tested content viewport. The follow-up keeps the full and Mini content-area minimums invariant and sizes smoke viewports by content rather than outer frame.
-- Follow-up CI `34943717149` passed both jobs. The Windows x64 runner completed 111 tests, native development smoke, unpacked packaging, and packaged-app smoke; macOS completed the equivalent checks with Universal packaging. Installer launch, install/upgrade/uninstall, tray appearance, physical media keys, display scaling, sleep/resume, and Defender/SmartScreen remain physical Windows 11 checks.
-- Docs-head CI `34944088191` passed macOS; Windows completed every UI assertion but then hit `EBUSY` while deleting the isolated Chromium profile before Electron had fully exited. The smoke runner now waits for process exit and retries transient profile locks.
-- Final PR head `3376f7d` passed CI `34944611079` on both platforms, then squash-merged as `7220844`. Exact-merge main CI `34944930190` again passed 111 tests, native development smoke, native packaging, and packaged-app smoke in both jobs.
+- Timer-triggered music actions should target only the currently selected backend and only when the user has enabled that behavior. A failed or expired provider session must not affect the timer.
+- Keep local and provider Queue concepts visibly distinct. Do not merge a remote playlist and local files into one persisted queue in the first slice.
+- The separate bundled ambient layer may continue alongside provider playback only after checking that transport commands do not accidentally pause the wrong owner. Default to preserving its current independent behavior.
+- If a provider exposes title, artist, album, and duration, the existing lyrics service may use that metadata only when the Lyrics switch is enabled. Do not send provider account IDs, playlist IDs, tokens, or audio to lyric services.
+- Provider artwork and metadata need bounded caches, clear expiry, and no secret-bearing URLs in backups.
 
-### Remaining boundary
+## Suggested implementation slices
 
-- Do not add a persistent one-to-three-track audio-file cache without measured latency or availability evidence. Local media and the OS already buffer; if a real problem appears, evaluate bounded next-track/metadata/artwork preload first and define size, invalidation, cleanup, privacy, and missing-folder behavior before a disk cache.
-- Music Inbox was removed after direct user feedback that it was unnecessary. Continue using bundled defaults plus explicitly loaded local folders; do not restore an app-owned Inbox without a new request.
-- Subjective audio quality and physical OS media-key checks remain human checks.
-- A version bump, tag, Release, signing, or notarization requires its normal separate delivery decision. The previously recorded ambient-sound/signing reminder was explicitly removed from this feedback list; signing/notarization remains only the older distribution limitation, not near-term work.
+### Slice 0 — official API feasibility report
+
+No product code. Compare the user's chosen providers using current official sources:
+
+- OAuth/developer-account requirements;
+- free versus paid subscription restrictions;
+- playlist-read permissions;
+- playback-control permissions;
+- whether starting playback requires an active device/provider app;
+- desktop/Electron playback SDK availability;
+- macOS and Windows parity;
+- rate limits, review requirements, branding rules, and commercial restrictions.
+
+Deliver a recommendation and reject providers that require cookie extraction, reverse engineering, DRM workarounds, or unstable unofficial endpoints.
+
+### Slice 1 — backend boundary and External Player Mode
+
+- Extract the existing local player behind a tested backend interface without changing behavior.
+- Add Local/External source state and UI with accessible status and error handling.
+- Implement provider deep-link/open behavior and only the officially available transport/status capabilities.
+- Release native media ownership when external mode becomes active and reacquire it safely when returning to Local mode.
+- Keep storage schema and backup migration additive and backward compatible.
+
+### Slice 2 — one provider's account and playlists
+
+- Add official OAuth connection/disconnection.
+- Browse a bounded, paginated playlist list.
+- Select a playlist and show its provider-owned tracks without copying the complete catalog into permanent app state.
+- Add token refresh, revoked-permission, offline, rate-limit, and missing-device states.
+- Make unsupported controls visibly unavailable based on reported capabilities.
+
+### Slice 3 — optional official online playback
+
+- Proceed only if Slice 0 confirms an official desktop/Electron-compatible playback path.
+- Keep DRM/licensed playback inside the provider's supported SDK or surface.
+- Define seeking, volume, fades, Repeat/Shuffle, Queue authority, media ownership, and timer behavior specifically for that provider.
+- If official embedded playback is unavailable, retain provider-owned playback instead of simulating streaming with scraped URLs.
+
+## Test and acceptance plan
+
+- Unit tests for backend capability mapping, state normalization, authentication expiry, cancellation, retry bounds, provider switching, and secret exclusion from persistence/backups.
+- Contract tests using fake providers; ordinary tests and CI must not require a real user account or contact live services.
+- Regression tests proving Local mode, AirPods/native controls, Queue, lyrics opt-in, timer actions, ambience, backup restore, and paused startup remain unchanged.
+- Development and packaged smoke tests for macOS Universal and Windows x64, including switching Local → External → Local and verifying media ownership cleanup.
+- A short manual acceptance checklist for real OAuth, real playlists, external-app/device availability, physical AirPods/media keys, account revocation, and provider-specific subscription behavior.
+
+The first provider slice is complete only when a user can connect through an official flow, select supported provider content, control or start playback through the documented provider path, disconnect cleanly, and return to local playback without Apple Music hijacking controls or exposing credentials.
+
+## Explicit non-goals for the first implementation
+
+- Supporting several providers at once.
+- Reverse-engineered QQ Music or NetEase playback endpoints, copied browser cookies, unofficial login proxies, or DRM bypasses.
+- Downloading provider tracks for offline use.
+- Combining remote and local tracks into one permanent cross-provider Queue.
+- Crossfading between local and provider-owned playback.
+- Publishing duplicate operating-system media sessions.
+- Provider-independent promises for seek, volume, Repeat, Shuffle, or playlist editing when an API does not support them.
+- Creating a version tag or Release as part of feature implementation without a separate user instruction.
+
+## Historical reference
+
+Detailed completed Phase 0–4 planning and evidence remain available in Git history, `ROADMAP.md`, `verification-log.md`, and the merged PRs. They should not be reread in full for this next feature unless a specific subsystem or historical decision needs investigation.

@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("desktopWindow", {
 contextBridge.exposeInMainWorld("desktopApp", {
   sendTrayStatus: (status) => ipcRenderer.send("app:trayStatus", status),
   getNativeMediaSessionAvailability: () => ipcRenderer.invoke("media:nativeAvailable"),
+  setNativeMediaSessionOwnership: (enabled) => ipcRenderer.invoke("media:setNativeOwnership", enabled === true),
   sendNativeMediaSessionState: (state) => ipcRenderer.send("media:updateNativeState", state),
   selectMusicFolder: () => ipcRenderer.invoke("music:selectFolder"),
   scanMusicFolder: (folderPath) => ipcRenderer.invoke("music:scanFolder", folderPath),

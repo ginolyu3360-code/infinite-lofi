@@ -202,6 +202,14 @@
     "player.swapSelected": "Track selected for position swap.",
     "player.swapCancelled": "Track position swap cancelled.",
     "player.swapComplete": "Track positions swapped.",
+    "playback.sourceLabel": "Playback source",
+    "playback.local": "Local",
+    "playback.external": "External",
+    "playback.localStatus": "Infinite Lo-Fi owns playback and system media controls.",
+    "playback.externalStatus": "Your external player owns audio and system media controls. Continue playback in that app.",
+    "playback.localAnnouncement": "Local playback selected. Infinite Lo-Fi media controls are ready and remain paused.",
+    "playback.externalAnnouncement": "External player selected. Infinite Lo-Fi released system media controls.",
+    "playback.switchError": "Could not switch playback source safely. Local playback remains selected.",
     "lyrics.toggle": "Lyrics",
     "lyrics.toggleTitle": "Show or hide synchronized lyrics",
     "lyrics.region": "Song lyrics",
@@ -692,6 +700,21 @@
   });
   Object.assign(SPANISH, {
     "lyrics.notFound":"No se encontró letra. Puede ser instrumental o no estar aún en la biblioteca.","lyrics.metadataMissing":"Faltan datos de la pista para encontrar una coincidencia fiable.","lyrics.privacy":"Si se activa y no hay letra local, los datos de la pista pueden enviarse a LRCLIB, QQ Music o lyrics.ovh. Nunca se envían el audio ni las rutas locales."
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "playback.sourceLabel":"播放来源","playback.local":"本地","playback.external":"外部","playback.localStatus":"Infinite Lo-Fi 负责播放与系统媒体控制。","playback.externalStatus":"声音与系统媒体控制现由外部播放器负责，请在该应用中继续播放。","playback.localAnnouncement":"已选择本地播放。Infinite Lo-Fi 媒体控制已恢复，并保持暂停。","playback.externalAnnouncement":"已选择外部播放器。Infinite Lo-Fi 已释放系统媒体控制。","playback.switchError":"无法安全切换播放来源，已保留本地播放。"
+  });
+  Object.assign(JAPANESE, {
+    "playback.sourceLabel":"再生ソース","playback.local":"ローカル","playback.external":"外部","playback.localStatus":"Infinite Lo-Fi が再生とシステムメディア操作を担当します。","playback.externalStatus":"音声とシステムメディア操作は外部プレーヤーが担当します。そのアプリで再生を続けてください。","playback.localAnnouncement":"ローカル再生を選択しました。Infinite Lo-Fi のメディア操作は一時停止状態で復元されました。","playback.externalAnnouncement":"外部プレーヤーを選択しました。Infinite Lo-Fi はシステムメディア操作を解放しました。","playback.switchError":"再生ソースを安全に切り替えられませんでした。ローカル再生を維持します。"
+  });
+  Object.assign(FRENCH, {
+    "playback.sourceLabel":"Source de lecture","playback.local":"Local","playback.external":"Externe","playback.localStatus":"Infinite Lo-Fi gère la lecture et les commandes multimédias du système.","playback.externalStatus":"Le lecteur externe gère le son et les commandes multimédias du système. Poursuivez la lecture dans cette application.","playback.localAnnouncement":"Lecture locale sélectionnée. Les commandes Infinite Lo-Fi sont rétablies et restent en pause.","playback.externalAnnouncement":"Lecteur externe sélectionné. Infinite Lo-Fi a libéré les commandes multimédias du système.","playback.switchError":"Impossible de changer de source en toute sécurité. La lecture locale reste sélectionnée."
+  });
+  Object.assign(KOREAN, {
+    "playback.sourceLabel":"재생 소스","playback.local":"로컬","playback.external":"외부","playback.localStatus":"Infinite Lo-Fi가 재생과 시스템 미디어 제어를 담당합니다.","playback.externalStatus":"오디오와 시스템 미디어 제어는 외부 플레이어가 담당합니다. 해당 앱에서 재생을 계속하세요.","playback.localAnnouncement":"로컬 재생을 선택했습니다. Infinite Lo-Fi 미디어 제어가 일시 정지 상태로 복원되었습니다.","playback.externalAnnouncement":"외부 플레이어를 선택했습니다. Infinite Lo-Fi가 시스템 미디어 제어를 해제했습니다.","playback.switchError":"재생 소스를 안전하게 전환하지 못했습니다. 로컬 재생을 유지합니다."
+  });
+  Object.assign(SPANISH, {
+    "playback.sourceLabel":"Fuente de reproducción","playback.local":"Local","playback.external":"Externa","playback.localStatus":"Infinite Lo-Fi controla la reproducción y los controles multimedia del sistema.","playback.externalStatus":"El reproductor externo controla el audio y los controles multimedia del sistema. Continúa la reproducción en esa aplicación.","playback.localAnnouncement":"Reproducción local seleccionada. Los controles de Infinite Lo-Fi se restauraron y siguen en pausa.","playback.externalAnnouncement":"Reproductor externo seleccionado. Infinite Lo-Fi liberó los controles multimedia del sistema.","playback.switchError":"No se pudo cambiar la fuente de forma segura. Se mantiene la reproducción local."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(

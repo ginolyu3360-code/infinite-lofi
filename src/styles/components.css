@@ -439,6 +439,10 @@ body.has-visual-background .glass-panel {
   gap: 1rem;
 }
 
+body.lyrics-enabled #mainRightColumn {
+  grid-template-rows: minmax(14rem, 1fr) auto;
+}
+
 #timerArea,
 #timerCard,
 .timer-content {
@@ -658,6 +662,62 @@ body.has-visual-background .glass-panel {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.playback-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.playback-source-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.playback-source-btn {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  font: 700 0.62rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.playback-source-btn.is-active {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.playback-source-status {
+  margin: 0;
+  color: var(--ink-muted);
+  font: 500 0.68rem/1.35 "IBM Plex Mono", ui-monospace, monospace;
+  text-align: right;
+}
+
+#playerPanel[data-playback-source="external"] .player-transport,
+#playerPanel[data-playback-source="external"] .player-control-deck {
+  opacity: 0.52;
+}
+
+@media (max-width: 620px) {
+  .playback-source-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .playback-source-status {
+    text-align: left;
+  }
 }
 
 .player-transport {
@@ -2671,6 +2731,18 @@ body.is-showcase-mode .grain-layer {
 }
 
 @media (max-height: 560px) and (min-width: 720px) {
+  #mainRightColumn {
+    grid-template-rows: minmax(10.5rem, 1fr) auto;
+  }
+
+  body.lyrics-enabled #mainRightColumn {
+    grid-template-rows: minmax(8.5rem, 1fr) auto;
+  }
+
+  .lyrics-viewport {
+    height: 4.5rem;
+  }
+
   #timerConfigPanel {
     display: none;
   }

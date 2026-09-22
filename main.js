@@ -13,6 +13,7 @@ const {
   createNativeMediaBridge,
   resolveNativeMediaBridgePath
 } = require("./src/native-media-bridge");
+const { createNativeMediaOwnershipController } = require("./src/native-media-ownership");
 
 const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
 const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
@@ -35,7 +36,7 @@ let queuePanelOpen = false;
 let fullWindowBounds = null;
 let musicLibrary = null;
 let lyricsService = null;
-let nativeMediaBridge = null;
+let nativeMediaOwnership = null;
 let grantedMusicFolders = new Set();
 let trayStatus = {
   timerText: "25:00",
@@ -64,15 +65,17 @@ function sendPowerStateToRenderer(state) {
 }
 
 function initializeNativeMediaBridge() {
-  nativeMediaBridge = createNativeMediaBridge({
-    addonPath: resolveNativeMediaBridgePath({
-      appPath: app.getAppPath(),
-      isPackaged: app.isPackaged,
-      resourcesPath: process.resourcesPath
-    }),
-    onCommand: (command) => sendCommandToRenderer({
-      ...command,
-      type: `media-${command.type}`
+  nativeMediaOwnership = createNativeMediaOwnershipController({
+    createBridge: () => createNativeMediaBridge({
+      addonPath: resolveNativeMediaBridgePath({
+        appPath: app.getAppPath(),
+        isPackaged: app.isPackaged,
+        resourcesPath: process.resourcesPath
+      }),
+      onCommand: (command) => sendCommandToRenderer({
+        ...command,
+        type: `media-${command.type}`
+      })
     })
   });
 }
@@ -316,12 +319,19 @@ ipcMain.on("app:trayStatus", (_event, status) => {
 });
 
 ipcMain.handle("media:nativeAvailable", (event) => {
-  return isTrustedIpcSender(event) && nativeMediaBridge?.isAvailable() === true;
+  return isTrustedIpcSender(event) && nativeMediaOwnership?.isAvailable() === true;
+});
+
+ipcMain.handle("media:setNativeOwnership", (event, enabled) => {
+  if (!isTrustedIpcSender(event) || !nativeMediaOwnership) return false;
+  return enabled === true
+    ? nativeMediaOwnership.acquire()
+    : nativeMediaOwnership.release();
 });
 
 ipcMain.on("media:updateNativeState", (event, state) => {
-  if (!isTrustedIpcSender(event) || nativeMediaBridge?.isAvailable() !== true) return;
-  nativeMediaBridge.update(state);
+  if (!isTrustedIpcSender(event) || nativeMediaOwnership?.isAvailable() !== true) return;
+  nativeMediaOwnership.update(state);
 });
 
 // Local music folder selection and scanning
@@ -519,6 +529,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
-  nativeMediaBridge?.destroy();
-  nativeMediaBridge = null;
+  nativeMediaOwnership?.destroy();
+  nativeMediaOwnership = null;
 });

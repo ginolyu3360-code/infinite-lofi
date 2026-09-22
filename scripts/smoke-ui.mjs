@@ -1143,6 +1143,58 @@ try {
     return result;
   })()`);
 
+  const playbackSourceResult = await evaluate(`(async () => {
+    const player = document.querySelector('#lofiPlayer');
+    const localButton = document.querySelector('#localPlaybackSourceBtn');
+    const externalButton = document.querySelector('#externalPlaybackSourceBtn');
+    externalButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'external' && !externalButton.disabled) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    const externalState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const external = {
+      saved: externalState.player.sourceMode,
+      playerPaused: player.paused,
+      panelMode: document.querySelector('#playerPanel').dataset.playbackSource,
+      externalPressed: externalButton.getAttribute('aria-pressed'),
+      localPressed: localButton.getAttribute('aria-pressed'),
+      localControlsDisabled: [
+        '#playPauseBtn', '#prevTrackBtn', '#nextTrackBtn', '#repeatModeBtn',
+        '#shuffleModeBtn', '#progressSlider', '#volumeSlider', '#playlistToggleBtn',
+        '#lyricsToggleBtn'
+      ].every((selector) => document.querySelector(selector).disabled),
+      nativeOwned: await window.desktopApp?.getNativeMediaSessionAvailability?.(),
+      browserTitle: navigator.mediaSession?.metadata?.title || '',
+      browserState: navigator.mediaSession?.playbackState || 'none'
+    };
+
+    localButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'local' && !localButton.disabled) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    const localState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const local = {
+      saved: localState.player.sourceMode,
+      playerPaused: player.paused,
+      panelMode: document.querySelector('#playerPanel').dataset.playbackSource,
+      localPressed: localButton.getAttribute('aria-pressed'),
+      externalPressed: externalButton.getAttribute('aria-pressed'),
+      controlsEnabled: ['#playPauseBtn', '#prevTrackBtn', '#nextTrackBtn'].every(
+        (selector) => !document.querySelector(selector).disabled
+      ),
+      sourceButtonHeight: Math.min(
+        localButton.getBoundingClientRect().height,
+        externalButton.getBoundingClientRect().height
+      ),
+      nativeOwned: await window.desktopApp?.getNativeMediaSessionAvailability?.()
+    };
+    return { external, local };
+  })()`);
+
   await setWindowSize(720, 520);
   const lyricsResult = await evaluate(`(async () => {
     const toggle = document.querySelector('#lyricsToggleBtn');
@@ -1696,6 +1748,25 @@ try {
     (expectsNativeMedia && (playerResult.mediaSessionTitle || playerResult.mediaPlaybackState !== 'none'))
   ) failures.push("playlist persistence or native media session failed");
   if (
+    playbackSourceResult.external.saved !== 'external' ||
+    !playbackSourceResult.external.playerPaused ||
+    playbackSourceResult.external.panelMode !== 'external' ||
+    playbackSourceResult.external.externalPressed !== 'true' ||
+    playbackSourceResult.external.localPressed !== 'false' ||
+    !playbackSourceResult.external.localControlsDisabled ||
+    playbackSourceResult.external.nativeOwned === true ||
+    playbackSourceResult.external.browserTitle ||
+    playbackSourceResult.external.browserState !== 'none' ||
+    playbackSourceResult.local.saved !== 'local' ||
+    !playbackSourceResult.local.playerPaused ||
+    playbackSourceResult.local.panelMode !== 'local' ||
+    playbackSourceResult.local.localPressed !== 'true' ||
+    playbackSourceResult.local.externalPressed !== 'false' ||
+    !playbackSourceResult.local.controlsEnabled ||
+    playbackSourceResult.local.sourceButtonHeight < 42 ||
+    playbackSourceResult.local.nativeOwned !== expectsNativeMedia
+  ) failures.push("Local/External playback ownership switching failed");
+  if (
     !lyricsResult.initial.hidden || lyricsResult.initial.pressed !== 'false' || lyricsResult.initial.expanded !== 'false' ||
     lyricsResult.enabled.hidden || lyricsResult.enabled.pressed !== 'true' || lyricsResult.enabled.expanded !== 'true' ||
     !lyricsResult.enabled.bodyClass || lyricsResult.enabled.saved !== true ||
@@ -1746,7 +1817,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

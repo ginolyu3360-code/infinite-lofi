@@ -22,6 +22,7 @@
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
 - 音乐播放器：内置示例曲目、本地文件夹异步扫描与自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放
+- Local / External 播放来源切换：External 模式会暂停内置播放器并释放系统媒体键，不会自动启动或控制第三方应用；第三方服务的官方接入可行性见 `docs/third-party-music-feasibility.md`
 - 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时依次使用 LRCLIB、QQ 音乐与 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
@@ -60,6 +61,7 @@ package.json            # 脚本、依赖、打包配置
 tailwind.config.js
 verification-log.md
 HANDOFF.md             # 新会话接续说明、验证结果与下一步边界
+docs/third-party-music-feasibility.md # Apple Music、Spotify、QQ 音乐、网易云音乐官方接入调研
 UI-REFRESH-PLAN.md     # Phase 3 前 UI 基础改版的决策、规则与验收标准
 .github/workflows/ci.yml # GitHub Actions 检查与 macOS/Windows 打包验证
 .github/workflows/release.yml # 标签触发的多平台 Release 自动发布
@@ -82,6 +84,8 @@ src/
   ├─ notes-controller.js # 笔记 DOM 与持久化控制器
   ├─ player.js          # 播放列表恢复模型
   ├─ media-session.js   # 系统媒体信息、播放键与定位控制
+  ├─ playback-backends.js # provider-neutral 播放后端能力契约
+  ├─ native-media-ownership.js # 本地/外部模式的原生媒体键所有权
   ├─ player-controller.js # 播放器 DOM 与目录恢复控制器
   ├─ backgrounds.js     # 背景设置模型
   ├─ stats.js           # 统计范围与汇总模型
@@ -186,6 +190,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - Phase 4B Focus Review 已完成于源码：Stats 明确使用今天、最近 7 天和最近 30 天滚动范围，按稳定任务 ID 汇总账本时间，并分别标识已删除任务、仅快照与未指定记录；界面同时解释零基线、取整、导入数据及保留边界。
 - Phase 4C1 Ambient Layer 已完成于源码：Scene 提供三种原创 MIT 离线环境音，可与音乐独立控制且同一时间最多播放一种；选择与独立音量保存在 schema v5，但启动、恢复和异常恢复后始终暂停。
 - Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 3000 ms 的音乐与环境声淡入淡出；默认仍为 200 ms，用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
+- 第三方音乐基础已完成于源码：Local / External 模式会持久化；切到 External 会暂停本地音乐并注销本应用的系统媒体命令，切回 Local 也不会自动播放。当前未加入任何需要账号、密钥、合作资质或有争议非官方接口的服务。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
@@ -237,6 +242,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
 - Music player with bundled tracks, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
+- Persistent Local / External playback-source switching. External mode pauses the built-in player and releases system media keys without launching or controlling another app; see `docs/third-party-music-feasibility.md` for the official-provider feasibility review
 - Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then ranks guarded results from LRCLIB, QQ Music, and lyrics.ovh with silent local caching; audio data and local paths are never uploaded
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
@@ -265,6 +271,7 @@ See the Chinese section above for a full tree. Key runtime files:
 - package.json — scripts, dependencies, and build settings
 - src/ — renderer orchestration, independently testable feature models, and styles
 - src/storage.js — versioned state, legacy migration, and backup validation
+- src/playback-backends.js and src/native-media-ownership.js — provider-neutral capabilities and native media-key ownership switching
 - Feature modules and controllers under src/ separate timer, tasks, atomic focus-session persistence, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
 - scripts/build-macos-media-bridge.mjs — Intel/Apple Silicon native-media build orchestration

@@ -19,8 +19,12 @@
     typeof module !== "undefined" && module.exports
       ? require("./audio-transition")
       : globalScope.InfiniteLofiAudioTransition;
+  const playbackBackends =
+    typeof module !== "undefined" && module.exports
+      ? require("./playback-backends")
+      : globalScope.InfiniteLofiPlaybackBackends;
 
-  if (!core || !tasks || !i18n || !ambience || !audioTransition) {
+  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends) {
     throw new Error("Infinite Lo-Fi core, task, language, and audio helpers are required by storage");
   }
 
@@ -170,6 +174,7 @@
         focusRows: []
       },
       player: {
+        sourceMode: "local",
         folderPath: "",
         queue: [],
         activeTrackKey: "",
@@ -221,6 +226,7 @@
       : migrateLegacyPlayer(playerSource);
     const normalizedPlayer = {
       ...normalizedPlayerBase,
+      sourceMode: playbackBackends.normalizePlaybackSourceMode(playerSource.sourceMode),
       playbackMode: ["sequential", "repeat-one", "shuffle"].includes(playerSource.playbackMode)
         ? playerSource.playbackMode
         : "sequential",

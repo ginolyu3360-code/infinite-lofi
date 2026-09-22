@@ -210,6 +210,7 @@ test("normalizes unsupported display languages without changing schema v5", () =
 
 test("adds and preserves additive schema v5 ambience preferences", () => {
   const defaults = createDefaultState(4200);
+  assert.equal(defaults.player.sourceMode, "local");
   assert.deepEqual(defaults.player.ambience, { soundId: null, volume: 0.35 });
   assert.deepEqual(defaults.player.audioTransitions, { enabled: false, durationMs: 200 });
 
@@ -229,6 +230,22 @@ test("adds and preserves additive schema v5 ambience preferences", () => {
     enabled: true,
     durationMs: 900
   });
+});
+
+test("persists only the supported local or external playback source mode", () => {
+  const state = createDefaultState(4250);
+  state.player.sourceMode = "external";
+  assert.equal(normalizeState(state, 4251).player.sourceMode, "external");
+
+  state.player.sourceMode = "spotify";
+  assert.equal(normalizeState(state, 4252).player.sourceMode, "local");
+
+  const backup = {
+    format: BACKUP_FORMAT,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    state: { ...state, player: { ...state.player, sourceMode: "external" } }
+  };
+  assert.equal(importBackup(backup, 4253).player.sourceMode, "external");
 });
 
 test("round-trips ambience preferences through backups without autoplay state", () => {
@@ -316,6 +333,7 @@ test("imports old backups and rejects unrelated or newer files", () => {
       { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true }
     ],
     activeTrackKey: "local:two.mp3",
+    sourceMode: "local",
     playbackMode: "sequential",
     ambience: { soundId: null, volume: 0.35 },
     audioTransitions: { enabled: false, durationMs: 200 }
