@@ -210,6 +210,117 @@ test("marks video queue entries and reports browser playback failures", async ()
   assert.equal(playbackErrors[0].error, decodeError);
 });
 
+test("prepares proxy-first video only on play and continues from the cached WebM", async () => {
+  const preparations = [];
+  const progress = [];
+  const videoTrack = {
+    key: "local:focus.mkv",
+    label: "Focus video",
+    relativePath: "focus.mkv",
+    src: "/Focus/focus.mkv",
+    srcUrl: "file:///Focus/focus.mkv",
+    isLocal: true,
+    mediaKind: "video"
+  };
+  const desktopApp = {
+    cancelVideoProxy: async () => true,
+    onVideoProxyProgress: () => () => {},
+    prepareVideoProxy: async (filePath, jobId) => {
+      preparations.push({ filePath, jobId });
+      return { fileUrl: "file:///cache/focus.webm", cacheHit: true };
+    }
+  };
+  const { controller, elements, getPlayCount } = createHarness({ folderPath: "", queue: [], activeTrackKey: "" }, desktopApp, {
+    defaultTracks: [videoTrack],
+    onVideoPreparation: (event) => progress.push(event)
+  });
+  await controller.restorePersistedPlayer();
+  assert.equal(preparations.length, 0);
+  assert.equal(await controller.play(), true);
+  assert.equal(preparations.length, 1);
+  assert.equal(preparations[0].filePath, "/Focus/focus.mkv");
+  assert.equal(elements.lofiPlayer.src, "file:///cache/focus.webm");
+  assert.equal(getPlayCount(), 1);
+  assert.ok(progress.some((event) => event.status === "complete" && event.cacheHit === true));
+});
+
+test("falls back from a native-first decode failure to a compatible proxy", async () => {
+  const errors = [];
+  const videoTrack = {
+    key: "local:focus.mov", label: "Focus", relativePath: "focus.mov",
+    src: "/Focus/focus.mov", srcUrl: "file:///Focus/focus.mov", isLocal: true, mediaKind: "video"
+  };
+  const desktopApp = {
+    cancelVideoProxy: async () => true,
+    onVideoProxyProgress: () => () => {},
+    prepareVideoProxy: async () => ({ fileUrl: "file:///cache/focus.webm", cacheHit: false })
+  };
+  const { controller, elements } = createHarness({ folderPath: "", queue: [], activeTrackKey: "" }, desktopApp, {
+    defaultTracks: [videoTrack],
+    onPlaybackError: (_track, error) => errors.push(error)
+  });
+  await controller.restorePersistedPlayer();
+  elements.lofiPlayer.play = () => {
+    if (elements.lofiPlayer.src.endsWith("focus.mov")) return Promise.reject(new Error("decode failed"));
+    elements.lofiPlayer.paused = false;
+    return Promise.resolve();
+  };
+  assert.equal(await controller.play(), true);
+  assert.equal(elements.lofiPlayer.src, "file:///cache/focus.webm");
+  assert.equal(errors.length, 0);
+});
+
+test("switching tracks cancels conversion and ignores stale playback intent", async () => {
+  let resolvePreparation;
+  let cancellations = 0;
+  const desktopApp = {
+    cancelVideoProxy: async () => { cancellations += 1; return true; },
+    onVideoProxyProgress: () => () => {},
+    prepareVideoProxy: () => new Promise((resolve) => { resolvePreparation = resolve; })
+  };
+  const { controller, elements, getPlayCount } = createHarness({ folderPath: "", queue: [], activeTrackKey: "" }, desktopApp, {
+    defaultTracks: [
+      { key: "local:a.avi", label: "A", relativePath: "a.avi", src: "/Focus/a.avi", srcUrl: "file:///Focus/a.avi", isLocal: true, mediaKind: "video" },
+      { key: "local:b.mp3", label: "B", relativePath: "b.mp3", src: "/Focus/b.mp3", srcUrl: "file:///Focus/b.mp3", isLocal: true, mediaKind: "audio" }
+    ]
+  });
+  await controller.restorePersistedPlayer();
+  const originalPlay = controller.play();
+  await Promise.resolve();
+  await controller.switchTrack();
+  resolvePreparation({ fileUrl: "file:///cache/a.webm", cacheHit: false });
+  assert.equal(await originalPlay, false);
+  assert.equal(elements.lofiPlayer.src, "file:///Focus/b.mp3");
+  assert.equal(getPlayCount(), 1);
+  assert.ok(cancellations >= 1);
+});
+
+test("cancelling video preparation stops the play intent without showing a playback error", async () => {
+  let rejectPreparation;
+  const playbackErrors = [];
+  const desktopApp = {
+    cancelVideoProxy: async () => {
+      rejectPreparation?.(Object.assign(new Error("cancelled"), { code: "cancelled" }));
+      return true;
+    },
+    onVideoProxyProgress: () => () => {},
+    prepareVideoProxy: () => new Promise((_resolve, reject) => { rejectPreparation = reject; })
+  };
+  const { controller, elements } = createHarness({ folderPath: "", queue: [], activeTrackKey: "" }, desktopApp, {
+    defaultTracks: [
+      { key: "local:a.avi", label: "A", relativePath: "a.avi", src: "/Focus/a.avi", srcUrl: "file:///Focus/a.avi", isLocal: true, mediaKind: "video" }
+    ],
+    onPlaybackError: (_track, error) => playbackErrors.push(error)
+  });
+  await controller.restorePersistedPlayer();
+  const playResult = controller.play();
+  await Promise.resolve();
+  controller.cancelVideoPreparation("user-cancelled");
+  assert.equal(await playResult, false);
+  assert.equal(elements.playPauseBtn.textContent, "Play");
+  assert.equal(playbackErrors.length, 0);
+});
+
 test("playlist persistence preserves ambient player preferences", () => {
   const { controller, getState } = createHarness({
     folderPath: "",

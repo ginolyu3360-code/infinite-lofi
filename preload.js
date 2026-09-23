@@ -13,6 +13,19 @@ contextBridge.exposeInMainWorld("desktopApp", {
   sendNativeMediaSessionState: (state) => ipcRenderer.send("media:updateNativeState", state),
   selectMusicFolder: () => ipcRenderer.invoke("music:selectFolder"),
   scanMusicFolder: (folderPath) => ipcRenderer.invoke("music:scanFolder", folderPath),
+  selectReaderFolder: () => ipcRenderer.invoke("reader:selectFolder"),
+  scanReaderFolder: (source, folderPath) => ipcRenderer.invoke("reader:scanFolder", source, folderPath),
+  readReaderDocument: (source, documentKey) => ipcRenderer.invoke("reader:read", source, documentKey),
+  openExternalUrl: (url) => ipcRenderer.invoke("app:openExternal", url),
+  prepareVideoProxy: (filePath, jobId) => ipcRenderer.invoke("video:prepareProxy", { filePath, jobId }),
+  cancelVideoProxy: () => ipcRenderer.invoke("video:cancelProxy"),
+  clearVideoProxyCache: () => ipcRenderer.invoke("video:clearProxyCache"),
+  onVideoProxyProgress: (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on("video:proxyProgress", listener);
+    return () => ipcRenderer.removeListener("video:proxyProgress", listener);
+  },
   getLyrics: (track, options) => ipcRenderer.invoke("lyrics:get", track, options),
   selectBackgroundImage: () => ipcRenderer.invoke("background:selectImage"),
   selectBackgroundVideo: () => ipcRenderer.invoke("background:selectVideo"),

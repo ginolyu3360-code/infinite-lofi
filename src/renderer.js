@@ -32,6 +32,9 @@ if (!window.InfiniteLofiPlaybackBackends) {
 if (!window.InfiniteLofiLocalMedia) {
   throw new Error("Infinite Lo-Fi local media helpers failed to load");
 }
+if (!window.InfiniteLofiReader || !window.InfiniteLofiReaderController) {
+  throw new Error("Infinite Lo-Fi Reader helpers failed to load");
+}
 if (!window.InfiniteLofiI18n) {
   throw new Error("Infinite Lo-Fi language helpers failed to load");
 }
@@ -146,6 +149,30 @@ const playbackSourceStatus = document.getElementById("playbackSourceStatus");
 const videoDisplayControl = document.getElementById("videoDisplayControl");
 const videoBackgroundToggle = document.getElementById("videoBackgroundToggle");
 const mediaPlaybackStatus = document.getElementById("mediaPlaybackStatus");
+const videoPreparationCancelBtn = document.getElementById("videoPreparationCancelBtn");
+const clearVideoCacheBtn = document.getElementById("clearVideoCacheBtn");
+const readerToggleBtn = document.getElementById("readerToggleBtn");
+const readerOverlay = document.getElementById("readerOverlay");
+const readerSidebarToggle = document.getElementById("readerSidebarToggle");
+const readerCloseBtn = document.getElementById("readerCloseBtn");
+const readerDocumentFilter = document.getElementById("readerDocumentFilter");
+const readerChooseFolderBtn = document.getElementById("readerChooseFolderBtn");
+const readerRefreshBtn = document.getElementById("readerRefreshBtn");
+const readerLibraryStatus = document.getElementById("readerLibraryStatus");
+const readerMediaDocuments = document.getElementById("readerMediaDocuments");
+const readerFolderDocuments = document.getElementById("readerFolderDocuments");
+const readerFindInput = document.getElementById("readerFindInput");
+const readerFindNextBtn = document.getElementById("readerFindNextBtn");
+const readerFontScale = document.getElementById("readerFontScale");
+const readerLineWidth = document.getElementById("readerLineWidth");
+const readerTheme = document.getElementById("readerTheme");
+const readerDocumentViewport = document.getElementById("readerDocumentViewport");
+const readerDocumentContent = document.getElementById("readerDocumentContent");
+const readerTimerLabel = document.getElementById("readerTimerLabel");
+const readerTimerToggle = document.getElementById("readerTimerToggle");
+const readerPreviousTrack = document.getElementById("readerPreviousTrack");
+const readerPlaybackToggle = document.getElementById("readerPlaybackToggle");
+const readerNextTrack = document.getElementById("readerNextTrack");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const nextTrackBtn = document.getElementById("nextTrackBtn");
 const prevTrackBtn = document.getElementById("prevTrackBtn");
@@ -329,6 +356,8 @@ let playbackSourceMode = normalizePlaybackSourceMode(appStorage.getState().playe
 let playbackSourceSwitching = false;
 let videoDisplayMode = normalizeVideoDisplayMode(appStorage.getState().player?.videoDisplayMode);
 let localMediaPlaybackError = false;
+let videoPreparationState = { status: "idle", percent: 0 };
+let readerController = null;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -407,10 +436,19 @@ const playerController = createPlayerController({
     applyBackground();
     announceStatus(t("player.mediaPlaybackError"));
   },
+  onVideoPreparation: (progress) => {
+    videoPreparationState = progress || { status: "idle", percent: 0 };
+    if (progress?.status === "preparing") localMediaPlaybackError = false;
+    if (progress?.status === "error") localMediaPlaybackError = true;
+    renderLocalVideoUi();
+  },
   onLayoutChange: ({ queueOpen } = {}) => {
     requestAnimationFrame(adjustTimerFont);
     const resizeRequest = window.desktopWindow?.setQueueOpen?.(queueOpen === true);
     resizeRequest?.catch?.((error) => console.warn("Window Queue layout update failed:", error));
+  },
+  onFolderChange: () => {
+    if (readerController?.isOpen()) readerController.refresh();
   },
   getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
@@ -418,6 +456,8 @@ const playerController = createPlayerController({
   t
 });
 const {
+  cancelVideoPreparation,
+  getLocalMusicFolder,
   getUserVolume: getMusicUserVolume,
   handleTrackEnded,
   loadMusicFolder,
@@ -441,6 +481,37 @@ const {
   updateVolume,
   useDefaultTracks
 } = playerController;
+
+readerController = window.InfiniteLofiReaderController.createReaderController({
+  appStorage,
+  desktopApp: window.desktopApp,
+  focusManager,
+  getMediaFolder: getLocalMusicFolder,
+  isMiniMode: () => miniModeEnabled,
+  announce: announceStatus,
+  t,
+  elements: {
+    document,
+    toggle: readerToggleBtn,
+    overlay: readerOverlay,
+    sidebarToggle: readerSidebarToggle,
+    close: readerCloseBtn,
+    filter: readerDocumentFilter,
+    chooseFolder: readerChooseFolderBtn,
+    refresh: readerRefreshBtn,
+    status: readerLibraryStatus,
+    mediaDocuments: readerMediaDocuments,
+    readerDocuments: readerFolderDocuments,
+    find: readerFindInput,
+    findNext: readerFindNextBtn,
+    fontScale: readerFontScale,
+    lineWidth: readerLineWidth,
+    theme: readerTheme,
+    viewport: readerDocumentViewport,
+    content: readerDocumentContent,
+    timerLabel: readerTimerLabel
+  }
+});
 
 const ambienceController = createAmbienceController({
   appStorage,
@@ -483,7 +554,10 @@ const localPlaybackBackend = createPlaybackBackend({
     mediaSessionController.acquireOwnership();
     return true;
   },
-  deactivate: () => pauseMusic()
+  deactivate() {
+    cancelVideoPreparation("external-mode");
+    return pauseMusic();
+  }
 });
 
 const externalPlaybackBackend = createPlaybackBackend({
@@ -518,9 +592,13 @@ function renderLocalVideoUi() {
     videoBackgroundToggle.disabled = !showControl || playbackSourceSwitching;
   }
   if (mediaPlaybackStatus) {
+    const preparing = playbackSourceMode === "local" && currentTrackIsVideo() && videoPreparationState.status === "preparing";
     const showError = playbackSourceMode === "local" && currentTrackIsVideo() && localMediaPlaybackError;
-    mediaPlaybackStatus.hidden = !showError;
-    mediaPlaybackStatus.textContent = showError ? t("player.mediaPlaybackError") : "";
+    mediaPlaybackStatus.hidden = !showError && !preparing;
+    mediaPlaybackStatus.textContent = preparing
+      ? t("player.videoPreparing", { percent: Math.max(0, Math.min(99, Number(videoPreparationState.percent) || 0)) })
+      : showError ? t("player.mediaPlaybackError") : "";
+    if (videoPreparationCancelBtn) videoPreparationCancelBtn.hidden = !preparing;
   }
 }
 
@@ -1519,6 +1597,7 @@ function setTimerInputsLocked(locked) {
 
 function renderTimer() {
   timerDisplay.textContent = formatTime(remainingSeconds);
+  readerController?.setTimerText(formatTime(remainingSeconds));
   timerPhaseLabel.textContent = titleForTimerPhase(timerPhase);
   const today = getLocalDayKey(new Date());
   const goal = timerGoalSummary?.day === today
@@ -1646,6 +1725,7 @@ async function toggleMiniMode(forceEnabled) {
   const nextEnabled = typeof forceEnabled === "boolean" ? forceEnabled : !miniModeEnabled;
   if (!window.desktopWindow || typeof window.desktopWindow.setMiniMode !== "function") return;
   if (nextEnabled) {
+    readerController?.close();
     toggleStatsPanel(false);
     toggleBackgroundDrawer(false);
     toggleFocusPlanDrawer(false);
@@ -1991,6 +2071,19 @@ function bindWindowControls() {
   }
   shortcutHelpBtn?.addEventListener("click", () => toggleShortcutHelp(true));
   miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
+  readerTimerToggle?.addEventListener("click", toggleTimer);
+  readerPreviousTrack?.addEventListener("click", previousSelectedSource);
+  readerPlaybackToggle?.addEventListener("click", toggleSelectedSource);
+  readerNextTrack?.addEventListener("click", nextSelectedSource);
+  videoPreparationCancelBtn?.addEventListener("click", () => {
+    cancelVideoPreparation("user-cancelled");
+    videoPreparationState = { status: "idle", percent: 0 };
+    renderLocalVideoUi();
+  });
+  clearVideoCacheBtn?.addEventListener("click", async () => {
+    const cleared = await window.desktopApp?.clearVideoProxyCache?.();
+    if (cleared) announceStatus(t("player.videoCacheCleared"));
+  });
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
   notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
   drawerBackdrop?.addEventListener("click", () => toggleNotesPanel(false));
@@ -2092,6 +2185,7 @@ async function init() {
     force: true
   });
   tasksController.bindEvents();
+  readerController.bindEvents();
   ambienceController.bindEvents();
   audioTransitionsEnabled.addEventListener("change", () => {
     saveAudioTransitionSettings({

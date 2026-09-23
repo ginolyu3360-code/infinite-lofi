@@ -218,16 +218,16 @@ test("scans supported video files without deduplicating them against audio", asy
 
   const library = createMusicLibrary({
     artworkCacheDirectory: path.join(root, "cache"),
-    parseFile: async () => ({
-      common: { title: "Focus", artist: "Example Artist" },
+    parseFile: async (filePath) => ({
+      common: { title: path.basename(filePath, path.extname(filePath)), artist: "Example Artist" },
       format: { duration: 60 }
     })
   });
   const tracks = await library.scanFolder(root);
 
-  assert.equal(tracks.length, 2);
+  assert.equal(tracks.length, 3);
   assert.equal(tracks.duplicateCount, 0);
-  assert.deepEqual(tracks.map((track) => track.mediaKind).sort(), ["audio", "video"]);
+  assert.deepEqual(tracks.map((track) => track.mediaKind).sort(), ["audio", "video", "video"]);
   assert.ok(tracks.some((track) => track.relativePath === "Focus.webm"));
-  assert.ok(!tracks.some((track) => track.relativePath === "Ignored.mkv"));
+  assert.ok(tracks.some((track) => track.relativePath === "Ignored.mkv"));
 });

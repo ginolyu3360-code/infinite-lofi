@@ -278,12 +278,18 @@ test("keeps missing queue entries recoverable and skips them during playback", (
   assert.equal(findActiveTrackIndex(restored, "local:missing.mp3"), 0);
   assert.equal(findAdjacentPlayableIndex(restored, 0, 1), 2);
   assert.equal(findAdjacentPlayableIndex(restored, 2, -1), 0);
-  assert.deepEqual(createQueueSnapshot(restored), savedQueue.concat({
+  assert.deepEqual(createQueueSnapshot(restored), savedQueue.map((track) => ({
+    ...track,
+    sourceFormat: track.relativePath.endsWith(".mp4") ? ".mp4" : ".mp3",
+    proxyPolicy: track.relativePath.endsWith(".mp4") ? "native-first" : null
+  })).concat({
     key: "local:new.mp3",
     label: "New",
     relativePath: "",
     isLocal: true,
-    mediaKind: "audio"
+    mediaKind: "audio",
+    sourceFormat: ".mp3",
+    proxyPolicy: null
   }));
 });
 

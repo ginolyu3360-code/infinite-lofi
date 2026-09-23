@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  getVideoPlaybackPolicy,
   inferMediaKind,
   isSupportedMediaFile,
   normalizeMediaKind,
@@ -14,9 +15,20 @@ test("classifies the bounded local audio and video formats", () => {
   assert.equal(inferMediaKind("Focus.mp4"), "video");
   assert.equal(inferMediaKind("Focus.m4v"), "video");
   assert.equal(inferMediaKind("Focus.webm"), "video");
-  assert.equal(inferMediaKind("Focus.mkv"), null);
+  for (const fileName of ["Focus.mov", "Focus.ogv", "Focus.mkv", "Focus.avi", "Focus.wmv", "Focus.flv", "Focus.f4v", "Focus.mpg", "Focus.mpeg", "Focus.ts", "Focus.mts", "Focus.m2ts", "Focus.3gp", "Focus.3g2"]) {
+    assert.equal(inferMediaKind(fileName), "video", fileName);
+  }
   assert.equal(isSupportedMediaFile("Focus.webm"), true);
   assert.equal(isSupportedMediaFile("Focus.txt"), false);
+});
+
+test("classifies native-first and proxy-first video playback", () => {
+  assert.equal(getVideoPlaybackPolicy("movie.mp4"), "native-first");
+  assert.equal(getVideoPlaybackPolicy("movie.MOV"), "native-first");
+  assert.equal(getVideoPlaybackPolicy("movie.ogv"), "native-first");
+  assert.equal(getVideoPlaybackPolicy("movie.mkv"), "proxy-first");
+  assert.equal(getVideoPlaybackPolicy("movie.m2ts"), "proxy-first");
+  assert.equal(getVideoPlaybackPolicy("track.mp3"), null);
 });
 
 test("normalizes media and video-display state without inventing values", () => {

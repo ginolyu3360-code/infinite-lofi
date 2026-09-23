@@ -27,8 +27,12 @@
     typeof module !== "undefined" && module.exports
       ? require("./local-media")
       : globalScope.InfiniteLofiLocalMedia;
+  const reader =
+    typeof module !== "undefined" && module.exports
+      ? require("./reader")
+      : globalScope.InfiniteLofiReader;
 
-  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends || !localMedia) {
+  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends || !localMedia || !reader) {
     throw new Error("Infinite Lo-Fi core, task, language, and audio helpers are required by storage");
   }
 
@@ -127,7 +131,9 @@
         mediaKind: localMedia.normalizeMediaKind(
           entry.mediaKind,
           entry.relativePath || entry.key
-        )
+        ),
+        sourceFormat: localMedia.extensionFromPath(entry.relativePath || entry.key),
+        proxyPolicy: localMedia.getVideoPlaybackPolicy(entry.relativePath || entry.key)
       });
     }
     return result;
@@ -144,7 +150,9 @@
         label: labelFromFileName(legacyKey),
         relativePath,
         isLocal,
-        mediaKind: localMedia.normalizeMediaKind(null, relativePath || legacyKey)
+        mediaKind: localMedia.normalizeMediaKind(null, relativePath || legacyKey),
+        sourceFormat: localMedia.extensionFromPath(relativePath || legacyKey),
+        proxyPolicy: localMedia.getVideoPlaybackPolicy(relativePath || legacyKey)
       };
     }).filter((entry) => entry.key !== "local:");
     const activeLegacyKey = normalizeString(playerSource.activeTrackSrc, 8192);
@@ -199,7 +207,8 @@
         deadlineMs: null,
         isRunning: false,
         focusSession: null
-      }
+      },
+      reader: reader.normalizeReaderState()
     };
   }
 
@@ -322,6 +331,7 @@
         focusRows: core.aggregateFocusRows(focusSessions).slice(-core.MAX_FOCUS_HISTORY_DAYS)
       },
       player: normalizedPlayer,
+      reader: reader.normalizeReaderState(source.reader),
       timerRuntime: {
         phase: runtimePhase,
         completedFocusesInCycle: runtimePhase === "longBreak"

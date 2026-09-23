@@ -43,7 +43,9 @@
       mediaKind: localMedia.normalizeMediaKind(
         track.mediaKind,
         relativePath || track.src || track.srcUrl || key
-      )
+      ),
+      sourceFormat: localMedia.extensionFromPath(relativePath || track.src || track.srcUrl || key),
+      proxyPolicy: localMedia.getVideoPlaybackPolicy(relativePath || track.src || track.srcUrl || key)
     };
   }
 

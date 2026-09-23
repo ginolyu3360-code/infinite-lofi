@@ -103,8 +103,8 @@ test("normalizes versioned state and rejects unsafe values", () => {
   assert.equal(state.notes.activeId, "a");
   assert.deepEqual(state.stats.focusRows, []);
   assert.deepEqual(state.player.queue, [
-    { key: "one", label: "one", relativePath: "", isLocal: false, mediaKind: "audio" },
-    { key: "two", label: "two", relativePath: "", isLocal: false, mediaKind: "audio" }
+    { key: "one", label: "one", relativePath: "", isLocal: false, mediaKind: "audio", sourceFormat: "", proxyPolicy: null },
+    { key: "two", label: "two", relativePath: "", isLocal: false, mediaKind: "audio", sourceFormat: "", proxyPolicy: null }
   ]);
   assert.equal(state.timerRuntime.isRunning, false);
 });
@@ -249,6 +249,34 @@ test("normalizes local video display and queue media types in schema v5", () => 
   assert.equal(normalizeState(state, 4227).player.videoDisplayMode, "audio-only");
 });
 
+test("adds bounded optional Reader state to schema v5 backups", () => {
+  const state = createDefaultState(4230);
+  state.reader = {
+    folderPath: "/Books",
+    lastDocumentKey: "reader:chapter-1",
+    fontScale: 170,
+    lineWidth: "wide",
+    theme: "paper",
+    sidebarOpen: false,
+    scrollPositions: { "reader:chapter-1": 0.42 }
+  };
+  const backup = createRepository(createMemoryStorage(), () => 4231);
+  backup.update((draft) => { draft.reader = state.reader; });
+  const restored = importBackup(backup.exportBackup("2026-09-23T00:00:00.000Z"), 4232);
+  assert.deepEqual(restored.reader, {
+    folderPath: "/Books",
+    lastDocumentKey: "reader:chapter-1",
+    fontScale: 160,
+    lineWidth: "wide",
+    theme: "paper",
+    sidebarOpen: false,
+    scrollPositions: { "reader:chapter-1": 0.42 }
+  });
+  const oldSchemaFive = createDefaultState(4233);
+  delete oldSchemaFive.reader;
+  assert.deepEqual(normalizeState(oldSchemaFive, 4233).reader, createDefaultState(4233).reader);
+});
+
 test("persists only the supported local or external playback source mode", () => {
   const state = createDefaultState(4250);
   state.player.sourceMode = "external";
@@ -346,8 +374,8 @@ test("imports old backups and rejects unrelated or newer files", () => {
   assert.deepEqual(migratedVersionThree.player, {
     folderPath: "/Old/Music",
     queue: [
-      { key: "local:two.mp3", label: "two", relativePath: "two.mp3", isLocal: true, mediaKind: "audio" },
-      { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true, mediaKind: "audio" }
+      { key: "local:two.mp3", label: "two", relativePath: "two.mp3", isLocal: true, mediaKind: "audio", sourceFormat: ".mp3", proxyPolicy: null },
+      { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true, mediaKind: "audio", sourceFormat: ".mp3", proxyPolicy: null }
     ],
     activeTrackKey: "local:two.mp3",
     sourceMode: "local",

@@ -5,6 +5,10 @@ solid-color and sine-wave sources. It contains VP8 video and Opus audio, has no
 external copyright dependency, and is excluded from packaged application files
 with the rest of `test/`.
 
+`local-video.avi` (MPEG-4 + MP3) and `local-video.mkv` (H.264 + AAC) are
+similarly generated fixtures for the bundled compatibility-copy path. They are
+also excluded from packaged application resources.
+
 Regenerate it with:
 
 ```sh

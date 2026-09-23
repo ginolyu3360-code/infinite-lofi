@@ -72,10 +72,19 @@ test("macOS packages an official-framework Universal native media bridge", () =>
 
   assert.match(packageJson.scripts["pack:universal"], /build:native:universal/);
   assert.match(packageJson.scripts["dist:universal"], /build:native:universal/);
-  assert.deepEqual(packageJson.build.mac.extraResources, [{
+  assert.deepEqual(packageJson.build.mac.extraResources[0], {
     from: "native-bin/macos_media_bridge.node",
     to: "native/macos_media_bridge.node"
-  }]);
+  });
+  assert.ok(packageJson.build.mac.extraResources.some((entry) => entry.to === "ffmpeg/darwin-x64"));
+  assert.ok(packageJson.build.mac.extraResources.some((entry) => entry.to === "ffmpeg/darwin-arm64"));
+  assert.ok(packageJson.build.win.extraResources.some((entry) => entry.to === "ffmpeg/win32-x64"));
+  assert.ok(packageJson.build.files.includes("!vendor/ffmpeg/**"));
+  assert.match(packageJson.scripts["pack:universal"], /verify:ffmpeg/);
+  assert.match(packageJson.scripts["pack:win"], /verify:ffmpeg/);
+  const ffmpegManifest = JSON.parse(fs.readFileSync(path.join(projectDirectory, "vendor", "ffmpeg", "manifest.json"), "utf8"));
+  assert.equal(ffmpegManifest.runtimes.length, 3);
+  assert.ok(ffmpegManifest.runtimes.every((entry) => /^[a-f0-9]{64}$/.test(entry.sha256)));
   assert.match(buildScript, /\["x64", "arm64"\]/);
   assert.match(buildScript, /spawnSync\("lipo"/);
   assert.match(releaseWorkflow, /Resources\/native\/macos_media_bridge\.node/);
