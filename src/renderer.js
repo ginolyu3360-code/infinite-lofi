@@ -1412,7 +1412,7 @@ function applyBackground() {
       }
     };
 
-    if (shouldFade) {
+    if (shouldFade && !showLocalVideo) {
       if (backgroundFadeRaf) {
         cancelAnimationFrame(backgroundFadeRaf);
       }

@@ -6,7 +6,7 @@ const { promisify } = require("util");
 const fs = require("fs");
 const musicMetadata = require("music-metadata");
 const { createMusicLibrary } = require("./src/music-library");
-const { createReaderLibrary, isPathInside } = require("./src/reader-library");
+const { createReaderLibrary, isPathInside, pathsReferToSameLocation } = require("./src/reader-library");
 const { createVideoProxyService, selectRuntimeEntry } = require("./src/video-proxy");
 const { createLyricsService } = require("./src/lyrics-service");
 const { isTrustedNavigationUrl } = require("./src/security");
@@ -356,15 +356,28 @@ async function loadMusicFolderGrants() {
   try {
     const raw = await fs.promises.readFile(getMusicFolderGrantsPath(), "utf8");
     const parsed = JSON.parse(raw);
-    grantedMusicFolders = new Set(
-      (Array.isArray(parsed) ? parsed : [])
-        .filter((entry) => typeof entry === "string" && path.isAbsolute(entry))
-        .map((entry) => path.resolve(entry))
-    );
+    grantedMusicFolders = await canonicalizeFolderGrants(parsed);
   } catch (error) {
     if (error?.code !== "ENOENT") console.error("Failed to load music folder grants:", error);
     grantedMusicFolders = new Set();
   }
+}
+
+async function canonicalizeFolderGrants(entries) {
+  const canonicalPaths = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (typeof entry !== "string" || !path.isAbsolute(entry)) continue;
+    try {
+      canonicalPaths.push(await fs.promises.realpath(entry));
+    } catch {
+      canonicalPaths.push(path.resolve(entry));
+    }
+  }
+  return new Set(canonicalPaths);
+}
+
+function hasFolderGrant(grants, canonicalPath) {
+  return [...grants].some((grantedPath) => pathsReferToSameLocation(grantedPath, canonicalPath));
 }
 
 async function grantMusicFolder(folderPath) {
@@ -390,9 +403,7 @@ function getReaderFolderGrantsPath() {
 async function loadReaderFolderGrants() {
   try {
     const parsed = JSON.parse(await fs.promises.readFile(getReaderFolderGrantsPath(), "utf8"));
-    grantedReaderFolders = new Set((Array.isArray(parsed) ? parsed : [])
-      .filter((entry) => typeof entry === "string" && path.isAbsolute(entry))
-      .map((entry) => path.resolve(entry)));
+    grantedReaderFolders = await canonicalizeFolderGrants(parsed);
   } catch (error) {
     if (error?.code !== "ENOENT") console.error("Failed to load Reader folder grants:", error);
     grantedReaderFolders = new Set();
@@ -470,7 +481,7 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
 
   try {
     const canonicalPath = await fs.promises.realpath(folderPath);
-    if (!grantedMusicFolders.has(canonicalPath)) {
+    if (!hasFolderGrant(grantedMusicFolders, canonicalPath)) {
       return { folderPath, tracks: [], error: "folder-not-approved" };
     }
     const stat = await fs.promises.stat(canonicalPath);
@@ -512,7 +523,7 @@ ipcMain.handle("reader:scanFolder", async (event, source, folderPath) => {
   try {
     const canonicalPath = await fs.promises.realpath(folderPath);
     const grants = source === "media" ? grantedMusicFolders : grantedReaderFolders;
-    if (!grants.has(canonicalPath)) return { folderPath, documents: [], error: "folder-not-approved" };
+    if (!hasFolderGrant(grants, canonicalPath)) return { folderPath, documents: [], error: "folder-not-approved" };
     return await readerLibrary.scan(canonicalPath, { source, authorize: true });
   } catch (error) {
     return { folderPath, documents: [], error: error?.code || "folder-unreadable" };
@@ -586,7 +597,7 @@ ipcMain.handle("lyrics:get", async (event, track, options) => {
     try {
       const canonicalPath = await fs.promises.realpath(track.src);
       const parentPath = path.dirname(canonicalPath);
-      if (grantedMusicFolders.has(parentPath)) normalizedTrack.src = canonicalPath;
+      if (hasFolderGrant(grantedMusicFolders, parentPath)) normalizedTrack.src = canonicalPath;
     } catch {}
   }
 

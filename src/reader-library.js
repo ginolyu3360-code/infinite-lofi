@@ -17,6 +17,16 @@ function isPathInside(rootPath, targetPath) {
   return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
 }
 
+function pathIdentity(filePath, platform = process.platform) {
+  const pathApi = platform === "win32" ? path.win32 : path;
+  const resolvedPath = pathApi.resolve(filePath);
+  return platform === "win32" ? resolvedPath.toLocaleLowerCase("en-US") : resolvedPath;
+}
+
+function pathsReferToSameLocation(leftPath, rightPath, platform = process.platform) {
+  return pathIdentity(leftPath, platform) === pathIdentity(rightPath, platform);
+}
+
 function scoreDecodedText(text) {
   if (!text) return 0;
   let suspicious = 0;
@@ -172,5 +182,7 @@ module.exports = {
   decodeTextBuffer,
   documentKey,
   isPathInside,
+  pathIdentity,
+  pathsReferToSameLocation,
   scoreDecodedText
 };

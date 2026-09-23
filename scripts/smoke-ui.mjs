@@ -1622,7 +1622,10 @@ try {
     }
     const audioOnlyTime = player.currentTime;
     toggle.click();
-    await wait(250);
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (document.body.classList.contains('local-video-background') && Number(getComputedStyle(player).opacity) > 0) break;
+      await wait(25);
+    }
     const background = {
       active: document.body.classList.contains('local-video-background'),
       opacity: Number(getComputedStyle(player).opacity),
@@ -1633,7 +1636,10 @@ try {
       saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.videoDisplayMode
     };
     toggle.click();
-    await wait(250);
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!document.body.classList.contains('local-video-background') && Number(getComputedStyle(player).opacity) === 0) break;
+      await wait(25);
+    }
     const audioOnly = {
       active: document.body.classList.contains('local-video-background'),
       opacity: Number(getComputedStyle(player).opacity),

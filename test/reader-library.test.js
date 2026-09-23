@@ -3,7 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
-const { createReaderLibrary, decodeTextBuffer, isPathInside } = require("../src/reader-library");
+const {
+  createReaderLibrary,
+  decodeTextBuffer,
+  isPathInside,
+  pathIdentity,
+  pathsReferToSameLocation
+} = require("../src/reader-library");
 
 test("decodes BOM Unicode, strict UTF-8 and common legacy text", () => {
   assert.deepEqual(decodeTextBuffer(Buffer.from("hello", "utf8")), { encoding: "utf-8", text: "hello" });
@@ -15,6 +21,12 @@ test("decodes BOM Unicode, strict UTF-8 and common legacy text", () => {
 test("path containment does not accept sibling-prefix escapes", () => {
   assert.equal(isPathInside("/tmp/reader", "/tmp/reader/a.txt"), true);
   assert.equal(isPathInside("/tmp/reader", "/tmp/reader-escape/a.txt"), false);
+});
+
+test("path identities follow platform case rules", () => {
+  assert.equal(pathIdentity("C:\\Users\\Runner\\Media", "win32"), "c:\\users\\runner\\media");
+  assert.equal(pathsReferToSameLocation("C:\\Users\\Runner\\Media", "c:\\users\\runner\\media\\.", "win32"), true);
+  assert.equal(pathsReferToSameLocation("/tmp/Reader", "/tmp/reader", "linux"), false);
 });
 
 test("scans recursively, ignores hidden/vendor folders, blocks symlink escape and reads by opaque key", async (context) => {
