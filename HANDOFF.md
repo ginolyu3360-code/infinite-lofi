@@ -1,18 +1,18 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-22
+Updated: 2026-09-23
 
 ## Start of the next session
 
 1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not create another checkout or worktree unless the user explicitly requests isolation.
 2. Begin by checking the working tree, current branch, `main`, tags, and the latest GitHub CI/Release status. Preserve any user changes.
-3. Third-party provider Slice 0 and the provider-neutral part of Slice 1 are now implemented on `codex/external-player-mode`. Read `docs/third-party-music-feasibility.md` before selecting a provider.
+3. Unsubmitted local work is on `codex/local-video-playback`: it contains the External Player Mode foundation plus local video playback. Do not push, open a PR, merge, tag, or release it without a new explicit user instruction.
 4. Before selecting an integration, research the current official documentation, account requirements, playback restrictions, platform support, and commercial terms for the candidate providers. These details change and must not be assumed from memory.
 5. Continue the normal delivery workflow for future implementation: `codex/` feature branch → Pull Request → passing Windows/macOS CI → squash merge. A version tag or Release still requires a separate explicit instruction.
 
 ## Current baseline
 
-- Branch: `main`; exact current commit: `a10fc3f` (`test: wait for renderer after smoke reload (#41)`).
+- Public baseline: `main` at `a10fc3f` (`test: wait for renderer after smoke reload (#41)`). The working branch is `codex/local-video-playback` and remains local-only.
 - Package version and latest public release: `v1.5.1`. The annotated tag peels to `a10fc3f`.
 - [Release v1.5.1](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.1) is public, non-draft, and non-prerelease. Release workflow `35351586911` passed and published:
   - unsigned macOS Universal DMG and ZIP for Intel and Apple Silicon;
@@ -20,7 +20,7 @@ Updated: 2026-09-22
   - `SHA256SUMS.txt`.
 - Release-preparation [PR #40](https://github.com/ginolyu3360-code/infinite-lofi/pull/40) and the Windows packaged-smoke race repair [PR #41](https://github.com/ginolyu3360-code/infinite-lofi/pull/41) are merged.
 - The external-player feature work is based directly on `a10fc3f` in branch `codex/external-player-mode`; the package version remains 1.5.1 and no release tag is part of this work.
-- The current player supports bundled music, explicitly selected local folders, duplicate filtering, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, a separate bundled ambient layer, and native media controls.
+- The current player supports bundled music, explicitly selected local folders containing audio plus MP4/M4V/WebM video, duplicate filtering, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, a separate bundled ambient layer, and native media controls. Local videos default to audio-only playback and can optionally replace the Scene as the visual background without resetting playback.
 - Optional lyrics prefer same-name `.lrc` and embedded lyrics, then use confidence-ranked LRCLIB and QQ Music matching with a lyrics.ovh fallback. Lyrics, instrumental classifications, and misses are cached locally. Online lookup remains opt-in and never uploads audio or local paths.
 - macOS native Now Playing/AirPods ownership is deliberate. Local playback registers Infinite Lo-Fi as the media owner so paused AirPods Play resumes this app instead of Apple Music.
 - Releases remain unsigned and unnotarized. Do not imply Apple signing or notarization.
@@ -35,6 +35,14 @@ Updated: 2026-09-22
 - A capability-based backend contract is present for later provider adapters. The external placeholder intentionally advertises no transport, playlist, account, or status capability until an official provider adapter exists.
 - No OAuth client, token, keychain entry, remote API request, audio cache, tag, or Release is part of this slice.
 - Local verification passes 153 unit/controller tests, syntax checks, the development Electron smoke, Universal macOS packaging, and the packaged-app smoke. Both smoke paths cover Local → External → Local, pause/no-autoplay, persisted state, disabled local controls, browser-session cleanup, native bridge release/reacquisition, 44 px source controls, lyrics layout, and the existing responsive/accessibility/performance suite.
+
+### 2026-09-23 local video implementation update
+
+- Local folder scanning now accepts MP4, M4V, and WebM alongside the existing audio formats. Queue snapshots and backups persist a normalized audio/video media kind without a schema-version bump.
+- The shared local media element plays both audio and video. Video defaults to audio-only; the persisted Video background switch reveals the same element behind the interface without resetting playback or changing the saved Scene.
+- A visible seven-language error explains unsupported containers/codecs. Queue entries identify video files, External mode pauses and hides local video, and returning to Local remains paused.
+- Verification passes 159 tests, syntax/build checks, development Electron smoke, Universal macOS packaging, and packaged-app smoke. Both smoke paths use a generated 17 KB VP8/Opus WebM fixture to verify decoding, audible unmuted playback, continuous time across display-mode changes, Scene-video suspension, 720×520 layout, persistence, and Local → External → Local behavior.
+- This feature has not been pushed, submitted, merged, tagged, or released.
 
 ### User goal
 

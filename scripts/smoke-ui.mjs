@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -20,6 +20,22 @@ const executable = packagedExecutable || developmentExecutable;
 const smokeUserDataDirectory = connectOnly
   ? ""
   : mkdtempSync(path.join(tmpdir(), "infinite-lofi-smoke-profile-"));
+const smokeMediaDirectoryCandidate = connectOnly ? "" : path.join(smokeUserDataDirectory, "local-media");
+if (!connectOnly) {
+  mkdirSync(smokeMediaDirectoryCandidate, { recursive: true });
+}
+const smokeMediaDirectory = connectOnly ? "" : realpathSync(smokeMediaDirectoryCandidate);
+if (!connectOnly) {
+  copyFileSync(
+    path.join(projectDirectory, "test", "fixtures", "local-video.webm"),
+    path.join(smokeMediaDirectory, "local-video.webm")
+  );
+  writeFileSync(
+    path.join(smokeUserDataDirectory, "music-folder-grants.json"),
+    JSON.stringify([smokeMediaDirectory], null, 2),
+    { encoding: "utf8", mode: 0o600 }
+  );
+}
 const launchArguments = packagedExecutable
   ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`]
   : [`--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`, "."];
@@ -1257,6 +1273,7 @@ try {
       document.querySelector('#playPauseBtn').click();
       await wait(20);
     }
+    music.currentTime = 0;
     enabled.checked = true;
     enabled.dispatchEvent(new Event('change', { bubbles: true }));
     duration.value = '200';
@@ -1526,6 +1543,106 @@ try {
     document.querySelector('#statsCloseBtn').click();
     return result;
   })()`);
+
+  let localVideoResult = { skipped: connectOnly };
+  if (!connectOnly) {
+    await setWindowSize(720, 520);
+    await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    state.player = {
+      ...state.player,
+      folderPath: ${JSON.stringify(smokeMediaDirectory)},
+      queue: [{
+        key: 'local:local-video.webm',
+        label: 'local-video',
+        relativePath: 'local-video.webm',
+        isLocal: true,
+        mediaKind: 'video'
+      }],
+      activeTrackKey: 'local:local-video.webm',
+      sourceMode: 'local',
+      videoDisplayMode: 'audio-only',
+      playbackMode: 'sequential',
+      audioTransitions: { enabled: false, durationMs: 200 }
+    };
+    localStorage.setItem('infiniteLofiState', JSON.stringify(state));
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return true;
+  })()`);
+  await delay(1_200);
+    localVideoResult = await evaluate(`(async () => {
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    const player = document.querySelector('#lofiPlayer');
+    const toggle = document.querySelector('#videoBackgroundToggle');
+    const control = document.querySelector('#videoDisplayControl');
+    const externalButton = document.querySelector('#externalPlaybackSourceBtn');
+    const localButton = document.querySelector('#localPlaybackSourceBtn');
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!control.hidden && (player.currentSrc || player.src).endsWith('/local-video.webm')) break;
+      await wait(25);
+    }
+    const initial = {
+      controlVisible: !control.hidden,
+      checked: toggle.checked,
+      videoBadge: document.querySelector('#playlistItems .playlist-item-kind')?.textContent.trim(),
+      mediaKind: JSON.parse(localStorage.getItem('infiniteLofiState')).player.queue[0]?.mediaKind,
+      controlHeight: control.querySelector('label').getBoundingClientRect().height,
+      playerInsideViewport: document.querySelector('#playerPanel').getBoundingClientRect().bottom <= innerHeight + 4
+    };
+    document.querySelector('#playPauseBtn').click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!player.paused && player.currentTime > 0.05 && player.videoWidth > 0) break;
+      await wait(25);
+    }
+    const audioOnlyTime = player.currentTime;
+    toggle.click();
+    await wait(250);
+    const background = {
+      active: document.body.classList.contains('local-video-background'),
+      opacity: Number(getComputedStyle(player).opacity),
+      currentTime: player.currentTime,
+      paused: player.paused,
+      muted: player.muted,
+      scenePaused: document.querySelector('#bgVideo').paused,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.videoDisplayMode
+    };
+    toggle.click();
+    await wait(250);
+    const audioOnly = {
+      active: document.body.classList.contains('local-video-background'),
+      opacity: Number(getComputedStyle(player).opacity),
+      currentTime: player.currentTime,
+      paused: player.paused,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.videoDisplayMode
+    };
+    externalButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'external' && !externalButton.disabled) break;
+      await wait(25);
+    }
+    const external = {
+      paused: player.paused,
+      active: document.body.classList.contains('local-video-background'),
+      controlHidden: control.hidden
+    };
+    localButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'local' && !localButton.disabled) break;
+      await wait(25);
+    }
+    const restoredLocal = {
+      paused: player.paused,
+      controlVisible: !control.hidden,
+      errorHidden: document.querySelector('#mediaPlaybackStatus').hidden,
+      videoWidth: player.videoWidth,
+      videoHeight: player.videoHeight
+    };
+    return { initial, audioOnlyTime, background, audioOnly, external, restoredLocal };
+    })()`);
+  }
 
   await evaluate(`(() => {
     const backup = ${JSON.stringify(initialStorageEntries)};
@@ -1814,10 +1931,27 @@ try {
     performanceResult.reviewPaginationButtons !== 2 || !performanceResult.retentionBoundaryVisible ||
     (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100 || performanceResult.rangeP95Ms >= 100))
   ) failures.push("reference fixture pagination or p95 performance target failed");
+  if (!localVideoResult.skipped && (
+    !localVideoResult.initial.controlVisible || localVideoResult.initial.checked ||
+    localVideoResult.initial.videoBadge !== 'Video' || localVideoResult.initial.mediaKind !== 'video' ||
+    localVideoResult.initial.controlHeight < 42 || !localVideoResult.initial.playerInsideViewport ||
+    !(localVideoResult.audioOnlyTime > 0) || !localVideoResult.background.active ||
+    localVideoResult.background.opacity <= 0 || localVideoResult.background.paused ||
+    localVideoResult.background.muted || !localVideoResult.background.scenePaused ||
+    localVideoResult.background.saved !== 'background' ||
+    localVideoResult.background.currentTime < localVideoResult.audioOnlyTime ||
+    localVideoResult.audioOnly.active || localVideoResult.audioOnly.opacity !== 0 ||
+    localVideoResult.audioOnly.paused || localVideoResult.audioOnly.saved !== 'audio-only' ||
+    localVideoResult.audioOnly.currentTime < localVideoResult.background.currentTime ||
+    !localVideoResult.external.paused || localVideoResult.external.active ||
+    !localVideoResult.external.controlHidden || !localVideoResult.restoredLocal.paused ||
+    !localVideoResult.restoredLocal.controlVisible || !localVideoResult.restoredLocal.errorHidden ||
+    localVideoResult.restoredLocal.videoWidth !== 160 || localVideoResult.restoredLocal.videoHeight !== 90
+  )) failures.push("local video playback or background/audio-only switching failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, localVideoResult, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

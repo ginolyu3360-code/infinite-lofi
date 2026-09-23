@@ -180,6 +180,36 @@ test("keeps an unavailable folder queue visible and reconnects it by relative tr
   assert.equal(elements.removeMissingTracksBtn.hidden, true);
 });
 
+test("marks video queue entries and reports browser playback failures", async () => {
+  const playbackErrors = [];
+  const videoTrack = {
+    key: "local:focus.webm",
+    label: "Focus video",
+    relativePath: "focus.webm",
+    src: "file:///Focus/focus.webm",
+    isLocal: true,
+    mediaKind: "video"
+  };
+  const { controller, elements } = createHarness({
+    folderPath: "",
+    queue: [],
+    activeTrackKey: ""
+  }, undefined, {
+    defaultTracks: [videoTrack],
+    onPlaybackError: (track, error) => playbackErrors.push({ track, error })
+  });
+
+  await controller.restorePersistedPlayer();
+  assert.equal(elements.playlistItems.children[0].children[1].textContent, "Video");
+
+  const decodeError = new Error("Unsupported codec");
+  elements.lofiPlayer.play = () => Promise.reject(decodeError);
+  assert.equal(await controller.play(), false);
+  assert.equal(playbackErrors.length, 1);
+  assert.equal(playbackErrors[0].track.key, videoTrack.key);
+  assert.equal(playbackErrors[0].error, decodeError);
+});
+
 test("playlist persistence preserves ambient player preferences", () => {
   const { controller, getState } = createHarness({
     folderPath: "",

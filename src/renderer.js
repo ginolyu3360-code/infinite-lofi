@@ -29,6 +29,9 @@ if (!window.InfiniteLofiStorage) {
 if (!window.InfiniteLofiPlaybackBackends) {
   throw new Error("Infinite Lo-Fi playback backend helpers failed to load");
 }
+if (!window.InfiniteLofiLocalMedia) {
+  throw new Error("Infinite Lo-Fi local media helpers failed to load");
+}
 if (!window.InfiniteLofiI18n) {
   throw new Error("Infinite Lo-Fi language helpers failed to load");
 }
@@ -89,6 +92,11 @@ const {
   normalizePlaybackSourceMode
 } = window.InfiniteLofiPlaybackBackends;
 const {
+  normalizeMediaKind,
+  normalizeVideoDisplayMode,
+  shouldShowVideoBackground
+} = window.InfiniteLofiLocalMedia;
+const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
   applyBackgroundSource,
   applyCuratedPreset,
@@ -135,6 +143,9 @@ const playerPanel = document.getElementById("playerPanel");
 const localPlaybackSourceBtn = document.getElementById("localPlaybackSourceBtn");
 const externalPlaybackSourceBtn = document.getElementById("externalPlaybackSourceBtn");
 const playbackSourceStatus = document.getElementById("playbackSourceStatus");
+const videoDisplayControl = document.getElementById("videoDisplayControl");
+const videoBackgroundToggle = document.getElementById("videoBackgroundToggle");
+const mediaPlaybackStatus = document.getElementById("mediaPlaybackStatus");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const nextTrackBtn = document.getElementById("nextTrackBtn");
 const prevTrackBtn = document.getElementById("prevTrackBtn");
@@ -316,6 +327,8 @@ let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().pl
 let lyricsEnabled = false;
 let playbackSourceMode = normalizePlaybackSourceMode(appStorage.getState().player?.sourceMode);
 let playbackSourceSwitching = false;
+let videoDisplayMode = normalizeVideoDisplayMode(appStorage.getState().player?.videoDisplayMode);
+let localMediaPlaybackError = false;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
@@ -380,8 +393,19 @@ const playerController = createPlayerController({
   },
   onTrackChange: (track) => {
     currentLocalTrack = track;
+    localMediaPlaybackError = false;
     mediaSessionController.updateMetadata(track);
     lyricsController.setTrack(playbackSourceMode === "local" ? track : null);
+    renderLocalVideoUi();
+    applyBackground();
+  },
+  onPlaybackError: (track) => {
+    if (!track || normalizeMediaKind(track.mediaKind, track.relativePath || track.srcUrl || track.src) !== "video") return;
+    if (localMediaPlaybackError) return;
+    localMediaPlaybackError = true;
+    renderLocalVideoUi();
+    applyBackground();
+    announceStatus(t("player.mediaPlaybackError"));
   },
   onLayoutChange: ({ queueOpen } = {}) => {
     requestAnimationFrame(adjustTimerFont);
@@ -479,6 +503,48 @@ const playbackBackendByMode = Object.freeze({
   external: externalPlaybackBackend
 });
 
+function currentTrackIsVideo() {
+  return normalizeMediaKind(
+    currentLocalTrack?.mediaKind,
+    currentLocalTrack?.relativePath || currentLocalTrack?.srcUrl || currentLocalTrack?.src
+  ) === "video";
+}
+
+function renderLocalVideoUi() {
+  const showControl = playbackSourceMode === "local" && currentTrackIsVideo();
+  if (videoDisplayControl) videoDisplayControl.hidden = !showControl;
+  if (videoBackgroundToggle) {
+    videoBackgroundToggle.checked = videoDisplayMode === "background";
+    videoBackgroundToggle.disabled = !showControl || playbackSourceSwitching;
+  }
+  if (mediaPlaybackStatus) {
+    const showError = playbackSourceMode === "local" && currentTrackIsVideo() && localMediaPlaybackError;
+    mediaPlaybackStatus.hidden = !showError;
+    mediaPlaybackStatus.textContent = showError ? t("player.mediaPlaybackError") : "";
+  }
+}
+
+function setVideoDisplayMode(rawMode) {
+  const nextMode = normalizeVideoDisplayMode(rawMode);
+  if (nextMode === videoDisplayMode) return true;
+  try {
+    appStorage.update((state) => {
+      state.player.videoDisplayMode = nextMode;
+    });
+  } catch (error) {
+    if (videoBackgroundToggle) videoBackgroundToggle.checked = videoDisplayMode === "background";
+    showStorageFailure(error, t("player.videoDisplaySaveError"));
+    return false;
+  }
+  videoDisplayMode = nextMode;
+  renderLocalVideoUi();
+  applyBackground();
+  announceStatus(t(nextMode === "background"
+    ? "player.videoBackgroundEnabled"
+    : "player.videoBackgroundDisabled"));
+  return true;
+}
+
 function renderPlaybackSource() {
   const isLocal = playbackSourceMode === "local";
   playerPanel.dataset.playbackSource = playbackSourceMode;
@@ -509,6 +575,7 @@ function renderPlaybackSource() {
   } else if (lyricsEnabled) {
     lyricsController.setEnabled(true, { persist: false });
   }
+  renderLocalVideoUi();
 }
 
 async function setPlaybackSourceMode(rawMode, options = {}) {
@@ -530,6 +597,7 @@ async function setPlaybackSourceMode(rawMode, options = {}) {
     }
     playbackSourceMode = nextMode;
     lyricsController.setTrack(nextMode === "local" ? currentLocalTrack : null);
+    applyBackground();
     if (announce) {
       announceStatus(t(nextMode === "local"
         ? "playback.localAnnouncement"
@@ -545,6 +613,7 @@ async function setPlaybackSourceMode(rawMode, options = {}) {
   } finally {
     playbackSourceSwitching = false;
     renderPlaybackSource();
+    applyBackground();
   }
 }
 
@@ -1168,8 +1237,15 @@ function applyBackground() {
     const effectiveBackground = getEffectiveBackground();
     const preset = getCuratedPreset(backgroundSettings.presetId);
     const showcaseActive = showcaseModeEnabled;
-    const hasVisualBackground = effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
+    const showLocalVideo = shouldShowVideoBackground({
+      sourceMode: playbackSourceMode,
+      mediaKind: currentTrackIsVideo() ? "video" : "audio",
+      videoDisplayMode,
+      hasPlaybackError: localMediaPlaybackError
+    });
+    const hasVisualBackground = showLocalVideo || effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
     document.body.classList.toggle("has-visual-background", hasVisualBackground);
+    document.body.classList.toggle("local-video-background", showLocalVideo);
     // Theme colors are application state, so apply them immediately. The media
     // layer can still fade on the next animation frame, including in headless CI.
     document.body.classList.remove("theme-midnight", "theme-moss", "bg-white-background");
@@ -1181,7 +1257,10 @@ function applyBackground() {
         : hasVisualBackground
           ? "0.82"
           : "0.45";
-    const nextKey = buildBackgroundRenderKey(effectiveBackground, showcaseModeEnabled);
+    const localVideoKey = showLocalVideo
+      ? `local-video:${currentLocalTrack?.key || currentLocalTrack?.srcUrl || currentLocalTrack?.src || "video"}`
+      : "scene";
+    const nextKey = `${buildBackgroundRenderKey(effectiveBackground, showcaseModeEnabled)}|${localVideoKey}`;
     const shouldFade = nextKey !== backgroundRenderKey;
     backgroundRenderKey = nextKey;
 
@@ -1193,6 +1272,17 @@ function applyBackground() {
       if (bgImage) {
         bgImage.style.opacity = backgroundOpacity;
         bgImage.style.filter = showcaseActive ? "brightness(1.04) contrast(1.05) saturate(1.08)" : "brightness(var(--scene-brightness))";
+      }
+      if (lofiPlayer) {
+        lofiPlayer.style.opacity = showLocalVideo ? backgroundOpacity : "0";
+        lofiPlayer.style.filter = showcaseActive ? "brightness(1.04) contrast(1.05) saturate(1.08)" : "brightness(var(--scene-brightness))";
+      }
+
+      if (showLocalVideo) {
+        bgVideo?.pause?.();
+        if (bgVideo) bgVideo.style.display = "none";
+        if (bgImage) bgImage.style.display = "none";
+        return;
       }
 
       if (effectiveBackground.mode === "video") {
@@ -1250,6 +1340,7 @@ function applyBackground() {
       }
       if (bgVideo) bgVideo.style.opacity = "0";
       if (bgImage) bgImage.style.opacity = "0";
+      if (lofiPlayer) lofiPlayer.style.opacity = "0";
       backgroundFadeRaf = requestAnimationFrame(() => {
         applyLayerState();
         backgroundFadeRaf = requestAnimationFrame(() => {
@@ -1258,6 +1349,9 @@ function applyBackground() {
           }
           if (bgImage && bgImage.style.display !== "none") {
             bgImage.style.opacity = backgroundOpacity;
+          }
+          if (lofiPlayer && showLocalVideo) {
+            lofiPlayer.style.opacity = backgroundOpacity;
           }
         });
       });
@@ -2093,6 +2187,7 @@ async function init() {
       playPauseBtn,
       localPlaybackSourceBtn,
       externalPlaybackSourceBtn,
+      videoBackgroundToggle,
       nextTrackBtn,
       prevTrackBtn,
       repeatModeBtn,
@@ -2150,6 +2245,7 @@ async function init() {
       isShowcaseModeEnabled: () => showcaseModeEnabled,
       togglePlayback: toggleSelectedSource,
       setPlaybackSourceMode,
+      setVideoDisplayMode,
       switchTrack: nextSelectedSource,
       prevTrack: previousSelectedSource,
       handleTrackEnded,

@@ -72,10 +72,22 @@ textarea:focus-visible,
 }
 
 #bgVideo,
-#bgImage {
+#bgImage,
+.local-media-video {
   filter: brightness(var(--scene-brightness));
   transition: opacity 240ms ease, filter 240ms ease, transform 240ms ease;
   will-change: opacity, filter;
+}
+
+.local-media-video {
+  z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.local-video-background .local-media-video {
+  visibility: visible;
 }
 
 #ambienceOverlay {
@@ -698,10 +710,60 @@ body.lyrics-enabled #mainRightColumn {
 }
 
 .playback-source-status {
+  flex: 1 1 auto;
   margin: 0;
   color: var(--ink-muted);
   font: 500 0.68rem/1.35 "IBM Plex Mono", ui-monospace, monospace;
   text-align: right;
+}
+
+.video-display-control {
+  flex: 0 0 auto;
+}
+
+.video-display-control[hidden],
+.media-playback-status[hidden] {
+  display: none;
+}
+
+.video-display-control label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.65rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.video-display-control span {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.video-display-control strong,
+.video-display-control small,
+.media-playback-status {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.video-display-control strong {
+  color: var(--ink);
+  font-size: 0.68rem;
+}
+
+.video-display-control small {
+  color: var(--ink-muted);
+  font-size: 0.6rem;
+}
+
+.media-playback-status {
+  margin: 0.55rem 0 0;
+  color: var(--danger);
+  font-size: 0.66rem;
+  line-height: 1.4;
 }
 
 #playerPanel[data-playback-source="external"] .player-transport,
@@ -717,6 +779,12 @@ body.lyrics-enabled #mainRightColumn {
 
   .playback-source-status {
     text-align: left;
+  }
+}
+
+@media (max-width: 900px) {
+  .video-display-control small {
+    display: none;
   }
 }
 
@@ -1003,6 +1071,17 @@ button.lyrics-line {
   flex: 0 0 auto;
   color: #e8b66b;
   font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playlist-item-kind {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-muted);
+  font-size: 0.5rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

@@ -13,6 +13,7 @@
       defaultTracks,
       onArtworkChange = () => {},
       onTrackChange = () => {},
+      onPlaybackError = () => {},
       onLayoutChange = () => {},
       announce = () => {},
       getAudioTransitionSettings = () => audioTransition.DEFAULT_AUDIO_TRANSITIONS,
@@ -330,6 +331,12 @@
         label.className = "playlist-item-label";
         label.textContent = track.label;
         itemButton.appendChild(label);
+        if (track.mediaKind === "video") {
+          const kind = elements.document.createElement("span");
+          kind.className = "playlist-item-kind";
+          kind.textContent = t("player.videoBadge");
+          itemButton.appendChild(kind);
+        }
         if (track.isMissing === true) {
           const status = elements.document.createElement("span");
           status.className = "playlist-item-status";
@@ -423,7 +430,7 @@
           renderPlaylist();
           return false;
         }
-        if (result.error && result.error !== "no-audio-files") {
+        if (result.error && !["no-audio-files", "no-media-files"].includes(result.error)) {
           folderUnavailable = true;
           renderPlaylist();
           return false;
@@ -555,10 +562,11 @@
         elements.playPauseBtn.textContent = t("player.pause");
         if (announcePlayback) announce(t("player.started"));
         return true;
-      } catch {
+      } catch (error) {
         if (version === playbackCommandVersion) desiredPlaying = false;
         musicEnvelope.cancel({ gain: 1 });
         elements.playPauseBtn.textContent = t("player.play");
+        onPlaybackError(getActiveTrack(), error);
         return false;
       }
     }
@@ -775,6 +783,12 @@
     elements.playlistItems.addEventListener("dragover", handlePlaylistDragOver);
     elements.playlistItems.addEventListener("dragleave", handlePlaylistDragLeave);
     elements.playlistItems.addEventListener("drop", handlePlaylistDrop);
+    elements.lofiPlayer.addEventListener("error", () => {
+      desiredPlaying = false;
+      musicEnvelope.cancel({ gain: 1 });
+      elements.playPauseBtn.textContent = t("player.play");
+      onPlaybackError(getActiveTrack(), elements.lofiPlayer.error || new Error("Media playback failed"));
+    });
 
     return {
       getUserVolume: () => musicEnvelope.getState().userVolume,

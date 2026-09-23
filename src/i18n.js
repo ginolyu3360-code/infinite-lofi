@@ -184,8 +184,8 @@
     "player.empty": "Playlist is empty",
     "player.cover": "{title} Cover",
     "player.nowPlayingAnnouncement": "Now playing {title}.",
-    "player.folderUnsupported": "Music folder selection is not supported.",
-    "player.noMusicFiles": "No music files were found in the selected folder.",
+    "player.folderUnsupported": "Local media folder selection is not supported.",
+    "player.noMusicFiles": "No supported audio or video files were found in the selected folder.",
     "player.folderUnreadable": "Folder unreadable · Try another",
     "player.started": "Music playback started.",
     "player.paused": "Music playback paused.",
@@ -202,6 +202,13 @@
     "player.swapSelected": "Track selected for position swap.",
     "player.swapCancelled": "Track position swap cancelled.",
     "player.swapComplete": "Track positions swapped.",
+    "player.videoBackground": "Video background",
+    "player.videoBackgroundHint": "Show this video behind the focus interface.",
+    "player.videoBadge": "Video",
+    "player.mediaPlaybackError": "This video could not be played. Its container or codec may not be supported on this device.",
+    "player.videoDisplaySaveError": "Could not save the video display preference.",
+    "player.videoBackgroundEnabled": "The current video is shown in the background.",
+    "player.videoBackgroundDisabled": "The current video continues as audio only.",
     "playback.sourceLabel": "Playback source",
     "playback.local": "Local",
     "playback.external": "External",
@@ -715,6 +722,21 @@
   });
   Object.assign(SPANISH, {
     "playback.sourceLabel":"Fuente de reproducción","playback.local":"Local","playback.external":"Externa","playback.localStatus":"Infinite Lo-Fi controla la reproducción y los controles multimedia del sistema.","playback.externalStatus":"El reproductor externo controla el audio y los controles multimedia del sistema. Continúa la reproducción en esa aplicación.","playback.localAnnouncement":"Reproducción local seleccionada. Los controles de Infinite Lo-Fi se restauraron y siguen en pausa.","playback.externalAnnouncement":"Reproductor externo seleccionado. Infinite Lo-Fi liberó los controles multimedia del sistema.","playback.switchError":"No se pudo cambiar la fuente de forma segura. Se mantiene la reproducción local."
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "player.folderUnsupported":"不支持选择本地媒体文件夹。","player.noMusicFiles":"所选文件夹中未找到支持的音频或视频文件。","player.videoBackground":"视频背景","player.videoBackgroundHint":"在专注界面背后显示当前视频。","player.videoBadge":"视频","player.mediaPlaybackError":"无法播放此视频；当前设备可能不支持它的封装格式或编解码器。","player.videoDisplaySaveError":"无法保存视频显示偏好。","player.videoBackgroundEnabled":"当前视频已显示为背景。","player.videoBackgroundDisabled":"当前视频将仅播放音频。"
+  });
+  Object.assign(JAPANESE, {
+    "player.folderUnsupported":"ローカルメディアフォルダーの選択には対応していません。","player.noMusicFiles":"選択したフォルダーに対応する音声または動画ファイルがありません。","player.videoBackground":"動画を背景に表示","player.videoBackgroundHint":"現在の動画を集中画面の背景に表示します。","player.videoBadge":"動画","player.mediaPlaybackError":"この動画を再生できません。この端末ではコンテナまたはコーデックに対応していない可能性があります。","player.videoDisplaySaveError":"動画表示設定を保存できませんでした。","player.videoBackgroundEnabled":"現在の動画を背景に表示します。","player.videoBackgroundDisabled":"現在の動画は音声のみ再生します。"
+  });
+  Object.assign(FRENCH, {
+    "player.folderUnsupported":"La sélection d’un dossier multimédia local n’est pas prise en charge.","player.noMusicFiles":"Aucun fichier audio ou vidéo compatible n’a été trouvé dans le dossier choisi.","player.videoBackground":"Vidéo en arrière-plan","player.videoBackgroundHint":"Afficher cette vidéo derrière l’interface de concentration.","player.videoBadge":"Vidéo","player.mediaPlaybackError":"Impossible de lire cette vidéo. Son conteneur ou son codec n’est peut-être pas pris en charge sur cet appareil.","player.videoDisplaySaveError":"Impossible d’enregistrer la préférence d’affichage vidéo.","player.videoBackgroundEnabled":"La vidéo actuelle est affichée en arrière-plan.","player.videoBackgroundDisabled":"La vidéo actuelle continue en audio uniquement."
+  });
+  Object.assign(KOREAN, {
+    "player.folderUnsupported":"로컬 미디어 폴더 선택을 지원하지 않습니다.","player.noMusicFiles":"선택한 폴더에서 지원되는 오디오 또는 비디오 파일을 찾지 못했습니다.","player.videoBackground":"비디오 배경","player.videoBackgroundHint":"현재 비디오를 집중 화면 뒤에 표시합니다.","player.videoBadge":"비디오","player.mediaPlaybackError":"이 비디오를 재생할 수 없습니다. 이 기기에서 컨테이너 또는 코덱을 지원하지 않을 수 있습니다.","player.videoDisplaySaveError":"비디오 표시 설정을 저장할 수 없습니다.","player.videoBackgroundEnabled":"현재 비디오를 배경에 표시합니다.","player.videoBackgroundDisabled":"현재 비디오는 오디오만 계속 재생합니다."
+  });
+  Object.assign(SPANISH, {
+    "player.folderUnsupported":"No se admite la selección de carpetas multimedia locales.","player.noMusicFiles":"No se encontraron archivos de audio o vídeo compatibles en la carpeta elegida.","player.videoBackground":"Vídeo de fondo","player.videoBackgroundHint":"Mostrar este vídeo detrás de la interfaz de concentración.","player.videoBadge":"Vídeo","player.mediaPlaybackError":"No se pudo reproducir este vídeo. Es posible que el contenedor o el códec no sea compatible con este dispositivo.","player.videoDisplaySaveError":"No se pudo guardar la preferencia de visualización del vídeo.","player.videoBackgroundEnabled":"El vídeo actual se muestra como fondo.","player.videoBackgroundDisabled":"El vídeo actual continúa solo como audio."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(

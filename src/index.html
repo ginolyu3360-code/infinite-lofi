@@ -39,6 +39,13 @@
         class="absolute inset-0 h-full w-full bg-cover bg-center opacity-45"
         aria-hidden="true"
       ></div>
+      <video
+        id="lofiPlayer"
+        class="local-media-video absolute inset-0 h-full w-full object-cover"
+        preload="metadata"
+        playsinline
+        aria-hidden="true"
+      ></video>
 
       <div id="ambienceOverlay" class="absolute inset-0 bg-gradient-to-br from-zinc-900/70 via-zinc-900/40 to-amber-950/55"></div>
       <div class="grain-layer absolute inset-0 opacity-25 mix-blend-overlay"></div>
@@ -135,7 +142,17 @@
                 <button id="externalPlaybackSourceBtn" class="playback-source-btn" type="button" aria-pressed="false" data-i18n="playback.external">External</button>
               </div>
               <p id="playbackSourceStatus" class="playback-source-status" role="status" aria-live="polite" data-i18n="playback.localStatus">Infinite Lo-Fi owns playback and system media controls.</p>
+              <div id="videoDisplayControl" class="video-display-control" hidden>
+                <label for="videoBackgroundToggle">
+                  <input id="videoBackgroundToggle" type="checkbox" />
+                  <span>
+                    <strong data-i18n="player.videoBackground">Video background</strong>
+                    <small data-i18n="player.videoBackgroundHint">Show this video behind the focus interface.</small>
+                  </span>
+                </label>
+              </div>
             </div>
+            <p id="mediaPlaybackStatus" class="media-playback-status" role="status" aria-live="polite" hidden></p>
 
             <div class="player-transport">
               <button id="shuffleModeBtn" class="transport-btn playback-mode-btn" type="button" aria-pressed="false" title="Toggle shuffle" aria-label="Toggle shuffle" data-i18n-title="player.shuffle" data-i18n-aria-label="player.shuffle">⤨</button>
@@ -556,7 +573,6 @@
 
       <div id="a11yStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
-      <audio id="lofiPlayer" preload="metadata"></audio>
       <audio id="ambiencePlayer" preload="none" loop></audio>
     </div>
 
@@ -566,6 +582,7 @@
     <script src="./ambience.js"></script>
     <script src="./audio-transition.js"></script>
     <script src="./playback-backends.js"></script>
+    <script src="./local-media.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>

@@ -286,6 +286,9 @@
     on(e.playPauseBtn, "click", a.togglePlayback);
     on(e.localPlaybackSourceBtn, "click", () => a.setPlaybackSourceMode("local"));
     on(e.externalPlaybackSourceBtn, "click", () => a.setPlaybackSourceMode("external"));
+    on(e.videoBackgroundToggle, "change", () => {
+      a.setVideoDisplayMode(e.videoBackgroundToggle.checked ? "background" : "audio-only");
+    });
     on(e.nextTrackBtn, "click", a.switchTrack);
     on(e.prevTrackBtn, "click", a.prevTrack);
     on(e.repeatModeBtn, "click", a.toggleRepeatMode);

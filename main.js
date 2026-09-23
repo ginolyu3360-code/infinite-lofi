@@ -420,7 +420,7 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
       tracks,
       duplicateCount: Number(tracks.duplicateCount) || 0,
       duplicateKeys: Array.isArray(tracks.duplicateKeys) ? tracks.duplicateKeys : [],
-      error: tracks.length > 0 ? null : "no-audio-files"
+      error: tracks.length > 0 ? null : "no-media-files"
     };
   } catch (error) {
     console.error("Failed to restore music folder:", error);

@@ -255,9 +255,9 @@ test("restores playlist order and the selected track by stable source", () => {
 
 test("keeps missing queue entries recoverable and skips them during playback", () => {
   const savedQueue = [
-    { key: "local:one.mp3", label: "One", relativePath: "one.mp3", isLocal: true },
-    { key: "local:missing.mp3", label: "Missing", relativePath: "missing.mp3", isLocal: true },
-    { key: "local:two.mp3", label: "Two", relativePath: "two.mp3", isLocal: true }
+    { key: "local:one.mp3", label: "One", relativePath: "one.mp3", isLocal: true, mediaKind: "audio" },
+    { key: "local:missing.mp4", label: "Missing", relativePath: "missing.mp4", isLocal: true, mediaKind: "video" },
+    { key: "local:two.mp3", label: "Two", relativePath: "two.mp3", isLocal: true, mediaKind: "audio" }
   ];
   const available = [
     { key: "local:two.mp3", label: "Two", src: "/Moved/two.mp3", isLocal: true },
@@ -268,11 +268,12 @@ test("keeps missing queue entries recoverable and skips them during playback", (
   const restored = mergePlaylistTracks(available, savedQueue);
   assert.deepEqual(restored.map((track) => track.key), [
     "local:one.mp3",
-    "local:missing.mp3",
+    "local:missing.mp4",
     "local:two.mp3",
     "local:new.mp3"
   ]);
   assert.equal(restored[1].isMissing, true);
+  assert.equal(restored[1].mediaKind, "video");
   assert.equal(restored[0].src, "/Moved/one.mp3");
   assert.equal(findActiveTrackIndex(restored, "local:missing.mp3"), 0);
   assert.equal(findAdjacentPlayableIndex(restored, 0, 1), 2);
@@ -281,7 +282,8 @@ test("keeps missing queue entries recoverable and skips them during playback", (
     key: "local:new.mp3",
     label: "New",
     relativePath: "",
-    isLocal: true
+    isLocal: true,
+    mediaKind: "audio"
   }));
 });
 

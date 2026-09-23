@@ -23,8 +23,12 @@
     typeof module !== "undefined" && module.exports
       ? require("./playback-backends")
       : globalScope.InfiniteLofiPlaybackBackends;
+  const localMedia =
+    typeof module !== "undefined" && module.exports
+      ? require("./local-media")
+      : globalScope.InfiniteLofiLocalMedia;
 
-  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends) {
+  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends || !localMedia) {
     throw new Error("Infinite Lo-Fi core, task, language, and audio helpers are required by storage");
   }
 
@@ -119,7 +123,11 @@
         key,
         label: normalizeString(entry.label, 512).trim() || "Untitled track",
         relativePath: normalizeString(entry.relativePath, 2048),
-        isLocal: entry.isLocal === true
+        isLocal: entry.isLocal === true,
+        mediaKind: localMedia.normalizeMediaKind(
+          entry.mediaKind,
+          entry.relativePath || entry.key
+        )
       });
     }
     return result;
@@ -135,7 +143,8 @@
         key: isLocal ? `local:${relativePath}` : builtInKeyFromLegacy(legacyKey),
         label: labelFromFileName(legacyKey),
         relativePath,
-        isLocal
+        isLocal,
+        mediaKind: localMedia.normalizeMediaKind(null, relativePath || legacyKey)
       };
     }).filter((entry) => entry.key !== "local:");
     const activeLegacyKey = normalizeString(playerSource.activeTrackSrc, 8192);
@@ -175,6 +184,7 @@
       },
       player: {
         sourceMode: "local",
+        videoDisplayMode: "audio-only",
         folderPath: "",
         queue: [],
         activeTrackKey: "",
@@ -227,6 +237,7 @@
     const normalizedPlayer = {
       ...normalizedPlayerBase,
       sourceMode: playbackBackends.normalizePlaybackSourceMode(playerSource.sourceMode),
+      videoDisplayMode: localMedia.normalizeVideoDisplayMode(playerSource.videoDisplayMode),
       playbackMode: ["sequential", "repeat-one", "shuffle"].includes(playerSource.playbackMode)
         ? playerSource.playbackMode
         : "sequential",
