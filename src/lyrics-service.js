@@ -8,11 +8,12 @@ const LRCLIB_SEARCH_ENDPOINT = "https://lrclib.net/api/search";
 const QQ_SEARCH_ENDPOINT = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp";
 const QQ_LYRICS_ENDPOINT = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg";
 const LYRICS_OVH_ENDPOINT = "https://api.lyrics.ovh/v1";
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const MISS_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CACHE_BYTES = 600000;
 const HIGH_CONFIDENCE = 95;
 const PROVIDER_PRIORITY = Object.freeze({ lrclib: 3, qqmusic: 2, lyricsovh: 1 });
+const CHINESE_PROVIDER_PRIORITY = Object.freeze({ qqmusic: 3, lrclib: 2, lyricsovh: 1 });
 
 function cleanQueryValue(value, maxLength = 500) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -34,6 +35,15 @@ function normalizeMatchText(value) {
     .toLocaleLowerCase("en-US")
     .replace(/[\p{P}\p{S}\s]+/gu, "")
     .trim();
+}
+
+function isChineseLyricsQuery(query) {
+  const metadata = [query?.trackName, query?.artistName, query?.albumName]
+    .map((value) => cleanQueryValue(value))
+    .filter(Boolean)
+    .join(" ");
+  return /\p{Script=Han}/u.test(metadata) &&
+    !/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(metadata);
 }
 
 function relaxedTrackName(value) {
@@ -163,7 +173,7 @@ function selectSearchRecord(records, query) {
   };
 }
 
-function selectBestLyricsResult(results) {
+function selectBestLyricsResult(results, providerPriority = PROVIDER_PRIORITY) {
   const candidates = (Array.isArray(results) ? results : []).filter((result) => result?.status === "ok" && result.lyrics);
   if (candidates.length === 0) return null;
   const fingerprints = new Map();
@@ -181,7 +191,7 @@ function selectBestLyricsResult(results) {
     };
   }).sort((left, right) => (
     right.resolvedConfidence - left.resolvedConfidence ||
-    (PROVIDER_PRIORITY[right.provider] || 0) - (PROVIDER_PRIORITY[left.provider] || 0)
+    (providerPriority[right.provider] || 0) - (providerPriority[left.provider] || 0)
   ));
   const best = ranked[0];
   if (best?.lyrics?.instrumental === true) {
@@ -401,11 +411,17 @@ function createLyricsService(options = {}) {
   }
 
   async function fetchRemoteLyrics(query) {
-    const lrclib = await fetchLrclib(query);
-    if (lrclib.status === "ok" && lrclib.confidence >= HIGH_CONFIDENCE) return lrclib;
+    const chineseFirst = isChineseLyricsQuery(query);
+    const first = chineseFirst ? await fetchQqMusic(query) : await fetchLrclib(query);
+    if (first.status === "ok" && first.confidence >= HIGH_CONFIDENCE) return first;
 
-    const qqMusic = await fetchQqMusic(query);
-    const primaryBest = selectBestLyricsResult([lrclib, qqMusic]);
+    const second = chineseFirst ? await fetchLrclib(query) : await fetchQqMusic(query);
+    const lrclib = chineseFirst ? second : first;
+    const qqMusic = chineseFirst ? first : second;
+    const primaryBest = selectBestLyricsResult(
+      [lrclib, qqMusic],
+      chineseFirst ? CHINESE_PROVIDER_PRIORITY : PROVIDER_PRIORITY
+    );
     if (primaryBest) return primaryBest;
 
     const lyricsOvh = await fetchLyricsOvh(query);
@@ -441,6 +457,7 @@ module.exports = {
   createCacheKey,
   createLyricsService,
   decodeXmlEntities,
+  isChineseLyricsQuery,
   normalizeMatchText,
   normalizeQuery,
   relaxedTrackName,
