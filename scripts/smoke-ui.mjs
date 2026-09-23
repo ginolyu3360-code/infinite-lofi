@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -20,6 +20,36 @@ const executable = packagedExecutable || developmentExecutable;
 const smokeUserDataDirectory = connectOnly
   ? ""
   : mkdtempSync(path.join(tmpdir(), "infinite-lofi-smoke-profile-"));
+const smokeMediaDirectoryCandidate = connectOnly ? "" : path.join(smokeUserDataDirectory, "local-media");
+const smokeReaderDirectoryCandidate = connectOnly ? "" : path.join(smokeUserDataDirectory, "reader-library");
+if (!connectOnly) {
+  mkdirSync(smokeMediaDirectoryCandidate, { recursive: true });
+  mkdirSync(smokeReaderDirectoryCandidate, { recursive: true });
+}
+const smokeMediaDirectory = connectOnly ? "" : realpathSync(smokeMediaDirectoryCandidate);
+const smokeReaderDirectory = connectOnly ? "" : realpathSync(smokeReaderDirectoryCandidate);
+if (!connectOnly) {
+  copyFileSync(
+    path.join(projectDirectory, "test", "fixtures", "local-video.webm"),
+    path.join(smokeMediaDirectory, "local-video.webm")
+  );
+  copyFileSync(
+    path.join(projectDirectory, "test", "fixtures", "local-video.mkv"),
+    path.join(smokeMediaDirectory, "proxy-video.mkv")
+  );
+  writeFileSync(path.join(smokeMediaDirectory, "media-notes.md"), "# Media notes\n\nSafe **local** reading.", "utf8");
+  writeFileSync(path.join(smokeReaderDirectory, "book.json"), '{"title":"Reader smoke","chapters":2}', "utf8");
+  writeFileSync(
+    path.join(smokeUserDataDirectory, "music-folder-grants.json"),
+    JSON.stringify([smokeMediaDirectory], null, 2),
+    { encoding: "utf8", mode: 0o600 }
+  );
+  writeFileSync(
+    path.join(smokeUserDataDirectory, "reader-folder-grants.json"),
+    JSON.stringify([smokeReaderDirectory], null, 2),
+    { encoding: "utf8", mode: 0o600 }
+  );
+}
 const launchArguments = packagedExecutable
   ? ["--enable-logging=stderr", "--allow-devtools-for-testing", `--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`]
   : [`--remote-debugging-port=${debugPort}`, `--user-data-dir=${smokeUserDataDirectory}`, "."];
@@ -277,7 +307,9 @@ try {
         'lyricsToggleBtn', 'lyricsPanel', 'lyricsViewport', 'lyricsLines',
         'ambiencePlayer', 'ambienceSoundSelect', 'ambienceToggleBtn',
         'ambienceVolumeSlider', 'ambienceStatus', 'audioTransitionsEnabled',
-        'audioTransitionDuration'
+        'audioTransitionDuration', 'readerToggleBtn', 'readerOverlay',
+        'readerDocumentContent', 'readerMediaDocuments', 'readerFolderDocuments',
+        'clearVideoCacheBtn', 'videoPreparationCancelBtn'
       ].every((id) => Boolean(document.getElementById(id))),
       dragRegion: (() => {
         const status = document.querySelector('#statusWidget');
@@ -1143,6 +1175,58 @@ try {
     return result;
   })()`);
 
+  const playbackSourceResult = await evaluate(`(async () => {
+    const player = document.querySelector('#lofiPlayer');
+    const localButton = document.querySelector('#localPlaybackSourceBtn');
+    const externalButton = document.querySelector('#externalPlaybackSourceBtn');
+    externalButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'external' && !externalButton.disabled) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    const externalState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const external = {
+      saved: externalState.player.sourceMode,
+      playerPaused: player.paused,
+      panelMode: document.querySelector('#playerPanel').dataset.playbackSource,
+      externalPressed: externalButton.getAttribute('aria-pressed'),
+      localPressed: localButton.getAttribute('aria-pressed'),
+      localControlsDisabled: [
+        '#playPauseBtn', '#prevTrackBtn', '#nextTrackBtn', '#repeatModeBtn',
+        '#shuffleModeBtn', '#progressSlider', '#volumeSlider', '#playlistToggleBtn',
+        '#lyricsToggleBtn'
+      ].every((selector) => document.querySelector(selector).disabled),
+      nativeOwned: await window.desktopApp?.getNativeMediaSessionAvailability?.(),
+      browserTitle: navigator.mediaSession?.metadata?.title || '',
+      browserState: navigator.mediaSession?.playbackState || 'none'
+    };
+
+    localButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'local' && !localButton.disabled) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    const localState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const local = {
+      saved: localState.player.sourceMode,
+      playerPaused: player.paused,
+      panelMode: document.querySelector('#playerPanel').dataset.playbackSource,
+      localPressed: localButton.getAttribute('aria-pressed'),
+      externalPressed: externalButton.getAttribute('aria-pressed'),
+      controlsEnabled: ['#playPauseBtn', '#prevTrackBtn', '#nextTrackBtn'].every(
+        (selector) => !document.querySelector(selector).disabled
+      ),
+      sourceButtonHeight: Math.min(
+        localButton.getBoundingClientRect().height,
+        externalButton.getBoundingClientRect().height
+      ),
+      nativeOwned: await window.desktopApp?.getNativeMediaSessionAvailability?.()
+    };
+    return { external, local };
+  })()`);
+
   await setWindowSize(720, 520);
   const lyricsResult = await evaluate(`(async () => {
     const toggle = document.querySelector('#lyricsToggleBtn');
@@ -1205,6 +1289,7 @@ try {
       document.querySelector('#playPauseBtn').click();
       await wait(20);
     }
+    music.currentTime = 0;
     enabled.checked = true;
     enabled.dispatchEvent(new Event('change', { bubbles: true }));
     duration.value = '200';
@@ -1475,6 +1560,186 @@ try {
     return result;
   })()`);
 
+  let localVideoResult = { skipped: connectOnly };
+  if (!connectOnly) {
+    await setWindowSize(720, 520);
+    await evaluate(`(() => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    state.player = {
+      ...state.player,
+      folderPath: ${JSON.stringify(smokeMediaDirectory)},
+      queue: [{
+        key: 'local:local-video.webm',
+        label: 'local-video',
+        relativePath: 'local-video.webm',
+        isLocal: true,
+        mediaKind: 'video'
+      }],
+      activeTrackKey: 'local:local-video.webm',
+      sourceMode: 'local',
+      videoDisplayMode: 'audio-only',
+      playbackMode: 'sequential',
+      audioTransitions: { enabled: false, durationMs: 200 }
+    };
+    state.reader = {
+      ...state.reader,
+      folderPath: ${JSON.stringify(smokeReaderDirectory)},
+      fontScale: 100,
+      lineWidth: 'medium',
+      theme: 'auto',
+      sidebarOpen: true,
+      scrollPositions: {}
+    };
+    localStorage.setItem('infiniteLofiState', JSON.stringify(state));
+    window.__infiniteLofiSkipBeforeUnloadPersistence = true;
+    location.reload();
+    return true;
+  })()`);
+  await delay(1_200);
+    localVideoResult = await evaluate(`(async () => {
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    const player = document.querySelector('#lofiPlayer');
+    const toggle = document.querySelector('#videoBackgroundToggle');
+    const control = document.querySelector('#videoDisplayControl');
+    const externalButton = document.querySelector('#externalPlaybackSourceBtn');
+    const localButton = document.querySelector('#localPlaybackSourceBtn');
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!control.hidden && (player.currentSrc || player.src).endsWith('/local-video.webm')) break;
+      await wait(25);
+    }
+    const initial = {
+      controlVisible: !control.hidden,
+      checked: toggle.checked,
+      videoBadge: document.querySelector('#playlistItems .playlist-item-kind')?.textContent.trim(),
+      mediaKind: JSON.parse(localStorage.getItem('infiniteLofiState')).player.queue[0]?.mediaKind,
+      controlHeight: control.querySelector('label').getBoundingClientRect().height,
+      playerInsideViewport: document.querySelector('#playerPanel').getBoundingClientRect().bottom <= innerHeight + 4
+    };
+    document.querySelector('#playPauseBtn').click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!player.paused && player.currentTime > 0.05 && player.videoWidth > 0) break;
+      await wait(25);
+    }
+    const audioOnlyTime = player.currentTime;
+    toggle.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (document.body.classList.contains('local-video-background') && Number(getComputedStyle(player).opacity) > 0) break;
+      await wait(25);
+    }
+    const background = {
+      active: document.body.classList.contains('local-video-background'),
+      opacity: Number(getComputedStyle(player).opacity),
+      currentTime: player.currentTime,
+      paused: player.paused,
+      muted: player.muted,
+      scenePaused: document.querySelector('#bgVideo').paused,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.videoDisplayMode
+    };
+    toggle.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (!document.body.classList.contains('local-video-background') && Number(getComputedStyle(player).opacity) === 0) break;
+      await wait(25);
+    }
+    const audioOnly = {
+      active: document.body.classList.contains('local-video-background'),
+      opacity: Number(getComputedStyle(player).opacity),
+      currentTime: player.currentTime,
+      paused: player.paused,
+      saved: JSON.parse(localStorage.getItem('infiniteLofiState')).player.videoDisplayMode
+    };
+    externalButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'external' && !externalButton.disabled) break;
+      await wait(25);
+    }
+    const external = {
+      paused: player.paused,
+      active: document.body.classList.contains('local-video-background'),
+      controlHidden: control.hidden
+    };
+    localButton.click();
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const state = JSON.parse(localStorage.getItem('infiniteLofiState'));
+      if (state.player.sourceMode === 'local' && !localButton.disabled) break;
+      await wait(25);
+    }
+    const restoredLocal = {
+      paused: player.paused,
+      controlVisible: !control.hidden,
+      errorHidden: document.querySelector('#mediaPlaybackStatus').hidden,
+      videoWidth: player.videoWidth,
+      videoHeight: player.videoHeight
+    };
+    const proxyItem = [...document.querySelectorAll('#playlistItems .playlist-item')]
+      .find((item) => item.dataset.trackKey === 'local:proxy-video.mkv');
+    proxyItem?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      if ((player.currentSrc || player.src).includes('/video-proxies/') && !player.paused && player.currentTime > 0.02) break;
+      await wait(25);
+    }
+    const proxy = {
+      selected: JSON.parse(localStorage.getItem('infiniteLofiState')).player.activeTrackKey === 'local:proxy-video.mkv',
+      compatibleSource: (player.currentSrc || player.src).includes('/video-proxies/') && (player.currentSrc || player.src).endsWith('.webm'),
+      playing: !player.paused && player.currentTime > 0,
+      errorHidden: document.querySelector('#mediaPlaybackStatus').hidden,
+      cancelHidden: document.querySelector('#videoPreparationCancelBtn').hidden
+    };
+    player.pause();
+    return { initial, audioOnlyTime, background, audioOnly, external, restoredLocal, proxy };
+    })()`);
+  }
+
+  let readerResult = { skipped: connectOnly };
+  if (!connectOnly) {
+    readerResult = await evaluate(`(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+      const toggle = document.querySelector('#readerToggleBtn');
+      toggle.focus();
+      toggle.click();
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        if (document.querySelectorAll('#readerMediaDocuments .reader-document-button').length === 1 &&
+            document.querySelectorAll('#readerFolderDocuments .reader-document-button').length === 1) break;
+        await wait(25);
+      }
+      const mediaButton = document.querySelector('#readerMediaDocuments .reader-document-button');
+      mediaButton?.click();
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        if (document.querySelector('#readerDocumentContent h1')?.textContent === 'Media notes') break;
+        await wait(25);
+      }
+      const scale = document.querySelector('#readerFontScale');
+      scale.value = '130';
+      scale.dispatchEvent(new Event('input', { bubbles: true }));
+      const width = document.querySelector('#readerLineWidth');
+      width.value = 'wide';
+      width.dispatchEvent(new Event('change', { bubbles: true }));
+      const theme = document.querySelector('#readerTheme');
+      theme.value = 'paper';
+      theme.dispatchEvent(new Event('change', { bubbles: true }));
+      const beforeClose = {
+        open: !document.querySelector('#readerOverlay').hidden,
+        mediaDocuments: document.querySelectorAll('#readerMediaDocuments .reader-document-button').length,
+        readerDocuments: document.querySelectorAll('#readerFolderDocuments .reader-document-button').length,
+        heading: document.querySelector('#readerDocumentContent h1')?.textContent,
+        hasUnsafeElements: Boolean(document.querySelector('#readerDocumentContent script, #readerDocumentContent iframe, #readerDocumentContent img')),
+        theme: document.querySelector('#readerOverlay').dataset.theme,
+        width: document.querySelector('#readerDocumentContent').dataset.width,
+        scale: getComputedStyle(document.querySelector('#readerDocumentContent')).getPropertyValue('--reader-scale').trim(),
+        timer: document.querySelector('#readerTimerLabel').textContent,
+        saved: JSON.parse(localStorage.getItem('infiniteLofiState')).reader
+      };
+      document.querySelector('#readerDocumentViewport').focus();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await wait(30);
+      return {
+        beforeClose,
+        closed: document.querySelector('#readerOverlay').hidden,
+        focusRestored: document.activeElement === toggle
+      };
+    })()`);
+  }
+
   await evaluate(`(() => {
     const backup = ${JSON.stringify(initialStorageEntries)};
     localStorage.clear();
@@ -1696,6 +1961,25 @@ try {
     (expectsNativeMedia && (playerResult.mediaSessionTitle || playerResult.mediaPlaybackState !== 'none'))
   ) failures.push("playlist persistence or native media session failed");
   if (
+    playbackSourceResult.external.saved !== 'external' ||
+    !playbackSourceResult.external.playerPaused ||
+    playbackSourceResult.external.panelMode !== 'external' ||
+    playbackSourceResult.external.externalPressed !== 'true' ||
+    playbackSourceResult.external.localPressed !== 'false' ||
+    !playbackSourceResult.external.localControlsDisabled ||
+    playbackSourceResult.external.nativeOwned === true ||
+    playbackSourceResult.external.browserTitle ||
+    playbackSourceResult.external.browserState !== 'none' ||
+    playbackSourceResult.local.saved !== 'local' ||
+    !playbackSourceResult.local.playerPaused ||
+    playbackSourceResult.local.panelMode !== 'local' ||
+    playbackSourceResult.local.localPressed !== 'true' ||
+    playbackSourceResult.local.externalPressed !== 'false' ||
+    !playbackSourceResult.local.controlsEnabled ||
+    playbackSourceResult.local.sourceButtonHeight < 42 ||
+    playbackSourceResult.local.nativeOwned !== expectsNativeMedia
+  ) failures.push("Local/External playback ownership switching failed");
+  if (
     !lyricsResult.initial.hidden || lyricsResult.initial.pressed !== 'false' || lyricsResult.initial.expanded !== 'false' ||
     lyricsResult.enabled.hidden || lyricsResult.enabled.pressed !== 'true' || lyricsResult.enabled.expanded !== 'true' ||
     !lyricsResult.enabled.bodyClass || lyricsResult.enabled.saved !== true ||
@@ -1743,10 +2027,38 @@ try {
     performanceResult.reviewPaginationButtons !== 2 || !performanceResult.retentionBoundaryVisible ||
     (enforceReferencePerformance && (performanceResult.openP95Ms >= 100 || performanceResult.actionP95Ms >= 100 || performanceResult.rangeP95Ms >= 100))
   ) failures.push("reference fixture pagination or p95 performance target failed");
+  if (!localVideoResult.skipped && (
+    !localVideoResult.initial.controlVisible || localVideoResult.initial.checked ||
+    localVideoResult.initial.videoBadge !== 'Video' || localVideoResult.initial.mediaKind !== 'video' ||
+    localVideoResult.initial.controlHeight < 42 || !localVideoResult.initial.playerInsideViewport ||
+    !(localVideoResult.audioOnlyTime > 0) || !localVideoResult.background.active ||
+    localVideoResult.background.opacity <= 0 || localVideoResult.background.paused ||
+    localVideoResult.background.muted || !localVideoResult.background.scenePaused ||
+    localVideoResult.background.saved !== 'background' ||
+    localVideoResult.background.currentTime < localVideoResult.audioOnlyTime ||
+    localVideoResult.audioOnly.active || localVideoResult.audioOnly.opacity !== 0 ||
+    localVideoResult.audioOnly.paused || localVideoResult.audioOnly.saved !== 'audio-only' ||
+    localVideoResult.audioOnly.currentTime < localVideoResult.background.currentTime ||
+    !localVideoResult.external.paused || localVideoResult.external.active ||
+    !localVideoResult.external.controlHidden || !localVideoResult.restoredLocal.paused ||
+    !localVideoResult.restoredLocal.controlVisible || !localVideoResult.restoredLocal.errorHidden ||
+    localVideoResult.restoredLocal.videoWidth !== 160 || localVideoResult.restoredLocal.videoHeight !== 90 ||
+    !localVideoResult.proxy.selected || !localVideoResult.proxy.compatibleSource ||
+    !localVideoResult.proxy.playing || !localVideoResult.proxy.errorHidden || !localVideoResult.proxy.cancelHidden
+  )) failures.push("local video playback or background/audio-only switching failed");
+  if (!readerResult.skipped && (
+    !readerResult.beforeClose.open || readerResult.beforeClose.mediaDocuments !== 1 ||
+    readerResult.beforeClose.readerDocuments !== 1 || readerResult.beforeClose.heading !== 'Media notes' ||
+    readerResult.beforeClose.hasUnsafeElements || readerResult.beforeClose.theme !== 'paper' ||
+    readerResult.beforeClose.width !== 'wide' || readerResult.beforeClose.scale !== '1.3' ||
+    !/^\d{2}:\d{2}$/.test(readerResult.beforeClose.timer) ||
+    readerResult.beforeClose.saved.fontScale !== 130 || readerResult.beforeClose.saved.lineWidth !== 'wide' ||
+    readerResult.beforeClose.saved.theme !== 'paper' || !readerResult.closed || !readerResult.focusRestored
+  )) failures.push("Reader mixed-source rendering, preferences, or focus management failed");
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, localVideoResult, readerResult, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

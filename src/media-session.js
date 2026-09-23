@@ -17,6 +17,7 @@
       MediaMetadata,
       audio,
       publishNativeState,
+      initialOwnershipEnabled = true,
       logger = globalScope.console
     } = options;
     const browserSupported = Boolean(
@@ -27,7 +28,10 @@
     );
     const nativePublisherSupported = typeof publishNativeState === "function" && Boolean(audio);
     let nativeMode = false;
+    let ownershipEnabled = initialOwnershipEnabled === true;
     let currentMetadata = null;
+    let installedActions = {};
+    let audioListenersInstalled = false;
 
     const actionNames = [
       "play",
@@ -49,7 +53,7 @@
     }
 
     function publishNativeMediaState(stateOverride) {
-      if (!nativeMode || !nativePublisherSupported) return;
+      if (!ownershipEnabled || !nativeMode || !nativePublisherSupported) return;
       const duration = Number(audio.duration);
       const position = Number(audio.currentTime);
       const playbackRate = Number(audio.playbackRate);
@@ -65,7 +69,7 @@
     }
 
     function syncPlaybackIntent(state) {
-      if (!["playing", "paused", "stopped"].includes(state)) return;
+      if (!ownershipEnabled || !["playing", "paused", "stopped"].includes(state)) return;
       if (nativeMode) publishNativeMediaState(state);
       else setPlaybackState(state === "stopped" ? "paused" : state);
     }
@@ -82,13 +86,14 @@
     }
 
     function setPlaybackState(state) {
-      if (!browserSupported || nativeMode) return;
+      if (!ownershipEnabled || !browserSupported || nativeMode) return;
       try {
         mediaSession.playbackState = state;
       } catch {}
     }
 
     function syncPlaybackState() {
+      if (!ownershipEnabled) return;
       if (nativeMode) {
         publishNativeMediaState();
         return;
@@ -97,6 +102,7 @@
     }
 
     function syncPositionState() {
+      if (!ownershipEnabled) return;
       if (nativeMode) {
         publishNativeMediaState();
         return;
@@ -116,6 +122,7 @@
     }
 
     function syncAllState() {
+      if (!ownershipEnabled) return;
       if (nativeMode) {
         publishNativeMediaState();
         return;
@@ -127,6 +134,7 @@
     function updateMetadata(track) {
       if (!track || track.isMissing === true) {
         currentMetadata = null;
+        if (!ownershipEnabled) return;
         if (nativeMode) publishNativeMediaState();
         else if (browserSupported) {
           try {
@@ -150,6 +158,7 @@
         artwork
       };
       currentMetadata = metadata;
+      if (!ownershipEnabled) return;
       if (nativeMode) {
         publishNativeMediaState();
         return;
@@ -190,9 +199,9 @@
       );
     }
 
-    function installActionHandlers(actions = {}) {
-      if (!audio || (!browserSupported && !nativePublisherSupported)) return false;
-      if (!browserSupported) return true;
+    function installBrowserActionHandlers() {
+      if (!browserSupported || nativeMode || !ownershipEnabled) return;
+      const actions = installedActions;
       setActionHandler("play", () => runTransportAction(actions.play, () => audio.play(), "playing"));
       setActionHandler("pause", () => runTransportAction(actions.pause, () => audio.pause(), "paused"));
       setActionHandler("stop", () => runTransportAction(
@@ -228,11 +237,19 @@
         else audio.currentTime = target;
         syncPositionState();
       });
+    }
 
-      ["play", "pause", "ended", "loadedmetadata", "durationchange", "ratechange", "timeupdate", "emptied"]
+    function installActionHandlers(actions = {}) {
+      if (!audio || (!browserSupported && !nativePublisherSupported)) return false;
+      installedActions = actions && typeof actions === "object" ? actions : {};
+      installBrowserActionHandlers();
+      if (!audioListenersInstalled) {
+        ["play", "pause", "ended", "loadedmetadata", "durationchange", "ratechange", "timeupdate", "emptied"]
         .forEach((eventName) => {
           audio.addEventListener(eventName, eventName === "timeupdate" ? syncPositionState : syncAllState);
         });
+        audioListenersInstalled = true;
+      }
       syncPlaybackState();
       return true;
     }
@@ -247,15 +264,77 @@
           mediaSession.playbackState = "none";
         } catch {}
       }
-      publishNativeMediaState();
+      if (ownershipEnabled) publishNativeMediaState();
+      return true;
+    }
+
+    function disableNativeMode() {
+      nativeMode = false;
+      if (ownershipEnabled) acquireOwnership();
+      return browserSupported;
+    }
+
+    function clearBrowserOwnership() {
+      if (!browserSupported) return;
+      actionNames.forEach((action) => setActionHandler(action, null));
+      try {
+        mediaSession.metadata = null;
+        mediaSession.playbackState = "none";
+      } catch {}
+    }
+
+    function releaseOwnership() {
+      if (!ownershipEnabled) return browserSupported || nativePublisherSupported;
+      ownershipEnabled = false;
+      clearBrowserOwnership();
+      if (nativeMode && nativePublisherSupported) {
+        publishNativeState({
+          title: "",
+          artist: "",
+          album: "",
+          duration: 0,
+          position: 0,
+          playbackRate: 1,
+          state: "none"
+        });
+      }
+      return browserSupported || nativePublisherSupported;
+    }
+
+    function acquireOwnership() {
+      ownershipEnabled = true;
+      if (nativeMode) {
+        publishNativeMediaState();
+        return nativePublisherSupported;
+      }
+      if (!browserSupported) return nativePublisherSupported;
+      installBrowserActionHandlers();
+      if (currentMetadata) {
+        try {
+          mediaSession.metadata = new MediaMetadata(currentMetadata);
+        } catch {
+          try {
+            mediaSession.metadata = new MediaMetadata({ ...currentMetadata, artwork: [] });
+          } catch {}
+        }
+      } else {
+        try {
+          mediaSession.metadata = null;
+        } catch {}
+      }
+      syncAllState();
       return true;
     }
 
     return {
+      acquireOwnership,
+      disableNativeMode,
       enableNativeMode,
+      hasOwnership: () => ownershipEnabled,
       installActionHandlers,
       isNativeMode: () => nativeMode,
       isSupported: () => browserSupported || nativePublisherSupported,
+      releaseOwnership,
       syncPlaybackIntent,
       syncPlaybackState,
       syncPositionState,

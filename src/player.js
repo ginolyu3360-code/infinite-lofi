@@ -1,4 +1,10 @@
 (function exposeInfiniteLofiPlayer(globalScope) {
+  const localMedia = typeof module !== "undefined" && module.exports
+    ? require("./local-media")
+    : globalScope.InfiniteLofiLocalMedia;
+
+  if (!localMedia) throw new Error("Infinite Lo-Fi local media helpers are required by the player");
+
   function getTrackKey(track) {
     if (!track || typeof track !== "object") {
       return "";
@@ -24,15 +30,22 @@
   function createTrackSnapshot(track) {
     const key = getTrackKey(track);
     if (!key) return null;
+    const relativePath = typeof track.relativePath === "string"
+      ? track.relativePath.slice(0, 2048)
+      : "";
     return {
       key,
       label: typeof track.label === "string" && track.label.trim()
         ? track.label.trim().slice(0, 512)
         : "Untitled track",
-      relativePath: typeof track.relativePath === "string"
-        ? track.relativePath.slice(0, 2048)
-        : "",
-      isLocal: track.isLocal === true
+      relativePath,
+      isLocal: track.isLocal === true,
+      mediaKind: localMedia.normalizeMediaKind(
+        track.mediaKind,
+        relativePath || track.src || track.srcUrl || key
+      ),
+      sourceFormat: localMedia.extensionFromPath(relativePath || track.src || track.srcUrl || key),
+      proxyPolicy: localMedia.getVideoPlaybackPolicy(relativePath || track.src || track.srcUrl || key)
     };
   }
 

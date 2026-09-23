@@ -206,3 +206,28 @@ test("skips copy-name and metadata duplicates while keeping the highest-quality 
   assert.ok(tracks.some((track) => track.label === "other-artist"));
   assert.ok(tracks.every((track) => !("_dedupe" in track)));
 });
+
+test("scans supported video files without deduplicating them against audio", async (t) => {
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "infinite-lofi-video-library-"));
+  await Promise.all([
+    fs.promises.writeFile(path.join(root, "Focus.mp3"), "audio"),
+    fs.promises.writeFile(path.join(root, "Focus.webm"), "video"),
+    fs.promises.writeFile(path.join(root, "Ignored.mkv"), "unsupported")
+  ]);
+  t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+
+  const library = createMusicLibrary({
+    artworkCacheDirectory: path.join(root, "cache"),
+    parseFile: async (filePath) => ({
+      common: { title: path.basename(filePath, path.extname(filePath)), artist: "Example Artist" },
+      format: { duration: 60 }
+    })
+  });
+  const tracks = await library.scanFolder(root);
+
+  assert.equal(tracks.length, 3);
+  assert.equal(tracks.duplicateCount, 0);
+  assert.deepEqual(tracks.map((track) => track.mediaKind).sort(), ["audio", "video", "video"]);
+  assert.ok(tracks.some((track) => track.relativePath === "Focus.webm"));
+  assert.ok(tracks.some((track) => track.relativePath === "Ignored.mkv"));
+});

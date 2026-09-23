@@ -3,6 +3,9 @@
   const audioTransition = typeof module !== "undefined" && module.exports
     ? require("./audio-transition")
     : globalScope.InfiniteLofiAudioTransition;
+  const localMedia = typeof module !== "undefined" && module.exports
+    ? require("./local-media")
+    : globalScope.InfiniteLofiLocalMedia;
   const defaultTranslate = i18n.createI18n("en").t;
   function createPlayerController(options) {
     const {
@@ -13,7 +16,10 @@
       defaultTracks,
       onArtworkChange = () => {},
       onTrackChange = () => {},
+      onPlaybackError = () => {},
+      onVideoPreparation = () => {},
       onLayoutChange = () => {},
+      onFolderChange = () => {},
       announce = () => {},
       getAudioTransitionSettings = () => audioTransition.DEFAULT_AUDIO_TRANSITIONS,
       gainEnvelopeFactory = audioTransition.createGainEnvelope,
@@ -42,6 +48,9 @@
     let shuffleHistoryKeys = [];
     let playbackCommandVersion = 0;
     let desiredPlaying = false;
+    let videoPreparationVersion = 0;
+    let activeProxyJobId = "";
+    let lastVideoPreparationError = null;
     const musicEnvelope = gainEnvelopeFactory({
       audio: elements.lofiPlayer,
       userVolume: Number(elements.volumeSlider.value) / 100
@@ -70,6 +79,50 @@
 
     function getActiveTrack() {
       return playlist[currentTrackIndex] || null;
+    }
+
+    function cancelVideoPreparation(reason = "track-changed") {
+      videoPreparationVersion += 1;
+      activeProxyJobId = "";
+      if (reason === "user-cancelled") {
+        desiredPlaying = false;
+        elements.playPauseBtn.textContent = t("player.play");
+      }
+      desktopApp?.cancelVideoProxy?.().catch?.(() => {});
+      onVideoPreparation({ status: "idle", reason });
+    }
+
+    async function ensureCompatibleVideoSource(version, { force = false } = {}) {
+      const track = getActiveTrack();
+      const source = track?.relativePath || track?.src || track?.srcUrl || "";
+      const policy = localMedia.getVideoPlaybackPolicy(source);
+      if (!policy || (!force && policy !== "proxy-first") || track.proxyUrl) return true;
+      if (!desktopApp?.prepareVideoProxy || typeof track.src !== "string" || !track.src) return false;
+      const preparationVersion = ++videoPreparationVersion;
+      const trackKey = playerModel.getTrackKey(track);
+      activeProxyJobId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      lastVideoPreparationError = null;
+      onVideoPreparation({ status: "preparing", percent: 0, jobId: activeProxyJobId, track });
+      try {
+        const result = await desktopApp.prepareVideoProxy(track.src, activeProxyJobId);
+        if (
+          preparationVersion !== videoPreparationVersion ||
+          version !== playbackCommandVersion ||
+          !desiredPlaying ||
+          playerModel.getTrackKey(getActiveTrack()) !== trackKey
+        ) return false;
+        track.proxyUrl = result.fileUrl;
+        elements.lofiPlayer.src = result.fileUrl;
+        activeProxyJobId = "";
+        onVideoPreparation({ status: "complete", percent: 100, cacheHit: result.cacheHit === true, track });
+        return true;
+      } catch (error) {
+        if (preparationVersion !== videoPreparationVersion || error?.code === "cancelled") return false;
+        activeProxyJobId = "";
+        lastVideoPreparationError = error;
+        onVideoPreparation({ status: "error", error, track });
+        return false;
+      }
     }
 
     function getMissingCount() {
@@ -330,6 +383,12 @@
         label.className = "playlist-item-label";
         label.textContent = track.label;
         itemButton.appendChild(label);
+        if (track.mediaKind === "video") {
+          const kind = elements.document.createElement("span");
+          kind.className = "playlist-item-kind";
+          kind.textContent = t("player.videoBadge");
+          itemButton.appendChild(kind);
+        }
         if (track.isMissing === true) {
           const status = elements.document.createElement("span");
           status.className = "playlist-item-status";
@@ -347,6 +406,7 @@
     }
 
     function updateTrack({ rebuildPlaylist = true } = {}) {
+      cancelVideoPreparation("source-updated");
       playbackCommandVersion += 1;
       musicEnvelope.cancel({ gain: 1 });
       const track = getActiveTrack();
@@ -364,7 +424,7 @@
         return;
       }
       elements.trackLabel.textContent = track.label;
-      elements.lofiPlayer.src = track.srcUrl || track.src;
+      elements.lofiPlayer.src = track.proxyUrl || track.srcUrl || track.src;
       onArtworkChange(
         track.artworkUrl
           ? { url: track.artworkUrl, name: track.artworkName || t("player.cover", { title: track.label }) }
@@ -397,6 +457,7 @@
       isScanning = false;
       if (shouldStop) stop();
       localMusicFolder = null;
+      onFolderChange("");
       folderUnavailable = false;
       duplicateCount = 0;
       setPlaylistFromScan(bundledTracks, savedQueue, activeTrackKey);
@@ -423,12 +484,13 @@
           renderPlaylist();
           return false;
         }
-        if (result.error && result.error !== "no-audio-files") {
+        if (result.error && !["no-audio-files", "no-media-files"].includes(result.error)) {
           folderUnavailable = true;
           renderPlaylist();
           return false;
         }
         localMusicFolder = result.folderPath || localMusicFolder;
+        onFolderChange(localMusicFolder);
         duplicateCount = Math.max(0, Math.floor(Number(result.duplicateCount) || 0));
         const resumeAfterScan = shouldResume && playbackCommandVersion === playbackVersionBeforeScan;
         setPlaylistFromScan(
@@ -468,6 +530,7 @@
       }
 
       localMusicFolder = saved.folderPath;
+      onFolderChange(localMusicFolder);
       playlist = playerModel.mergePlaylistTracks([], savedQueue);
       currentTrackIndex = playerModel.findActiveTrackIndex(playlist, saved.activeTrackKey);
       folderUnavailable = true;
@@ -493,6 +556,7 @@
         scanCommandVersion += 1;
         isScanning = false;
         localMusicFolder = result.folderPath;
+        onFolderChange(localMusicFolder);
         duplicateCount = Math.max(0, Math.floor(Number(result.duplicateCount) || 0));
         setPlaylistFromScan(
           result.tracks,
@@ -543,6 +607,16 @@
 
     async function startPlayback(version, { announcePlayback = false } = {}) {
       if (!elements.lofiPlayer.src) return false;
+      const track = getActiveTrack();
+      if (localMedia.getVideoPlaybackPolicy(track?.relativePath || track?.src || track?.srcUrl) === "proxy-first" && !track?.proxyUrl) {
+        if (!await ensureCompatibleVideoSource(version)) {
+          if (version === playbackCommandVersion && desiredPlaying) {
+            desiredPlaying = false;
+            onPlaybackError(track, lastVideoPreparationError || new Error("Video preparation failed"));
+          }
+          return false;
+        }
+      }
       const settings = transitionSettings();
       musicEnvelope.cancel({ gain: settings.enabled ? 0 : 1 });
       try {
@@ -555,10 +629,22 @@
         elements.playPauseBtn.textContent = t("player.pause");
         if (announcePlayback) announce(t("player.started"));
         return true;
-      } catch {
+      } catch (error) {
+        const activeTrack = getActiveTrack();
+        const isNativeVideo = localMedia.getVideoPlaybackPolicy(activeTrack?.relativePath || activeTrack?.src || activeTrack?.srcUrl) === "native-first";
+        if (isNativeVideo && !activeTrack?.proxyUrl && desiredPlaying && version === playbackCommandVersion) {
+          musicEnvelope.cancel({ gain: 1 });
+          if (await ensureCompatibleVideoSource(version, { force: true })) return startPlayback(version, { announcePlayback });
+          if (version === playbackCommandVersion && desiredPlaying) {
+            desiredPlaying = false;
+            onPlaybackError(activeTrack, lastVideoPreparationError || error);
+          }
+          return false;
+        }
         if (version === playbackCommandVersion) desiredPlaying = false;
         musicEnvelope.cancel({ gain: 1 });
         elements.playPauseBtn.textContent = t("player.play");
+        onPlaybackError(getActiveTrack(), error);
         return false;
       }
     }
@@ -591,6 +677,7 @@
     }
 
     function stop() {
+      cancelVideoPreparation("stopped");
       playbackCommandVersion += 1;
       desiredPlaying = false;
       musicEnvelope.cancel({ gain: 1 });
@@ -775,10 +862,36 @@
     elements.playlistItems.addEventListener("dragover", handlePlaylistDragOver);
     elements.playlistItems.addEventListener("dragleave", handlePlaylistDragLeave);
     elements.playlistItems.addEventListener("drop", handlePlaylistDrop);
+    elements.lofiPlayer.addEventListener("error", () => {
+      const track = getActiveTrack();
+      const policy = localMedia.getVideoPlaybackPolicy(track?.relativePath || track?.src || track?.srcUrl);
+      if (desiredPlaying && policy === "native-first" && !track?.proxyUrl) {
+        const version = playbackCommandVersion;
+        ensureCompatibleVideoSource(version, { force: true }).then((prepared) => {
+          if (prepared && desiredPlaying && version === playbackCommandVersion) startPlayback(version);
+          else if (!prepared && version === playbackCommandVersion) {
+            desiredPlaying = false;
+            onPlaybackError(track, lastVideoPreparationError || elements.lofiPlayer.error || new Error("Media playback failed"));
+          }
+        });
+        return;
+      }
+      desiredPlaying = false;
+      musicEnvelope.cancel({ gain: 1 });
+      elements.playPauseBtn.textContent = t("player.play");
+      onPlaybackError(getActiveTrack(), elements.lofiPlayer.error || new Error("Media playback failed"));
+    });
+
+    desktopApp?.onVideoProxyProgress?.((progress) => {
+      if (!activeProxyJobId || progress?.jobId !== activeProxyJobId) return;
+      onVideoPreparation(progress);
+    });
 
     return {
       getUserVolume: () => musicEnvelope.getState().userVolume,
+      getLocalMusicFolder: () => localMusicFolder || "",
       handleTrackEnded,
+      cancelVideoPreparation,
       loadMusicFolder,
       pause,
       persistState,

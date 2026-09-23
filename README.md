@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.5.1**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包，以及 Windows 11 x64 NSIS 安装器；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
+当前发布版本：**v1.5.2**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包，以及 Windows 11 x64 NSIS 安装器；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -21,8 +21,10 @@
 - 三种原创 MIT 离线环境音，可在音乐旁独立播放一种，并可选择启用有界、可取消的音频淡入淡出
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
-- 音乐播放器：内置示例曲目、本地文件夹异步扫描与自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放
-- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时依次使用 LRCLIB、QQ 音乐与 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
+- 本地媒体播放器：内置示例曲目、本地音频及 MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP 视频文件夹扫描、自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放；非原生格式会在首次播放时生成并缓存兼容副本，视频可仅播放音频，也可显示为专注界面背景
+- Local / External 播放来源切换：External 模式会暂停内置播放器并释放系统媒体键，不会自动启动或控制第三方应用；第三方服务的官方接入可行性见 `docs/third-party-music-feasibility.md`
+- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时，中文元数据歌曲优先使用 QQ 音乐再回退 LRCLIB，其他歌曲保持 LRCLIB 优先，最后使用 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
+- 沉浸式本地阅读模式：合并当前媒体文件夹与独立阅读文件夹，支持 TXT/TEXT、Markdown、LOG、CSV、JSON 与 YAML/YML，提供筛选、文内查找、字号、行宽、主题和滚动恢复；正文只读、仅在本机打开
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
@@ -60,6 +62,7 @@ package.json            # 脚本、依赖、打包配置
 tailwind.config.js
 verification-log.md
 HANDOFF.md             # 新会话接续说明、验证结果与下一步边界
+docs/third-party-music-feasibility.md # Apple Music、Spotify、QQ 音乐、网易云音乐官方接入调研
 UI-REFRESH-PLAN.md     # Phase 3 前 UI 基础改版的决策、规则与验收标准
 .github/workflows/ci.yml # GitHub Actions 检查与 macOS/Windows 打包验证
 .github/workflows/release.yml # 标签触发的多平台 Release 自动发布
@@ -82,6 +85,8 @@ src/
   ├─ notes-controller.js # 笔记 DOM 与持久化控制器
   ├─ player.js          # 播放列表恢复模型
   ├─ media-session.js   # 系统媒体信息、播放键与定位控制
+  ├─ playback-backends.js # provider-neutral 播放后端能力契约
+  ├─ native-media-ownership.js # 本地/外部模式的原生媒体键所有权
   ├─ player-controller.js # 播放器 DOM 与目录恢复控制器
   ├─ backgrounds.js     # 背景设置模型
   ├─ stats.js           # 统计范围与汇总模型
@@ -186,6 +191,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - Phase 4B Focus Review 已完成于源码：Stats 明确使用今天、最近 7 天和最近 30 天滚动范围，按稳定任务 ID 汇总账本时间，并分别标识已删除任务、仅快照与未指定记录；界面同时解释零基线、取整、导入数据及保留边界。
 - Phase 4C1 Ambient Layer 已完成于源码：Scene 提供三种原创 MIT 离线环境音，可与音乐独立控制且同一时间最多播放一种；选择与独立音量保存在 schema v5，但启动、恢复和异常恢复后始终暂停。
 - Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 3000 ms 的音乐与环境声淡入淡出；默认仍为 200 ms，用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
+- 第三方音乐基础已完成于源码：Local / External 模式会持久化；切到 External 会暂停本地音乐并注销本应用的系统媒体命令，切回 Local 也不会自动播放。当前未加入任何需要账号、密钥、合作资质或有争议非官方接口的服务。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
@@ -193,7 +199,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - 统计面板中的 Backup 和 Restore 可导出、校验并恢复完整本地数据；恢复会替换当前本地数据。
 - 如果版本化存储损坏或来自更高版本，应用会先保留原始值并显示恢复提示，而不是静默覆盖。
 - 天气服务不可用时，应用会使用与当前模式/城市匹配的本地缓存，或显示明确的不可用状态。
-- music-metadata 用于读取嵌入封面；扫描本地音乐文件夹时会查找文件名相匹配的图片（cover.jpg/folder.jpg/front/album等）并尝试读取嵌入图片。
+- music-metadata 用于读取音频和视频容器的元数据与嵌入封面；扫描本地媒体文件夹时会查找文件名相匹配的图片（cover.jpg/folder.jpg/front/album等）并尝试读取嵌入图片。
 - macOS 使用 Apple `MPRemoteCommandCenter` 与 `MPNowPlayingInfoCenter` 原生桥接 AirPods、控制中心和媒体键，不需要“辅助功能”权限；Windows 继续使用 Chromium Media Session。
 - Electron 版本在 package.json 中为 ^41.3.0，注意与本地 Node/Electron 运行环境兼容性（如果你遇到二进制或节点版本问题，请升级或使用 nvm 指定合适 Node 版本）。
 
@@ -202,7 +208,7 @@ Q: 我运行 npm run dev 后窗口一片空白怎么办？
 A: 先运行 `npm ci` 和 `npm run check`；确认通过后再运行 `npm start`，并查看终端中的 Electron 错误信息。
 
 Q: 如何加载本地音乐？
-A: 在 Queue 中选择 **Load Folder**，然后选择本地音乐目录。应用会保存已授权目录及 Queue 顺序；目录内容变化后可选择 **Rescan**。
+A: 在 Queue 中选择 **Load Folder**，然后选择本地媒体目录。应用会保存已授权目录及 Queue 顺序；目录内容变化后可选择 **Rescan**。支持常见本地音频，以及 MP4、M4V、WebM 视频。视频默认只播放音频；播放视频时可开启 **视频背景**。
 
 Q: 如何显示歌词？
 A: 点击播放器右上角的 **Lyrics / 歌词** 开关。应用会先查找与歌曲同名、位于同一文件夹的 `.lrc` 文件，再检查 MP3 的内嵌歌词；如果本地都没有，才会把曲名、歌手、专辑和时长发送给 LRCLIB 查找并在本机缓存结果。音频内容和本地文件路径不会发送。关闭开关后不会查找在线歌词。
@@ -226,7 +232,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.5.1**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon plus a Windows 11 x64 NSIS installer; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
+Current release: **v1.5.2**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon plus a Windows 11 x64 NSIS installer; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -236,8 +242,10 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days, grouped by stable task identity
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
-- Music player with bundled tracks, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle
-- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then ranks guarded results from LRCLIB, QQ Music, and lyrics.ovh with silent local caching; audio data and local paths are never uploaded
+- Local media player with bundled tracks, audio plus MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP folder scanning, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle. Non-native video formats receive a cached compatible copy on first play; video can remain audio-only or appear behind the focus interface.
+- Persistent Local / External playback-source switching. External mode pauses the built-in player and releases system media keys without launching or controlling another app; see `docs/third-party-music-feasibility.md` for the official-provider feasibility review
+- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, queries QQ Music before LRCLIB for Chinese metadata (LRCLIB first otherwise), and keeps lyrics.ovh as the final fallback with silent local caching; audio data and local paths are never uploaded
+- Immersive local-only Reader combining the current media folder and an optional reading folder, with TXT/TEXT, Markdown, LOG, CSV, JSON, and YAML/YML support, filtering, in-document find, display preferences, and scroll restoration
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
@@ -265,6 +273,7 @@ See the Chinese section above for a full tree. Key runtime files:
 - package.json — scripts, dependencies, and build settings
 - src/ — renderer orchestration, independently testable feature models, and styles
 - src/storage.js — versioned state, legacy migration, and backup validation
+- src/playback-backends.js and src/native-media-ownership.js — provider-neutral capabilities and native media-key ownership switching
 - Feature modules and controllers under src/ separate timer, tasks, atomic focus-session persistence, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
 - scripts/build-macos-media-bridge.mjs — Intel/Apple Silicon native-media build orchestration

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.2 — 2026-09-23
+
+- Added a persistent Local / External playback-source switch that pauses the built-in player and releases system media ownership in External mode without launching or controlling third-party apps
+- Expanded local video support to MOV, OGV, MKV, AVI, WMV, FLV/F4V, MPG/MPEG, TS/MTS/M2TS, and 3GP/3G2, with a bundled checksummed FFmpeg runtime, cancellable WebM conversion, native-decode fallback, and a bounded local compatibility cache
+- Added an immersive local-only Reader for TXT/TEXT, Markdown, LOG, CSV, JSON, and YAML/YML, combining the current media folder with an optional reading folder while preserving timer and playback controls
+- Added bounded recursive scanning, common text-encoding detection, safe Markdown rendering, document filtering and search, reading preferences, and per-document scroll restoration without storing document contents
+- Changed Chinese-metadata online lyric lookup to query QQ Music before LRCLIB while retaining local lyrics as the first choice and lyrics.ovh as the final fallback
+- Added fixed-hash macOS x64/arm64 and Windows x64 FFmpeg packaging checks plus expanded unit, controller, development-smoke, and packaged-smoke coverage
+
 ## 1.5.1 — 2026-09-18
 
 - Added a native macOS Now Playing and remote-command bridge so AirPods can resume paused music and control tracks without Accessibility permission

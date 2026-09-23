@@ -103,8 +103,8 @@ test("normalizes versioned state and rejects unsafe values", () => {
   assert.equal(state.notes.activeId, "a");
   assert.deepEqual(state.stats.focusRows, []);
   assert.deepEqual(state.player.queue, [
-    { key: "one", label: "one", relativePath: "", isLocal: false },
-    { key: "two", label: "two", relativePath: "", isLocal: false }
+    { key: "one", label: "one", relativePath: "", isLocal: false, mediaKind: "audio", sourceFormat: "", proxyPolicy: null },
+    { key: "two", label: "two", relativePath: "", isLocal: false, mediaKind: "audio", sourceFormat: "", proxyPolicy: null }
   ]);
   assert.equal(state.timerRuntime.isRunning, false);
 });
@@ -210,6 +210,8 @@ test("normalizes unsupported display languages without changing schema v5", () =
 
 test("adds and preserves additive schema v5 ambience preferences", () => {
   const defaults = createDefaultState(4200);
+  assert.equal(defaults.player.sourceMode, "local");
+  assert.equal(defaults.player.videoDisplayMode, "audio-only");
   assert.deepEqual(defaults.player.ambience, { soundId: null, volume: 0.35 });
   assert.deepEqual(defaults.player.audioTransitions, { enabled: false, durationMs: 200 });
 
@@ -229,6 +231,66 @@ test("adds and preserves additive schema v5 ambience preferences", () => {
     enabled: true,
     durationMs: 900
   });
+});
+
+test("normalizes local video display and queue media types in schema v5", () => {
+  const state = createDefaultState(4225);
+  state.player.videoDisplayMode = "background";
+  state.player.queue = [
+    { key: "local:clip.mp4", label: "Clip", relativePath: "clip.mp4", isLocal: true, mediaKind: "video" },
+    { key: "local:song.mp3", label: "Song", relativePath: "song.mp3", isLocal: true, mediaKind: "invalid" }
+  ];
+  const normalized = normalizeState(state, 4226);
+
+  assert.equal(normalized.player.videoDisplayMode, "background");
+  assert.deepEqual(normalized.player.queue.map((track) => track.mediaKind), ["video", "audio"]);
+
+  state.player.videoDisplayMode = "fullscreen";
+  assert.equal(normalizeState(state, 4227).player.videoDisplayMode, "audio-only");
+});
+
+test("adds bounded optional Reader state to schema v5 backups", () => {
+  const state = createDefaultState(4230);
+  state.reader = {
+    folderPath: "/Books",
+    lastDocumentKey: "reader:chapter-1",
+    fontScale: 170,
+    lineWidth: "wide",
+    theme: "paper",
+    sidebarOpen: false,
+    scrollPositions: { "reader:chapter-1": 0.42 }
+  };
+  const backup = createRepository(createMemoryStorage(), () => 4231);
+  backup.update((draft) => { draft.reader = state.reader; });
+  const restored = importBackup(backup.exportBackup("2026-09-23T00:00:00.000Z"), 4232);
+  assert.deepEqual(restored.reader, {
+    folderPath: "/Books",
+    lastDocumentKey: "reader:chapter-1",
+    fontScale: 160,
+    lineWidth: "wide",
+    theme: "paper",
+    sidebarOpen: false,
+    scrollPositions: { "reader:chapter-1": 0.42 }
+  });
+  const oldSchemaFive = createDefaultState(4233);
+  delete oldSchemaFive.reader;
+  assert.deepEqual(normalizeState(oldSchemaFive, 4233).reader, createDefaultState(4233).reader);
+});
+
+test("persists only the supported local or external playback source mode", () => {
+  const state = createDefaultState(4250);
+  state.player.sourceMode = "external";
+  assert.equal(normalizeState(state, 4251).player.sourceMode, "external");
+
+  state.player.sourceMode = "spotify";
+  assert.equal(normalizeState(state, 4252).player.sourceMode, "local");
+
+  const backup = {
+    format: BACKUP_FORMAT,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    state: { ...state, player: { ...state.player, sourceMode: "external" } }
+  };
+  assert.equal(importBackup(backup, 4253).player.sourceMode, "external");
 });
 
 test("round-trips ambience preferences through backups without autoplay state", () => {
@@ -312,10 +374,12 @@ test("imports old backups and rejects unrelated or newer files", () => {
   assert.deepEqual(migratedVersionThree.player, {
     folderPath: "/Old/Music",
     queue: [
-      { key: "local:two.mp3", label: "two", relativePath: "two.mp3", isLocal: true },
-      { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true }
+      { key: "local:two.mp3", label: "two", relativePath: "two.mp3", isLocal: true, mediaKind: "audio", sourceFormat: ".mp3", proxyPolicy: null },
+      { key: "local:one.mp3", label: "one", relativePath: "one.mp3", isLocal: true, mediaKind: "audio", sourceFormat: ".mp3", proxyPolicy: null }
     ],
     activeTrackKey: "local:two.mp3",
+    sourceMode: "local",
+    videoDisplayMode: "audio-only",
     playbackMode: "sequential",
     ambience: { soundId: null, volume: 0.35 },
     audioTransitions: { enabled: false, durationMs: 200 }

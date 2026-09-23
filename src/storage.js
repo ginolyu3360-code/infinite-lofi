@@ -19,8 +19,20 @@
     typeof module !== "undefined" && module.exports
       ? require("./audio-transition")
       : globalScope.InfiniteLofiAudioTransition;
+  const playbackBackends =
+    typeof module !== "undefined" && module.exports
+      ? require("./playback-backends")
+      : globalScope.InfiniteLofiPlaybackBackends;
+  const localMedia =
+    typeof module !== "undefined" && module.exports
+      ? require("./local-media")
+      : globalScope.InfiniteLofiLocalMedia;
+  const reader =
+    typeof module !== "undefined" && module.exports
+      ? require("./reader")
+      : globalScope.InfiniteLofiReader;
 
-  if (!core || !tasks || !i18n || !ambience || !audioTransition) {
+  if (!core || !tasks || !i18n || !ambience || !audioTransition || !playbackBackends || !localMedia || !reader) {
     throw new Error("Infinite Lo-Fi core, task, language, and audio helpers are required by storage");
   }
 
@@ -115,7 +127,13 @@
         key,
         label: normalizeString(entry.label, 512).trim() || "Untitled track",
         relativePath: normalizeString(entry.relativePath, 2048),
-        isLocal: entry.isLocal === true
+        isLocal: entry.isLocal === true,
+        mediaKind: localMedia.normalizeMediaKind(
+          entry.mediaKind,
+          entry.relativePath || entry.key
+        ),
+        sourceFormat: localMedia.extensionFromPath(entry.relativePath || entry.key),
+        proxyPolicy: localMedia.getVideoPlaybackPolicy(entry.relativePath || entry.key)
       });
     }
     return result;
@@ -131,7 +149,10 @@
         key: isLocal ? `local:${relativePath}` : builtInKeyFromLegacy(legacyKey),
         label: labelFromFileName(legacyKey),
         relativePath,
-        isLocal
+        isLocal,
+        mediaKind: localMedia.normalizeMediaKind(null, relativePath || legacyKey),
+        sourceFormat: localMedia.extensionFromPath(relativePath || legacyKey),
+        proxyPolicy: localMedia.getVideoPlaybackPolicy(relativePath || legacyKey)
       };
     }).filter((entry) => entry.key !== "local:");
     const activeLegacyKey = normalizeString(playerSource.activeTrackSrc, 8192);
@@ -170,6 +191,8 @@
         focusRows: []
       },
       player: {
+        sourceMode: "local",
+        videoDisplayMode: "audio-only",
         folderPath: "",
         queue: [],
         activeTrackKey: "",
@@ -184,7 +207,8 @@
         deadlineMs: null,
         isRunning: false,
         focusSession: null
-      }
+      },
+      reader: reader.normalizeReaderState()
     };
   }
 
@@ -221,6 +245,8 @@
       : migrateLegacyPlayer(playerSource);
     const normalizedPlayer = {
       ...normalizedPlayerBase,
+      sourceMode: playbackBackends.normalizePlaybackSourceMode(playerSource.sourceMode),
+      videoDisplayMode: localMedia.normalizeVideoDisplayMode(playerSource.videoDisplayMode),
       playbackMode: ["sequential", "repeat-one", "shuffle"].includes(playerSource.playbackMode)
         ? playerSource.playbackMode
         : "sequential",
@@ -305,6 +331,7 @@
         focusRows: core.aggregateFocusRows(focusSessions).slice(-core.MAX_FOCUS_HISTORY_DAYS)
       },
       player: normalizedPlayer,
+      reader: reader.normalizeReaderState(source.reader),
       timerRuntime: {
         phase: runtimePhase,
         completedFocusesInCycle: runtimePhase === "longBreak"

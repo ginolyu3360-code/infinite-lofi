@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen, shell } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFile } = require("child_process");
@@ -6,6 +6,8 @@ const { promisify } = require("util");
 const fs = require("fs");
 const musicMetadata = require("music-metadata");
 const { createMusicLibrary } = require("./src/music-library");
+const { createReaderLibrary, isPathInside, pathsReferToSameLocation } = require("./src/reader-library");
+const { createVideoProxyService, selectRuntimeEntry } = require("./src/video-proxy");
 const { createLyricsService } = require("./src/lyrics-service");
 const { isTrustedNavigationUrl } = require("./src/security");
 const { bindWindowBackgroundLifecycle } = require("./src/window-lifecycle");
@@ -13,6 +15,7 @@ const {
   createNativeMediaBridge,
   resolveNativeMediaBridgePath
 } = require("./src/native-media-bridge");
+const { createNativeMediaOwnershipController } = require("./src/native-media-ownership");
 
 const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
 const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
@@ -35,8 +38,11 @@ let queuePanelOpen = false;
 let fullWindowBounds = null;
 let musicLibrary = null;
 let lyricsService = null;
-let nativeMediaBridge = null;
+let readerLibrary = null;
+let videoProxyService = null;
+let nativeMediaOwnership = null;
 let grantedMusicFolders = new Set();
+let grantedReaderFolders = new Set();
 let trayStatus = {
   timerText: "25:00",
   phaseText: "Focus Session",
@@ -64,15 +70,17 @@ function sendPowerStateToRenderer(state) {
 }
 
 function initializeNativeMediaBridge() {
-  nativeMediaBridge = createNativeMediaBridge({
-    addonPath: resolveNativeMediaBridgePath({
-      appPath: app.getAppPath(),
-      isPackaged: app.isPackaged,
-      resourcesPath: process.resourcesPath
-    }),
-    onCommand: (command) => sendCommandToRenderer({
-      ...command,
-      type: `media-${command.type}`
+  nativeMediaOwnership = createNativeMediaOwnershipController({
+    createBridge: () => createNativeMediaBridge({
+      addonPath: resolveNativeMediaBridgePath({
+        appPath: app.getAppPath(),
+        isPackaged: app.isPackaged,
+        resourcesPath: process.resourcesPath
+      }),
+      onCommand: (command) => sendCommandToRenderer({
+        ...command,
+        type: `media-${command.type}`
+      })
     })
   });
 }
@@ -248,6 +256,7 @@ if (!app.requestSingleInstanceLock()) {
     nativeTheme.themeSource = "dark";
     initializeNativeMediaBridge();
     await loadMusicFolderGrants();
+    await loadReaderFolderGrants();
     musicLibrary = createMusicLibrary({
       parseFile: musicMetadata.parseFile,
       artworkCacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "artwork")
@@ -257,6 +266,8 @@ if (!app.requestSingleInstanceLock()) {
       getLocalLyrics: (track) => musicLibrary.getLocalLyrics(track),
       userAgent: `Infinite Lo-Fi/${app.getVersion()} (https://github.com/ginolyu3360-code/infinite-lofi)`
     });
+    readerLibrary = createReaderLibrary();
+    initializeVideoProxyService();
     createMainWindow();
     createTray();
     powerMonitor.on("suspend", () => sendPowerStateToRenderer("suspend"));
@@ -316,18 +327,26 @@ ipcMain.on("app:trayStatus", (_event, status) => {
 });
 
 ipcMain.handle("media:nativeAvailable", (event) => {
-  return isTrustedIpcSender(event) && nativeMediaBridge?.isAvailable() === true;
+  return isTrustedIpcSender(event) && nativeMediaOwnership?.isAvailable() === true;
+});
+
+ipcMain.handle("media:setNativeOwnership", (event, enabled) => {
+  if (!isTrustedIpcSender(event) || !nativeMediaOwnership) return false;
+  return enabled === true
+    ? nativeMediaOwnership.acquire()
+    : nativeMediaOwnership.release();
 });
 
 ipcMain.on("media:updateNativeState", (event, state) => {
-  if (!isTrustedIpcSender(event) || nativeMediaBridge?.isAvailable() !== true) return;
-  nativeMediaBridge.update(state);
+  if (!isTrustedIpcSender(event) || nativeMediaOwnership?.isAvailable() !== true) return;
+  nativeMediaOwnership.update(state);
 });
 
 // Local music folder selection and scanning
 const { dialog } = require("electron");
 
 const MUSIC_FOLDER_GRANTS_FILE = "music-folder-grants.json";
+const READER_FOLDER_GRANTS_FILE = "reader-folder-grants.json";
 
 function getMusicFolderGrantsPath() {
   return path.join(app.getPath("userData"), MUSIC_FOLDER_GRANTS_FILE);
@@ -337,15 +356,28 @@ async function loadMusicFolderGrants() {
   try {
     const raw = await fs.promises.readFile(getMusicFolderGrantsPath(), "utf8");
     const parsed = JSON.parse(raw);
-    grantedMusicFolders = new Set(
-      (Array.isArray(parsed) ? parsed : [])
-        .filter((entry) => typeof entry === "string" && path.isAbsolute(entry))
-        .map((entry) => path.resolve(entry))
-    );
+    grantedMusicFolders = await canonicalizeFolderGrants(parsed);
   } catch (error) {
     if (error?.code !== "ENOENT") console.error("Failed to load music folder grants:", error);
     grantedMusicFolders = new Set();
   }
+}
+
+async function canonicalizeFolderGrants(entries) {
+  const canonicalPaths = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (typeof entry !== "string" || !path.isAbsolute(entry)) continue;
+    try {
+      canonicalPaths.push(await fs.promises.realpath(entry));
+    } catch {
+      canonicalPaths.push(path.resolve(entry));
+    }
+  }
+  return new Set(canonicalPaths);
+}
+
+function hasFolderGrant(grants, canonicalPath) {
+  return [...grants].some((grantedPath) => pathsReferToSameLocation(grantedPath, canonicalPath));
 }
 
 async function grantMusicFolder(folderPath) {
@@ -362,6 +394,56 @@ async function grantMusicFolder(folderPath) {
     console.error("Failed to save music folder grant:", error);
   }
   return canonicalPath;
+}
+
+function getReaderFolderGrantsPath() {
+  return path.join(app.getPath("userData"), READER_FOLDER_GRANTS_FILE);
+}
+
+async function loadReaderFolderGrants() {
+  try {
+    const parsed = JSON.parse(await fs.promises.readFile(getReaderFolderGrantsPath(), "utf8"));
+    grantedReaderFolders = await canonicalizeFolderGrants(parsed);
+  } catch (error) {
+    if (error?.code !== "ENOENT") console.error("Failed to load Reader folder grants:", error);
+    grantedReaderFolders = new Set();
+  }
+}
+
+async function grantReaderFolder(folderPath) {
+  const canonicalPath = await fs.promises.realpath(folderPath);
+  grantedReaderFolders.add(canonicalPath);
+  await fs.promises.mkdir(path.dirname(getReaderFolderGrantsPath()), { recursive: true });
+  await fs.promises.writeFile(
+    getReaderFolderGrantsPath(),
+    JSON.stringify([...grantedReaderFolders].sort(), null, 2),
+    { encoding: "utf8", mode: 0o600 }
+  );
+  return canonicalPath;
+}
+
+function getFfmpegRuntimePath() {
+  const runtimeRoot = app.isPackaged
+    ? path.join(process.resourcesPath, "ffmpeg")
+    : path.join(__dirname, "vendor", "ffmpeg");
+  const manifest = JSON.parse(fs.readFileSync(path.join(runtimeRoot, "manifest.json"), "utf8"));
+  const entry = selectRuntimeEntry(manifest, process.platform, process.arch);
+  return path.join(runtimeRoot, entry.file);
+}
+
+function initializeVideoProxyService() {
+  try {
+    videoProxyService = createVideoProxyService({
+      cacheDirectory: path.join(app.getPath("cache"), "Infinite Lo-Fi", "video-proxies"),
+      ffmpegPath: getFfmpegRuntimePath(),
+      onProgress: (progress) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("video:proxyProgress", progress);
+      }
+    });
+  } catch (error) {
+    console.error("Bundled FFmpeg runtime is unavailable:", error);
+    videoProxyService = null;
+  }
 }
 
 function isTrustedIpcSender(event) {
@@ -399,7 +481,7 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
 
   try {
     const canonicalPath = await fs.promises.realpath(folderPath);
-    if (!grantedMusicFolders.has(canonicalPath)) {
+    if (!hasFolderGrant(grantedMusicFolders, canonicalPath)) {
       return { folderPath, tracks: [], error: "folder-not-approved" };
     }
     const stat = await fs.promises.stat(canonicalPath);
@@ -410,12 +492,91 @@ ipcMain.handle("music:scanFolder", async (event, folderPath) => {
       tracks,
       duplicateCount: Number(tracks.duplicateCount) || 0,
       duplicateKeys: Array.isArray(tracks.duplicateKeys) ? tracks.duplicateKeys : [],
-      error: tracks.length > 0 ? null : "no-audio-files"
+      error: tracks.length > 0 ? null : "no-media-files"
     };
   } catch (error) {
     console.error("Failed to restore music folder:", error);
     return { folderPath, tracks: [], error: "folder-unreadable" };
   }
+});
+
+ipcMain.handle("reader:selectFolder", async (event) => {
+  if (!isTrustedIpcSender(event) || !readerLibrary) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+    title: "Select Reading Folder"
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  try {
+    const folderPath = await grantReaderFolder(result.filePaths[0]);
+    return await readerLibrary.scan(folderPath, { source: "reader", authorize: true });
+  } catch (error) {
+    return { folderPath: result.filePaths[0], documents: [], error: error?.code || "folder-unreadable" };
+  }
+});
+
+ipcMain.handle("reader:scanFolder", async (event, source, folderPath) => {
+  if (!isTrustedIpcSender(event) || !readerLibrary) return { documents: [], error: "unauthorized-sender" };
+  if (!["media", "reader"].includes(source) || typeof folderPath !== "string" || !path.isAbsolute(folderPath)) {
+    return { folderPath: "", documents: [], error: "invalid-folder" };
+  }
+  try {
+    const canonicalPath = await fs.promises.realpath(folderPath);
+    const grants = source === "media" ? grantedMusicFolders : grantedReaderFolders;
+    if (!hasFolderGrant(grants, canonicalPath)) return { folderPath, documents: [], error: "folder-not-approved" };
+    return await readerLibrary.scan(canonicalPath, { source, authorize: true });
+  } catch (error) {
+    return { folderPath, documents: [], error: error?.code || "folder-unreadable" };
+  }
+});
+
+ipcMain.handle("reader:read", async (event, source, documentKey) => {
+  if (!isTrustedIpcSender(event) || !readerLibrary || !["media", "reader"].includes(source)) {
+    return { error: "unauthorized-sender" };
+  }
+  try {
+    return { document: await readerLibrary.read(source, typeof documentKey === "string" ? documentKey.slice(0, 8192) : "") };
+  } catch (error) {
+    return { error: error?.code || "read-error" };
+  }
+});
+
+ipcMain.handle("app:openExternal", async (event, url) => {
+  if (!isTrustedIpcSender(event)) return false;
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    await shell.openExternal(parsed.href);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+async function approvedMediaFile(filePath) {
+  if (typeof filePath !== "string" || !path.isAbsolute(filePath)) return null;
+  const canonicalPath = await fs.promises.realpath(filePath);
+  return [...grantedMusicFolders].some((rootPath) => isPathInside(rootPath, canonicalPath))
+    ? canonicalPath
+    : null;
+}
+
+ipcMain.handle("video:prepareProxy", async (event, request) => {
+  if (!isTrustedIpcSender(event)) throw Object.assign(new Error("Video request is unauthorized."), { code: "unauthorized-sender" });
+  if (!videoProxyService) throw Object.assign(new Error("Bundled video converter is unavailable."), { code: "runtime-unavailable" });
+  const filePath = await approvedMediaFile(request?.filePath);
+  if (!filePath) throw Object.assign(new Error("Video is outside the approved media folder."), { code: "path-outside-root" });
+  return videoProxyService.prepare(filePath, { jobId: typeof request?.jobId === "string" ? request.jobId.slice(0, 128) : undefined });
+});
+
+ipcMain.handle("video:cancelProxy", async (event) => {
+  return isTrustedIpcSender(event) && videoProxyService ? videoProxyService.cancel("renderer-request") : false;
+});
+
+ipcMain.handle("video:clearProxyCache", async (event) => {
+  if (!isTrustedIpcSender(event) || !videoProxyService) return false;
+  await videoProxyService.clearCache();
+  return true;
 });
 
 ipcMain.handle("lyrics:get", async (event, track, options) => {
@@ -436,7 +597,7 @@ ipcMain.handle("lyrics:get", async (event, track, options) => {
     try {
       const canonicalPath = await fs.promises.realpath(track.src);
       const parentPath = path.dirname(canonicalPath);
-      if (grantedMusicFolders.has(parentPath)) normalizedTrack.src = canonicalPath;
+      if (hasFolderGrant(grantedMusicFolders, parentPath)) normalizedTrack.src = canonicalPath;
     } catch {}
   }
 
@@ -519,6 +680,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
-  nativeMediaBridge?.destroy();
-  nativeMediaBridge = null;
+  videoProxyService?.cancel("app-quit");
+  nativeMediaOwnership?.destroy();
+  nativeMediaOwnership = null;
 });

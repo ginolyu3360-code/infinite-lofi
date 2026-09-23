@@ -39,6 +39,13 @@
         class="absolute inset-0 h-full w-full bg-cover bg-center opacity-45"
         aria-hidden="true"
       ></div>
+      <video
+        id="lofiPlayer"
+        class="local-media-video absolute inset-0 h-full w-full object-cover"
+        preload="metadata"
+        playsinline
+        aria-hidden="true"
+      ></video>
 
       <div id="ambienceOverlay" class="absolute inset-0 bg-gradient-to-br from-zinc-900/70 via-zinc-900/40 to-amber-950/55"></div>
       <div class="grain-layer absolute inset-0 opacity-25 mix-blend-overlay"></div>
@@ -50,6 +57,7 @@
           <div id="statusWeather" class="text-[0.62rem] font-mono text-zinc-300/60">Loading…</div>
         </div>
         <div class="header-actions">
+          <button id="readerToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="readerOverlay" data-i18n="nav.read" data-i18n-title="reader.open" data-i18n-aria-label="reader.open">Read</button>
           <button id="notesToggleBtn" class="header-action-btn" type="button" title="Open notes" aria-label="Open notes" aria-expanded="false" aria-controls="notesPanel" data-i18n="nav.notes" data-i18n-title="nav.openNotes" data-i18n-aria-label="nav.openNotes">Notes</button>
           <button id="tasksToggleBtn" class="header-action-btn" type="button" title="Open tasks" aria-label="Open tasks" aria-expanded="false" aria-controls="tasksDrawer" data-i18n="nav.tasks" data-i18n-title="nav.openTasks" data-i18n-aria-label="nav.openTasks">Tasks</button>
           <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal" data-i18n="nav.plan" data-i18n-title="nav.openPlan">Plan</button>
@@ -127,6 +135,28 @@
                 <button id="statsToggleBtn" class="control-btn" type="button" title="Show or hide stats" aria-expanded="false" aria-controls="statsDrawer" data-i18n="player.stats" data-i18n-title="player.stats">Stats</button>
                 <button id="bgToggleBtn" class="control-btn" type="button" title="Open background options" aria-expanded="false" aria-controls="backgroundDrawer" data-i18n="player.scene" data-i18n-title="player.scene">Scene</button>
               </div>
+            </div>
+
+            <div class="playback-source-row">
+              <div class="playback-source-switch" role="group" aria-label="Playback source" data-i18n-aria-label="playback.sourceLabel">
+                <button id="localPlaybackSourceBtn" class="playback-source-btn is-active" type="button" aria-pressed="true" data-i18n="playback.local">Local</button>
+                <button id="externalPlaybackSourceBtn" class="playback-source-btn" type="button" aria-pressed="false" data-i18n="playback.external">External</button>
+              </div>
+              <p id="playbackSourceStatus" class="playback-source-status" role="status" aria-live="polite" data-i18n="playback.localStatus">Infinite Lo-Fi owns playback and system media controls.</p>
+              <div id="videoDisplayControl" class="video-display-control" hidden>
+                <label for="videoBackgroundToggle">
+                  <input id="videoBackgroundToggle" type="checkbox" />
+                  <span>
+                    <strong data-i18n="player.videoBackground">Video background</strong>
+                    <small data-i18n="player.videoBackgroundHint">Show this video behind the focus interface.</small>
+                  </span>
+                </label>
+                <button id="clearVideoCacheBtn" class="control-btn" type="button" data-i18n="player.clearVideoCache">Clear compatibility cache</button>
+              </div>
+            </div>
+            <div class="media-playback-status-row">
+              <p id="mediaPlaybackStatus" class="media-playback-status" role="status" aria-live="polite" hidden></p>
+              <button id="videoPreparationCancelBtn" class="control-btn" type="button" hidden data-i18n="common.cancel">Cancel</button>
             </div>
 
             <div class="player-transport">
@@ -546,9 +576,66 @@
         </section>
       </div>
 
+      <section id="readerOverlay" class="reader-overlay" role="dialog" aria-modal="true" aria-labelledby="readerTitle" aria-hidden="true" inert hidden>
+        <header class="reader-topbar">
+          <div class="reader-brand">
+            <button id="readerSidebarToggle" class="reader-icon-btn" type="button" aria-pressed="true" title="Toggle document list">☰</button>
+            <div><span data-i18n="reader.eyebrow">Local Reader</span><strong id="readerTitle" data-i18n="reader.title">Reading Mode</strong></div>
+          </div>
+          <div class="reader-session-controls" aria-label="Timer and playback controls">
+            <span id="readerTimerLabel" class="reader-timer">25:00</span>
+            <button id="readerTimerToggle" class="reader-icon-btn" type="button" data-i18n="timer.start">Start</button>
+            <button id="readerPreviousTrack" class="reader-icon-btn" type="button" aria-label="Previous track">‹</button>
+            <button id="readerPlaybackToggle" class="reader-icon-btn" type="button" aria-label="Play or pause">▶</button>
+            <button id="readerNextTrack" class="reader-icon-btn" type="button" aria-label="Next track">›</button>
+          </div>
+          <button id="readerCloseBtn" class="reader-icon-btn" type="button" data-i18n-aria-label="reader.close" data-i18n-title="reader.close">×</button>
+        </header>
+        <div class="reader-layout">
+          <aside id="readerSidebar" class="reader-sidebar">
+            <label class="reader-search-label" for="readerDocumentFilter" data-i18n="reader.filter">Filter documents</label>
+            <input id="readerDocumentFilter" class="reader-input" type="search" data-i18n-placeholder="reader.filterPlaceholder" placeholder="Filter by name…" />
+            <div class="reader-library-actions">
+              <button id="readerChooseFolderBtn" class="control-btn" type="button" data-i18n="reader.chooseFolder">Choose reading folder</button>
+              <button id="readerRefreshBtn" class="control-btn" type="button" data-i18n="reader.refresh">Refresh</button>
+            </div>
+            <p id="readerLibraryStatus" class="reader-status" role="status" aria-live="polite"></p>
+            <section class="reader-source-group">
+              <h3 data-i18n="reader.mediaFolder">Current media folder</h3>
+              <div id="readerMediaDocuments" class="reader-document-list"></div>
+            </section>
+            <section class="reader-source-group">
+              <h3 data-i18n="reader.readingFolder">Reading folder</h3>
+              <div id="readerFolderDocuments" class="reader-document-list"></div>
+            </section>
+          </aside>
+          <main class="reader-main">
+            <div class="reader-toolbar">
+              <input id="readerFindInput" class="reader-input" type="search" data-i18n-placeholder="reader.findPlaceholder" placeholder="Find in document…" />
+              <button id="readerFindNextBtn" class="reader-icon-btn" type="button" data-i18n="common.next">Next</button>
+              <label><span data-i18n="reader.textSize">Text size</span><input id="readerFontScale" type="range" min="80" max="160" step="10" value="100" /></label>
+              <select id="readerLineWidth" class="reader-select" aria-label="Line width">
+                <option value="narrow" data-i18n="reader.widthNarrow">Narrow</option>
+                <option value="medium" data-i18n="reader.widthMedium">Medium</option>
+                <option value="wide" data-i18n="reader.widthWide">Wide</option>
+              </select>
+              <select id="readerTheme" class="reader-select" aria-label="Reader theme">
+                <option value="auto" data-i18n="reader.themeAuto">Auto</option>
+                <option value="paper" data-i18n="reader.themePaper">Paper</option>
+                <option value="dark" data-i18n="reader.themeDark">Dark</option>
+              </select>
+            </div>
+            <div id="readerDocumentViewport" class="reader-document-viewport" tabindex="0">
+              <article id="readerDocumentContent" class="reader-document-content">
+                <div class="reader-empty"><h2 data-i18n="reader.emptyTitle">Choose a document</h2><p data-i18n="reader.emptyHint">Text stays on this device and opens read-only.</p></div>
+              </article>
+            </div>
+          </main>
+        </div>
+      </section>
+
       <div id="a11yStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
-      <audio id="lofiPlayer" preload="metadata"></audio>
       <audio id="ambiencePlayer" preload="none" loop></audio>
     </div>
 
@@ -557,6 +644,10 @@
     <script src="./tasks.js"></script>
     <script src="./ambience.js"></script>
     <script src="./audio-transition.js"></script>
+    <script src="./playback-backends.js"></script>
+    <script src="./local-media.js"></script>
+    <script src="./reader.js"></script>
+    <script src="./reader-controller.js"></script>
     <script src="./storage.js"></script>
     <script src="./timer.js"></script>
     <script src="./notes.js"></script>

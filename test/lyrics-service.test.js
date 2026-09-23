@@ -7,6 +7,7 @@ const path = require("node:path");
 const {
   createLyricsService,
   decodeXmlEntities,
+  isChineseLyricsQuery,
   normalizeQuery,
   relaxedTrackName,
   selectBestLyricsResult,
@@ -106,29 +107,12 @@ test("falls back to title and duration search for covers without trusting their 
   assert.equal(result.lyrics.lines[0].text, "我听见雨滴落在青青草地");
 });
 
-test("prefers a stronger QQ Music metadata match over a weak LRCLIB cover match", async () => {
+test("queries QQ Music before LRCLIB for a high-confidence Chinese song match", async () => {
   const requests = [];
   const service = createLyricsService({
     getLocalLyrics: async () => null,
     fetchImpl: async (url, options) => {
       requests.push(url);
-      if (url.hostname === "lrclib.net" && url.pathname === "/api/get") {
-        return { ok: false, status: 404 };
-      }
-      if (url.hostname === "lrclib.net") {
-        return {
-          ok: true,
-          status: 200,
-          async json() {
-            return [{
-              trackName: "后来",
-              artistName: "Unrelated Artist",
-              duration: 246,
-              plainLyrics: "Weak match"
-            }];
-          }
-        };
-      }
       assert.equal(options.headers.Referer, "https://y.qq.com/");
       if (url.pathname === "/soso/fcgi-bin/client_search_cp") {
         return {
@@ -161,10 +145,39 @@ test("prefers a stronger QQ Music metadata match over a weak LRCLIB cover match"
     duration: 250
   }, { allowOnline: true });
 
-  assert.equal(requests.length, 4);
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every((url) => url.hostname === "c.y.qq.com"));
   assert.equal(result.status, "ok");
   assert.equal(result.lyrics.source, "qqmusic");
   assert.equal(result.lyrics.synced, true);
+});
+
+test("falls back from QQ Music to LRCLIB for a Chinese song", async () => {
+  const requestHosts = [];
+  const service = createLyricsService({
+    getLocalLyrics: async () => null,
+    fetchImpl: async (url) => {
+      requestHosts.push(url.hostname);
+      if (url.hostname === "c.y.qq.com") {
+        return { ok: true, status: 200, async json() { return { data: { song: { list: [] } } }; } };
+      }
+      return {
+        ok: true,
+        status: 200,
+        async json() { return { syncedLyrics: "[00:01.00]回退歌词" }; }
+      };
+    }
+  });
+
+  const result = await service.lookup({
+    title: "夜曲",
+    artist: "周杰伦",
+    duration: 226
+  }, { allowOnline: true });
+
+  assert.deepEqual(requestHosts, ["c.y.qq.com", "lrclib.net"]);
+  assert.equal(result.status, "ok");
+  assert.equal(result.lyrics.source, "lrclib");
 });
 
 test("uses lyrics.ovh only as a plain-lyrics last resort", async () => {
@@ -254,6 +267,13 @@ test("uses provider priority only when match confidence is tied", () => {
     { status: "ok", confidence: 80, lyrics: { ...lyrics, lines: [{ text: "Different" }] }, provider: "lrclib" }
   ]);
   assert.equal(result.provider, "lrclib");
+});
+
+test("detects Chinese metadata without treating Japanese or Korean scripts as Chinese", () => {
+  assert.equal(isChineseLyricsQuery({ trackName: "七里香", artistName: "周杰伦" }), true);
+  assert.equal(isChineseLyricsQuery({ trackName: "夜に駆ける", artistName: "YOASOBI" }), false);
+  assert.equal(isChineseLyricsQuery({ trackName: "봄날", artistName: "방탄소년단" }), false);
+  assert.equal(isChineseLyricsQuery({ trackName: "English Song", artistName: "Artist" }), false);
 });
 
 test("relaxes common version suffixes for a guarded fallback search", () => {

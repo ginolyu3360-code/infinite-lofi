@@ -14,6 +14,7 @@
       actions,
       isShortcutEnabled,
       isShowcaseModeEnabled,
+      isLocalPlaybackMode = () => true,
       clamp
     } = options;
 
@@ -97,22 +98,22 @@
         actions.clearNotesWithConfirm();
         return;
       }
-      if (isShortcutEnabled("playPause") && lowerKey === "p") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("playPause") && lowerKey === "p") {
         event.preventDefault();
         actions.togglePlayback();
         return;
       }
-      if (isShortcutEnabled("nextTrack") && lowerKey === "n") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("nextTrack") && lowerKey === "n") {
         event.preventDefault();
         actions.switchTrack();
         return;
       }
-      if (isShortcutEnabled("prevTrack") && lowerKey === "b") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("prevTrack") && lowerKey === "b") {
         event.preventDefault();
         actions.prevTrack();
         return;
       }
-      if (isShortcutEnabled("togglePlaylist") && lowerKey === "l") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("togglePlaylist") && lowerKey === "l") {
         event.preventDefault();
         actions.togglePlaylistPanel();
         return;
@@ -137,17 +138,17 @@
         actions.setStatsRange("month");
         return;
       }
-      if (isShortcutEnabled("loadFolder") && isMeta && lowerKey === "o") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("loadFolder") && isMeta && lowerKey === "o") {
         event.preventDefault();
         actions.loadMusicFolder();
         return;
       }
-      if (isShortcutEnabled("seekBack") && key === "ArrowLeft") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("seekBack") && key === "ArrowLeft") {
         event.preventDefault();
         elements.lofiPlayer.currentTime = Math.max(0, (elements.lofiPlayer.currentTime || 0) - 5);
         return;
       }
-      if (isShortcutEnabled("seekForward") && key === "ArrowRight") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("seekForward") && key === "ArrowRight") {
         event.preventDefault();
         const duration = Number.isFinite(elements.lofiPlayer.duration) ? elements.lofiPlayer.duration : 0;
         elements.lofiPlayer.currentTime = Math.min(
@@ -156,7 +157,7 @@
         );
         return;
       }
-      if (isShortcutEnabled("volumeUp") && key === "ArrowUp") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("volumeUp") && key === "ArrowUp") {
         event.preventDefault();
         const currentVolume = Number(elements.volumeSlider.value) / 100;
         elements.volumeSlider.value = String(
@@ -166,7 +167,7 @@
         actions.saveUiSettings();
         return;
       }
-      if (isShortcutEnabled("volumeDown") && key === "ArrowDown") {
+      if (isLocalPlaybackMode() && isShortcutEnabled("volumeDown") && key === "ArrowDown") {
         event.preventDefault();
         const currentVolume = Number(elements.volumeSlider.value) / 100;
         elements.volumeSlider.value = String(
@@ -283,6 +284,11 @@
     });
 
     on(e.playPauseBtn, "click", a.togglePlayback);
+    on(e.localPlaybackSourceBtn, "click", () => a.setPlaybackSourceMode("local"));
+    on(e.externalPlaybackSourceBtn, "click", () => a.setPlaybackSourceMode("external"));
+    on(e.videoBackgroundToggle, "change", () => {
+      a.setVideoDisplayMode(e.videoBackgroundToggle.checked ? "background" : "audio-only");
+    });
     on(e.nextTrackBtn, "click", a.switchTrack);
     on(e.prevTrackBtn, "click", a.prevTrack);
     on(e.repeatModeBtn, "click", a.toggleRepeatMode);

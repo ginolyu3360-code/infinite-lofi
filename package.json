@@ -1,6 +1,6 @@
 {
   "name": "infinite-lofi-desktop",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
   "main": "main.js",
   "scripts": {
@@ -11,9 +11,10 @@
     "build:native:x64": "node scripts/build-macos-media-bridge.mjs x64",
     "build:native:arm64": "node scripts/build-macos-media-bridge.mjs arm64",
     "build:native:universal": "node scripts/build-macos-media-bridge.mjs universal",
+    "verify:ffmpeg": "node scripts/verify-ffmpeg-runtimes.mjs",
     "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
     "test": "node --test",
-    "check": "node --check main.js && node --check preload.js && node --check scripts/build-macos-media-bridge.mjs && node --check src/music-library.js && node --check src/lyrics.js && node --check src/lyrics-service.js && node --check src/lyrics-controller.js && node --check src/core.js && node --check src/i18n.js && node --check src/security.js && node --check src/window-lifecycle.js && node --check src/native-media-bridge.js && node --check src/tasks.js && node --check src/ambience.js && node --check src/audio-transition.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/media-session.js && node --check src/player-controller.js && node --check src/ambience-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/focus-session.js && node --check src/stats-controller.js && node --check src/tasks-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/accessibility.js && node --check src/bindings.js && node --check src/renderer.js && npm test && npm run build:css",
+    "check": "node --check main.js && node --check preload.js && node --check scripts/build-macos-media-bridge.mjs && node --check scripts/verify-ffmpeg-runtimes.mjs && node --check src/music-library.js && node --check src/reader.js && node --check src/reader-library.js && node --check src/reader-controller.js && node --check src/video-proxy.js && node --check src/lyrics.js && node --check src/lyrics-service.js && node --check src/lyrics-controller.js && node --check src/core.js && node --check src/i18n.js && node --check src/security.js && node --check src/window-lifecycle.js && node --check src/native-media-bridge.js && node --check src/native-media-ownership.js && node --check src/playback-backends.js && node --check src/local-media.js && node --check src/tasks.js && node --check src/ambience.js && node --check src/audio-transition.js && node --check src/storage.js && node --check src/timer.js && node --check src/notes.js && node --check src/notes-controller.js && node --check src/player.js && node --check src/media-session.js && node --check src/player-controller.js && node --check src/ambience-controller.js && node --check src/backgrounds.js && node --check src/stats.js && node --check src/focus-session.js && node --check src/stats-controller.js && node --check src/tasks-controller.js && node --check src/weather.js && node --check src/weather-controller.js && node --check src/ui.js && node --check src/accessibility.js && node --check src/bindings.js && node --check src/renderer.js && npm run verify:ffmpeg && npm test && npm run build:css",
     "smoke": "npm run build:native:mac && node scripts/smoke-ui.mjs",
     "smoke:packaged": "npm run smoke:packaged:mac",
     "smoke:packaged:mac": "node scripts/smoke-ui.mjs \"dist/mac-universal/Infinite Lo-Fi.app/Contents/MacOS/Infinite Lo-Fi\"",
@@ -23,16 +24,16 @@
     "start": "npm run build:css && npm run build:native:mac && electron .",
     "dist": "npm run dist:mac",
     "dist:mac": "npm run dist:universal",
-    "dist:x64": "npm run build:css && npm run build:native:x64 && electron-builder --mac --x64 --publish never",
-    "dist:arm64": "npm run build:css && npm run build:native:arm64 && electron-builder --mac --arm64 --publish never",
-    "dist:universal": "npm run build:css && npm run build:native:universal && electron-builder --mac --universal --publish never",
-    "dist:win": "npm run build:css && electron-builder --win nsis --x64 --publish never",
+    "dist:x64": "npm run verify:ffmpeg && npm run build:css && npm run build:native:x64 && electron-builder --mac --x64 --publish never",
+    "dist:arm64": "npm run verify:ffmpeg && npm run build:css && npm run build:native:arm64 && electron-builder --mac --arm64 --publish never",
+    "dist:universal": "npm run verify:ffmpeg && npm run build:css && npm run build:native:universal && electron-builder --mac --universal --publish never",
+    "dist:win": "npm run verify:ffmpeg && npm run build:css && electron-builder --win nsis --x64 --publish never",
     "pack": "npm run pack:mac",
     "pack:mac": "npm run pack:universal",
-    "pack:x64": "npm run build:css && npm run build:native:x64 && electron-builder --dir --mac --x64",
-    "pack:arm64": "npm run build:css && npm run build:native:arm64 && electron-builder --dir --mac --arm64",
-    "pack:universal": "npm run build:css && npm run build:native:universal && electron-builder --dir --mac --universal",
-    "pack:win": "npm run build:css && electron-builder --dir --win --x64"
+    "pack:x64": "npm run verify:ffmpeg && npm run build:css && npm run build:native:x64 && electron-builder --dir --mac --x64",
+    "pack:arm64": "npm run verify:ffmpeg && npm run build:css && npm run build:native:arm64 && electron-builder --dir --mac --arm64",
+    "pack:universal": "npm run verify:ffmpeg && npm run build:css && npm run build:native:universal && electron-builder --dir --mac --universal",
+    "pack:win": "npm run verify:ffmpeg && npm run build:css && electron-builder --dir --win --x64"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.5",
@@ -66,10 +67,12 @@
       "!test/**",
       "!native/**",
       "!native-bin/**",
+      "!vendor/ffmpeg/**",
       "!node_modules/.cache/**"
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "x64ArchFiles": "Contents/Resources/ffmpeg/**/ffmpeg",
       "target": [
         "dmg",
         "zip"
@@ -79,6 +82,26 @@
         {
           "from": "native-bin/macos_media_bridge.node",
           "to": "native/macos_media_bridge.node"
+        },
+        {
+          "from": "vendor/ffmpeg/manifest.json",
+          "to": "ffmpeg/manifest.json"
+        },
+        {
+          "from": "vendor/ffmpeg/LICENSE.txt",
+          "to": "ffmpeg/LICENSE.txt"
+        },
+        {
+          "from": "vendor/ffmpeg/LICENSE-GPL-3.0.txt",
+          "to": "ffmpeg/LICENSE-GPL-3.0.txt"
+        },
+        {
+          "from": "vendor/ffmpeg/darwin-x64",
+          "to": "ffmpeg/darwin-x64"
+        },
+        {
+          "from": "vendor/ffmpeg/darwin-arm64",
+          "to": "ffmpeg/darwin-arm64"
         }
       ]
     },
@@ -91,7 +114,13 @@
           ]
         }
       ],
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "extraResources": [
+        { "from": "vendor/ffmpeg/manifest.json", "to": "ffmpeg/manifest.json" },
+        { "from": "vendor/ffmpeg/LICENSE.txt", "to": "ffmpeg/LICENSE.txt" },
+        { "from": "vendor/ffmpeg/LICENSE-GPL-3.0.txt", "to": "ffmpeg/LICENSE-GPL-3.0.txt" },
+        { "from": "vendor/ffmpeg/win32-x64", "to": "ffmpeg/win32-x64" }
+      ]
     },
     "nsis": {
       "oneClick": false,

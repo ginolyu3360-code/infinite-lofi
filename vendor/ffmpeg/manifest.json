@@ -1,0 +1,29 @@
+{
+  "name": "FFmpeg",
+  "source": "https://pypi.org/project/imageio-ffmpeg/0.6.0/",
+  "upstreamSource": "https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz",
+  "license": "GPL-3.0-or-later",
+  "runtimes": [
+    {
+      "platform": "darwin",
+      "arch": "x64",
+      "version": "7.1",
+      "file": "darwin-x64/ffmpeg",
+      "sha256": "4a4a968b98859588e98500ae25973d80a5ca5eed0724222b9f76360dcb72a001"
+    },
+    {
+      "platform": "darwin",
+      "arch": "arm64",
+      "version": "7.1",
+      "file": "darwin-arm64/ffmpeg",
+      "sha256": "6d175a4743ca50256e89a8cdd731100f9cee33bd79aeea46894d209410dc6617"
+    },
+    {
+      "platform": "win32",
+      "arch": "x64",
+      "version": "7.1",
+      "file": "win32-x64/ffmpeg.exe",
+      "sha256": "2ce797a0f88d7f067180338fb227f7b1928ea727bd9a4d7a1d022f7c52af71a3"
+    }
+  ]
+}

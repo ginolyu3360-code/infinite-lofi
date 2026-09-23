@@ -1,0 +1,9 @@
+These bundled FFmpeg 7.1 executables are distributed under the GNU General
+Public License, version 3 or later. They are separate command-line programs
+invoked by Infinite Lo-Fi without shell interpolation.
+
+Source and build provenance for the bundled static executables is recorded in
+manifest.json. The complete corresponding source is available from:
+https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+
+The complete GPL-3.0 license text is included as LICENSE-GPL-3.0.txt.

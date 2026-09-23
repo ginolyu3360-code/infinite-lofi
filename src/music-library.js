@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { lyricsFromEmbeddedTags, parseLrc } = require("./lyrics");
+const localMedia = require("./local-media");
 
-const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg"]);
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
 const CACHE_EXTENSIONS = [".jpg", ".png", ".webp", ".gif", ".bmp"];
 const MAX_EMBEDDED_ARTWORK_BYTES = 5 * 1024 * 1024;
@@ -36,6 +36,15 @@ function durationsMatch(left, right) {
 }
 
 function areDuplicateTracks(left, right) {
+  const leftMediaKind = localMedia.normalizeMediaKind(
+    left?.mediaKind,
+    left?.relativePath || left?.src || left?.key
+  );
+  const rightMediaKind = localMedia.normalizeMediaKind(
+    right?.mediaKind,
+    right?.relativePath || right?.src || right?.key
+  );
+  if (leftMediaKind !== rightMediaKind) return false;
   const leftTitle = normalizeIdentityText(left?.title, { removeCopySuffix: left?._dedupe?.taggedTitle !== true });
   const rightTitle = normalizeIdentityText(right?.title, { removeCopySuffix: right?._dedupe?.taggedTitle !== true });
   const leftArtist = normalizeIdentityText(left?.artist);
@@ -305,11 +314,11 @@ function createMusicLibrary({
     ]);
     const files = entries.filter((entry) => entry.isFile());
     const fileNameLookup = new Map(files.map((entry) => [entry.name.toLowerCase(), entry.name]));
-    const audioFiles = files
-      .filter((entry) => AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))
+    const mediaFiles = files
+      .filter((entry) => localMedia.isSupportedMediaFile(entry.name))
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }));
 
-    const scannedTracks = await mapWithConcurrency(audioFiles, concurrency, async (entry) => {
+    const scannedTracks = await mapWithConcurrency(mediaFiles, concurrency, async (entry) => {
       const audioPath = path.join(folderPath, entry.name);
       const stat = await fileSystem.stat(audioPath);
       const cacheKey = artworkCacheDirectory ? getArtworkCacheKey(audioPath, stat) : "";
@@ -337,6 +346,7 @@ function createMusicLibrary({
         src: audioPath,
         srcUrl: pathToFileURL(audioPath).href,
         isLocal: true,
+        mediaKind: localMedia.normalizeMediaKind(null, entry.name),
         title,
         artist,
         album,

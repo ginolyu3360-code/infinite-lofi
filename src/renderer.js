@@ -26,6 +26,15 @@ if (!window.InfiniteLofiCore) {
 if (!window.InfiniteLofiStorage) {
   throw new Error("Infinite Lo-Fi storage helpers failed to load");
 }
+if (!window.InfiniteLofiPlaybackBackends) {
+  throw new Error("Infinite Lo-Fi playback backend helpers failed to load");
+}
+if (!window.InfiniteLofiLocalMedia) {
+  throw new Error("Infinite Lo-Fi local media helpers failed to load");
+}
+if (!window.InfiniteLofiReader || !window.InfiniteLofiReaderController) {
+  throw new Error("Infinite Lo-Fi Reader helpers failed to load");
+}
 if (!window.InfiniteLofiI18n) {
   throw new Error("Infinite Lo-Fi language helpers failed to load");
 }
@@ -82,6 +91,15 @@ const { createAmbienceController } = window.InfiniteLofiAmbienceController;
 const { normalizeAudioTransitions } = window.InfiniteLofiAudioTransition;
 const { createMediaSessionController } = window.InfiniteLofiMediaSession;
 const {
+  createPlaybackBackend,
+  normalizePlaybackSourceMode
+} = window.InfiniteLofiPlaybackBackends;
+const {
+  normalizeMediaKind,
+  normalizeVideoDisplayMode,
+  shouldShowVideoBackground
+} = window.InfiniteLofiLocalMedia;
+const {
   DEFAULTS: DEFAULT_BACKGROUND_SETTINGS,
   applyBackgroundSource,
   applyCuratedPreset,
@@ -124,6 +142,37 @@ const noteDeleteBtn = document.getElementById("noteDeleteBtn");
 const bgVideo = document.getElementById("bgVideo");
 const bgImage = document.getElementById("bgImage");
 const lofiPlayer = document.getElementById("lofiPlayer");
+const playerPanel = document.getElementById("playerPanel");
+const localPlaybackSourceBtn = document.getElementById("localPlaybackSourceBtn");
+const externalPlaybackSourceBtn = document.getElementById("externalPlaybackSourceBtn");
+const playbackSourceStatus = document.getElementById("playbackSourceStatus");
+const videoDisplayControl = document.getElementById("videoDisplayControl");
+const videoBackgroundToggle = document.getElementById("videoBackgroundToggle");
+const mediaPlaybackStatus = document.getElementById("mediaPlaybackStatus");
+const videoPreparationCancelBtn = document.getElementById("videoPreparationCancelBtn");
+const clearVideoCacheBtn = document.getElementById("clearVideoCacheBtn");
+const readerToggleBtn = document.getElementById("readerToggleBtn");
+const readerOverlay = document.getElementById("readerOverlay");
+const readerSidebarToggle = document.getElementById("readerSidebarToggle");
+const readerCloseBtn = document.getElementById("readerCloseBtn");
+const readerDocumentFilter = document.getElementById("readerDocumentFilter");
+const readerChooseFolderBtn = document.getElementById("readerChooseFolderBtn");
+const readerRefreshBtn = document.getElementById("readerRefreshBtn");
+const readerLibraryStatus = document.getElementById("readerLibraryStatus");
+const readerMediaDocuments = document.getElementById("readerMediaDocuments");
+const readerFolderDocuments = document.getElementById("readerFolderDocuments");
+const readerFindInput = document.getElementById("readerFindInput");
+const readerFindNextBtn = document.getElementById("readerFindNextBtn");
+const readerFontScale = document.getElementById("readerFontScale");
+const readerLineWidth = document.getElementById("readerLineWidth");
+const readerTheme = document.getElementById("readerTheme");
+const readerDocumentViewport = document.getElementById("readerDocumentViewport");
+const readerDocumentContent = document.getElementById("readerDocumentContent");
+const readerTimerLabel = document.getElementById("readerTimerLabel");
+const readerTimerToggle = document.getElementById("readerTimerToggle");
+const readerPreviousTrack = document.getElementById("readerPreviousTrack");
+const readerPlaybackToggle = document.getElementById("readerPlaybackToggle");
+const readerNextTrack = document.getElementById("readerNextTrack");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const nextTrackBtn = document.getElementById("nextTrackBtn");
 const prevTrackBtn = document.getElementById("prevTrackBtn");
@@ -293,6 +342,7 @@ let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
 let weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings();
 let showcaseModeEnabled = false;
 let currentTrackArtwork = null;
+let currentLocalTrack = null;
 let backgroundRenderKey = "";
 let backgroundFadeRaf = 0;
 let isRestoringBackup = false;
@@ -302,11 +352,18 @@ let tasksController = null;
 let weatherController = null;
 let audioTransitionSettings = normalizeAudioTransitions(appStorage.getState().player?.audioTransitions);
 let lyricsEnabled = false;
+let playbackSourceMode = normalizePlaybackSourceMode(appStorage.getState().player?.sourceMode);
+let playbackSourceSwitching = false;
+let videoDisplayMode = normalizeVideoDisplayMode(appStorage.getState().player?.videoDisplayMode);
+let localMediaPlaybackError = false;
+let videoPreparationState = { status: "idle", percent: 0 };
+let readerController = null;
 
 const mediaSessionController = createMediaSessionController({
   mediaSession: navigator.mediaSession,
   MediaMetadata: window.MediaMetadata,
   audio: lofiPlayer,
+  initialOwnershipEnabled: false,
   publishNativeState: (state) => window.desktopApp?.sendNativeMediaSessionState?.(state)
 });
 
@@ -364,13 +421,34 @@ const playerController = createPlayerController({
     applyBackground();
   },
   onTrackChange: (track) => {
+    currentLocalTrack = track;
+    localMediaPlaybackError = false;
     mediaSessionController.updateMetadata(track);
-    lyricsController.setTrack(track);
+    lyricsController.setTrack(playbackSourceMode === "local" ? track : null);
+    renderLocalVideoUi();
+    applyBackground();
+  },
+  onPlaybackError: (track) => {
+    if (!track || normalizeMediaKind(track.mediaKind, track.relativePath || track.srcUrl || track.src) !== "video") return;
+    if (localMediaPlaybackError) return;
+    localMediaPlaybackError = true;
+    renderLocalVideoUi();
+    applyBackground();
+    announceStatus(t("player.mediaPlaybackError"));
+  },
+  onVideoPreparation: (progress) => {
+    videoPreparationState = progress || { status: "idle", percent: 0 };
+    if (progress?.status === "preparing") localMediaPlaybackError = false;
+    if (progress?.status === "error") localMediaPlaybackError = true;
+    renderLocalVideoUi();
   },
   onLayoutChange: ({ queueOpen } = {}) => {
     requestAnimationFrame(adjustTimerFont);
     const resizeRequest = window.desktopWindow?.setQueueOpen?.(queueOpen === true);
     resizeRequest?.catch?.((error) => console.warn("Window Queue layout update failed:", error));
+  },
+  onFolderChange: () => {
+    if (readerController?.isOpen()) readerController.refresh();
   },
   getAudioTransitionSettings: () => audioTransitionSettings,
   announce: announceStatus,
@@ -378,6 +456,8 @@ const playerController = createPlayerController({
   t
 });
 const {
+  cancelVideoPreparation,
+  getLocalMusicFolder,
   getUserVolume: getMusicUserVolume,
   handleTrackEnded,
   loadMusicFolder,
@@ -402,6 +482,37 @@ const {
   useDefaultTracks
 } = playerController;
 
+readerController = window.InfiniteLofiReaderController.createReaderController({
+  appStorage,
+  desktopApp: window.desktopApp,
+  focusManager,
+  getMediaFolder: getLocalMusicFolder,
+  isMiniMode: () => miniModeEnabled,
+  announce: announceStatus,
+  t,
+  elements: {
+    document,
+    toggle: readerToggleBtn,
+    overlay: readerOverlay,
+    sidebarToggle: readerSidebarToggle,
+    close: readerCloseBtn,
+    filter: readerDocumentFilter,
+    chooseFolder: readerChooseFolderBtn,
+    refresh: readerRefreshBtn,
+    status: readerLibraryStatus,
+    mediaDocuments: readerMediaDocuments,
+    readerDocuments: readerFolderDocuments,
+    find: readerFindInput,
+    findNext: readerFindNextBtn,
+    fontScale: readerFontScale,
+    lineWidth: readerLineWidth,
+    theme: readerTheme,
+    viewport: readerDocumentViewport,
+    content: readerDocumentContent,
+    timerLabel: readerTimerLabel
+  }
+});
+
 const ambienceController = createAmbienceController({
   appStorage,
   elements: {
@@ -420,6 +531,189 @@ const ambienceController = createAmbienceController({
   },
   t
 });
+
+const localPlaybackBackend = createPlaybackBackend({
+  id: "local",
+  mode: "local",
+  label: "Infinite Lo-Fi",
+  capabilities: {
+    playlists: true,
+    currentTrack: true,
+    play: true,
+    pause: true,
+    stop: true,
+    previous: true,
+    next: true,
+    seek: true,
+    volume: true
+  },
+  async activate() {
+    const nativeOwned = await window.desktopApp?.setNativeMediaSessionOwnership?.(true);
+    if (nativeOwned === true) mediaSessionController.enableNativeMode();
+    else mediaSessionController.disableNativeMode();
+    mediaSessionController.acquireOwnership();
+    return true;
+  },
+  deactivate() {
+    cancelVideoPreparation("external-mode");
+    return pauseMusic();
+  }
+});
+
+const externalPlaybackBackend = createPlaybackBackend({
+  id: "external",
+  mode: "external",
+  label: "External player",
+  capabilities: {},
+  async activate() {
+    mediaSessionController.releaseOwnership();
+    await window.desktopApp?.setNativeMediaSessionOwnership?.(false);
+    return true;
+  }
+});
+
+const playbackBackendByMode = Object.freeze({
+  local: localPlaybackBackend,
+  external: externalPlaybackBackend
+});
+
+function currentTrackIsVideo() {
+  return normalizeMediaKind(
+    currentLocalTrack?.mediaKind,
+    currentLocalTrack?.relativePath || currentLocalTrack?.srcUrl || currentLocalTrack?.src
+  ) === "video";
+}
+
+function renderLocalVideoUi() {
+  const showControl = playbackSourceMode === "local" && currentTrackIsVideo();
+  if (videoDisplayControl) videoDisplayControl.hidden = !showControl;
+  if (videoBackgroundToggle) {
+    videoBackgroundToggle.checked = videoDisplayMode === "background";
+    videoBackgroundToggle.disabled = !showControl || playbackSourceSwitching;
+  }
+  if (mediaPlaybackStatus) {
+    const preparing = playbackSourceMode === "local" && currentTrackIsVideo() && videoPreparationState.status === "preparing";
+    const showError = playbackSourceMode === "local" && currentTrackIsVideo() && localMediaPlaybackError;
+    mediaPlaybackStatus.hidden = !showError && !preparing;
+    mediaPlaybackStatus.textContent = preparing
+      ? t("player.videoPreparing", { percent: Math.max(0, Math.min(99, Number(videoPreparationState.percent) || 0)) })
+      : showError ? t("player.mediaPlaybackError") : "";
+    if (videoPreparationCancelBtn) videoPreparationCancelBtn.hidden = !preparing;
+  }
+}
+
+function setVideoDisplayMode(rawMode) {
+  const nextMode = normalizeVideoDisplayMode(rawMode);
+  if (nextMode === videoDisplayMode) return true;
+  try {
+    appStorage.update((state) => {
+      state.player.videoDisplayMode = nextMode;
+    });
+  } catch (error) {
+    if (videoBackgroundToggle) videoBackgroundToggle.checked = videoDisplayMode === "background";
+    showStorageFailure(error, t("player.videoDisplaySaveError"));
+    return false;
+  }
+  videoDisplayMode = nextMode;
+  renderLocalVideoUi();
+  applyBackground();
+  announceStatus(t(nextMode === "background"
+    ? "player.videoBackgroundEnabled"
+    : "player.videoBackgroundDisabled"));
+  return true;
+}
+
+function renderPlaybackSource() {
+  const isLocal = playbackSourceMode === "local";
+  playerPanel.dataset.playbackSource = playbackSourceMode;
+  localPlaybackSourceBtn.classList.toggle("is-active", isLocal);
+  externalPlaybackSourceBtn.classList.toggle("is-active", !isLocal);
+  localPlaybackSourceBtn.setAttribute("aria-pressed", String(isLocal));
+  externalPlaybackSourceBtn.setAttribute("aria-pressed", String(!isLocal));
+  localPlaybackSourceBtn.disabled = playbackSourceSwitching;
+  externalPlaybackSourceBtn.disabled = playbackSourceSwitching;
+  playbackSourceStatus.textContent = t(isLocal ? "playback.localStatus" : "playback.externalStatus");
+  [
+    playPauseBtn,
+    nextTrackBtn,
+    prevTrackBtn,
+    repeatModeBtn,
+    shuffleModeBtn,
+    progressSlider,
+    volumeSlider,
+    playlistToggleBtn,
+    lyricsToggleBtn
+  ].forEach((element) => {
+    if (element) element.disabled = !isLocal || playbackSourceSwitching;
+  });
+  if (!isLocal) {
+    togglePlaylistPanel(false);
+    lyricsPanel.hidden = true;
+    lyricsToggleBtn.setAttribute("aria-expanded", "false");
+  } else if (lyricsEnabled) {
+    lyricsController.setEnabled(true, { persist: false });
+  }
+  renderLocalVideoUi();
+}
+
+async function setPlaybackSourceMode(rawMode, options = {}) {
+  const nextMode = normalizePlaybackSourceMode(rawMode);
+  const { persist = true, announce = true, force = false } = options;
+  if (playbackSourceSwitching || (!force && nextMode === playbackSourceMode)) return false;
+  const previousMode = playbackSourceMode;
+  playbackSourceSwitching = true;
+  renderPlaybackSource();
+  try {
+    if (previousMode !== nextMode) {
+      await playbackBackendByMode[previousMode].deactivate();
+    }
+    await playbackBackendByMode[nextMode].activate();
+    if (persist) {
+      appStorage.update((state) => {
+        state.player.sourceMode = nextMode;
+      });
+    }
+    playbackSourceMode = nextMode;
+    lyricsController.setTrack(nextMode === "local" ? currentLocalTrack : null);
+    applyBackground();
+    if (announce) {
+      announceStatus(t(nextMode === "local"
+        ? "playback.localAnnouncement"
+        : "playback.externalAnnouncement"));
+    }
+    return true;
+  } catch (error) {
+    console.warn("Playback source switch failed:", error);
+    playbackSourceMode = "local";
+    await localPlaybackBackend.activate().catch?.(() => {});
+    announceStatus(t("playback.switchError"));
+    return false;
+  } finally {
+    playbackSourceSwitching = false;
+    renderPlaybackSource();
+    applyBackground();
+  }
+}
+
+function playSelectedSource() {
+  return playbackSourceMode === "local" ? playMusic() : Promise.resolve(false);
+}
+
+function pauseSelectedSource() {
+  return playbackSourceMode === "local" ? pauseMusic() : Promise.resolve(false);
+}
+
+function toggleSelectedSource() {
+  return playbackSourceMode === "local" ? togglePlayback() : false;
+}
+
+function nextSelectedSource() {
+  return playbackSourceMode === "local" ? switchTrack() : false;
+}
+
+function previousSelectedSource() {
+  return playbackSourceMode === "local" ? prevTrack() : false;
+}
 
 function renderAudioTransitionSettings() {
   audioTransitionsEnabled.checked = audioTransitionSettings.enabled;
@@ -451,23 +745,24 @@ function saveAudioTransitionSettings(nextSettings) {
 function pauseAllMedia() {
   mediaSessionController.syncPlaybackIntent("paused");
   return Promise.all([
-    pauseMusic(),
+    pauseSelectedSource(),
     ambienceController.pause()
   ]);
 }
 
 function stopAllMedia() {
   mediaSessionController.syncPlaybackIntent("stopped");
-  stopMusic();
+  if (playbackSourceMode === "local") stopMusic();
   ambienceController.stop();
 }
 
 function playFromNativeMediaControl() {
   mediaSessionController.syncPlaybackIntent("playing");
-  return playMusic();
+  return playSelectedSource();
 }
 
 function toggleFromNativeMediaControl() {
+  if (playbackSourceMode !== "local") return false;
   return lofiPlayer.paused ? playFromNativeMediaControl() : pauseAllMedia();
 }
 
@@ -478,6 +773,7 @@ mediaSessionController.installActionHandlers({
   previousTrack: prevTrack,
   nextTrack: switchTrack
 });
+if (playbackSourceMode === "external") mediaSessionController.releaseOwnership();
 
 const notesController = createNotesController({
   appStorage,
@@ -688,6 +984,7 @@ function refreshLocalizedUi() {
   refreshShortcutLabels();
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
+  renderPlaybackSource();
   lyricsController.refreshLanguage();
   ambienceController.refreshLanguage();
   renderAudioTransitionSettings();
@@ -1018,8 +1315,15 @@ function applyBackground() {
     const effectiveBackground = getEffectiveBackground();
     const preset = getCuratedPreset(backgroundSettings.presetId);
     const showcaseActive = showcaseModeEnabled;
-    const hasVisualBackground = effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
+    const showLocalVideo = shouldShowVideoBackground({
+      sourceMode: playbackSourceMode,
+      mediaKind: currentTrackIsVideo() ? "video" : "audio",
+      videoDisplayMode,
+      hasPlaybackError: localMediaPlaybackError
+    });
+    const hasVisualBackground = showLocalVideo || effectiveBackground.mode === "video" || (effectiveBackground.mode === "image" && Boolean(effectiveBackground.customImageUrl));
     document.body.classList.toggle("has-visual-background", hasVisualBackground);
+    document.body.classList.toggle("local-video-background", showLocalVideo);
     // Theme colors are application state, so apply them immediately. The media
     // layer can still fade on the next animation frame, including in headless CI.
     document.body.classList.remove("theme-midnight", "theme-moss", "bg-white-background");
@@ -1031,7 +1335,10 @@ function applyBackground() {
         : hasVisualBackground
           ? "0.82"
           : "0.45";
-    const nextKey = buildBackgroundRenderKey(effectiveBackground, showcaseModeEnabled);
+    const localVideoKey = showLocalVideo
+      ? `local-video:${currentLocalTrack?.key || currentLocalTrack?.srcUrl || currentLocalTrack?.src || "video"}`
+      : "scene";
+    const nextKey = `${buildBackgroundRenderKey(effectiveBackground, showcaseModeEnabled)}|${localVideoKey}`;
     const shouldFade = nextKey !== backgroundRenderKey;
     backgroundRenderKey = nextKey;
 
@@ -1043,6 +1350,17 @@ function applyBackground() {
       if (bgImage) {
         bgImage.style.opacity = backgroundOpacity;
         bgImage.style.filter = showcaseActive ? "brightness(1.04) contrast(1.05) saturate(1.08)" : "brightness(var(--scene-brightness))";
+      }
+      if (lofiPlayer) {
+        lofiPlayer.style.opacity = showLocalVideo ? backgroundOpacity : "0";
+        lofiPlayer.style.filter = showcaseActive ? "brightness(1.04) contrast(1.05) saturate(1.08)" : "brightness(var(--scene-brightness))";
+      }
+
+      if (showLocalVideo) {
+        bgVideo?.pause?.();
+        if (bgVideo) bgVideo.style.display = "none";
+        if (bgImage) bgImage.style.display = "none";
+        return;
       }
 
       if (effectiveBackground.mode === "video") {
@@ -1094,12 +1412,13 @@ function applyBackground() {
       }
     };
 
-    if (shouldFade) {
+    if (shouldFade && !showLocalVideo) {
       if (backgroundFadeRaf) {
         cancelAnimationFrame(backgroundFadeRaf);
       }
       if (bgVideo) bgVideo.style.opacity = "0";
       if (bgImage) bgImage.style.opacity = "0";
+      if (lofiPlayer) lofiPlayer.style.opacity = "0";
       backgroundFadeRaf = requestAnimationFrame(() => {
         applyLayerState();
         backgroundFadeRaf = requestAnimationFrame(() => {
@@ -1108,6 +1427,9 @@ function applyBackground() {
           }
           if (bgImage && bgImage.style.display !== "none") {
             bgImage.style.opacity = backgroundOpacity;
+          }
+          if (lofiPlayer && showLocalVideo) {
+            lofiPlayer.style.opacity = backgroundOpacity;
           }
         });
       });
@@ -1275,6 +1597,7 @@ function setTimerInputsLocked(locked) {
 
 function renderTimer() {
   timerDisplay.textContent = formatTime(remainingSeconds);
+  readerController?.setTimerText(formatTime(remainingSeconds));
   timerPhaseLabel.textContent = titleForTimerPhase(timerPhase);
   const today = getLocalDayKey(new Date());
   const goal = timerGoalSummary?.day === today
@@ -1402,6 +1725,7 @@ async function toggleMiniMode(forceEnabled) {
   const nextEnabled = typeof forceEnabled === "boolean" ? forceEnabled : !miniModeEnabled;
   if (!window.desktopWindow || typeof window.desktopWindow.setMiniMode !== "function") return;
   if (nextEnabled) {
+    readerController?.close();
     toggleStatsPanel(false);
     toggleBackgroundDrawer(false);
     toggleFocusPlanDrawer(false);
@@ -1462,7 +1786,7 @@ function stopTimer() {
     currentFocusSession = committed.timerRuntime.focusSession;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
     sendTrayStatus();
     return true;
   } catch (error) {
@@ -1548,7 +1872,7 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
     timerId = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
   }
   refreshTimerGoalSummary(committed, new Date(completedAtMs));
   renderStats();
@@ -1557,8 +1881,8 @@ function commitTimerPhaseCompletion(completedAtMs = Date.now(), nowMs = Date.now
   sendTrayStatus();
   notifyPhaseSwitch();
   announceStatus(t("timer.phaseStartedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
-  if (timerId !== null && lofiPlayer.paused) {
-    playMusic();
+  if (timerId !== null && playbackSourceMode === "local" && lofiPlayer.paused) {
+    playSelectedSource();
   }
   return true;
 }
@@ -1621,7 +1945,7 @@ function toggleTimer() {
     showStorageFailure(error, t("storage.timerStartError"));
     return;
   }
-  playMusic();
+  playSelectedSource();
   sendTrayStatus();
   announceStatus(t("timer.startedAnnouncement", { phase: titleForTimerPhase(timerPhase), time: formatTime(remainingSeconds) }));
 }
@@ -1648,7 +1972,7 @@ function resetTimer() {
     currentFocusSession = null;
     timerToggle.textContent = t("timer.start");
     setTimerInputsLocked(false);
-    pauseMusic();
+    pauseSelectedSource();
     tasksController?.render(committed);
   } catch (error) {
     showStorageFailure(error, t("storage.timerResetError"));
@@ -1747,6 +2071,19 @@ function bindWindowControls() {
   }
   shortcutHelpBtn?.addEventListener("click", () => toggleShortcutHelp(true));
   miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
+  readerTimerToggle?.addEventListener("click", toggleTimer);
+  readerPreviousTrack?.addEventListener("click", previousSelectedSource);
+  readerPlaybackToggle?.addEventListener("click", toggleSelectedSource);
+  readerNextTrack?.addEventListener("click", nextSelectedSource);
+  videoPreparationCancelBtn?.addEventListener("click", () => {
+    cancelVideoPreparation("user-cancelled");
+    videoPreparationState = { status: "idle", percent: 0 };
+    renderLocalVideoUi();
+  });
+  clearVideoCacheBtn?.addEventListener("click", async () => {
+    const cleared = await window.desktopApp?.clearVideoProxyCache?.();
+    if (cleared) announceStatus(t("player.videoCacheCleared"));
+  });
   notesToggleBtn.addEventListener("click", () => toggleNotesPanel());
   notesCloseBtn.addEventListener("click", () => toggleNotesPanel(false));
   drawerBackdrop?.addEventListener("click", () => toggleNotesPanel(false));
@@ -1789,11 +2126,11 @@ function bindAppCommands() {
       return;
     }
     if (commandType === "media-next") {
-      switchTrack();
+      nextSelectedSource();
       return;
     }
     if (commandType === "media-previous") {
-      prevTrack();
+      previousSelectedSource();
       return;
     }
     if (commandType === "media-seek") {
@@ -1842,13 +2179,13 @@ function toggleShortcutHelp(forceOpen) {
 
 
 async function init() {
-  try {
-    const nativeMediaAvailable = await window.desktopApp?.getNativeMediaSessionAvailability?.();
-    if (nativeMediaAvailable) mediaSessionController.enableNativeMode();
-  } catch (error) {
-    console.warn("Native macOS media controls could not be enabled:", error);
-  }
+  await setPlaybackSourceMode(playbackSourceMode, {
+    persist: false,
+    announce: false,
+    force: true
+  });
   tasksController.bindEvents();
+  readerController.bindEvents();
   ambienceController.bindEvents();
   audioTransitionsEnabled.addEventListener("change", () => {
     saveAudioTransitionSettings({
@@ -1864,6 +2201,7 @@ async function init() {
   });
   renderAudioTransitionSettings();
   loadUiSettings();
+  renderPlaybackSource();
   loadStatsRange();
   loadTimerSettings();
   loadTimerRuntime();
@@ -1941,6 +2279,9 @@ async function init() {
       timerCard,
       timerDisplay,
       playPauseBtn,
+      localPlaybackSourceBtn,
+      externalPlaybackSourceBtn,
+      videoBackgroundToggle,
       nextTrackBtn,
       prevTrackBtn,
       repeatModeBtn,
@@ -1996,9 +2337,11 @@ async function init() {
       },
       toggleShowcaseMode,
       isShowcaseModeEnabled: () => showcaseModeEnabled,
-      togglePlayback,
-      switchTrack,
-      prevTrack,
+      togglePlayback: toggleSelectedSource,
+      setPlaybackSourceMode,
+      setVideoDisplayMode,
+      switchTrack: nextSelectedSource,
+      prevTrack: previousSelectedSource,
       handleTrackEnded,
       togglePlaylistPanel,
       toggleExpandedQueue,
@@ -2077,6 +2420,7 @@ async function init() {
     },
     isShortcutEnabled,
     isShowcaseModeEnabled: () => showcaseModeEnabled,
+    isLocalPlaybackMode: () => playbackSourceMode === "local",
     clamp
   });
   applyHoverHints(document, HTMLElement);
