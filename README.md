@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.5.1**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包，以及 Windows 11 x64 NSIS 安装器；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
+当前发布版本：**v1.5.2**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包，以及 Windows 11 x64 NSIS 安装器；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -21,9 +21,10 @@
 - 三种原创 MIT 离线环境音，可在音乐旁独立播放一种，并可选择启用有界、可取消的音频淡入淡出
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
-- 本地媒体播放器：内置示例曲目、本地音频及 MP4/M4V/WebM 视频文件夹扫描、自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放；视频可仅播放音频，也可显示为专注界面背景
+- 本地媒体播放器：内置示例曲目、本地音频及 MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP 视频文件夹扫描、自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放；非原生格式会在首次播放时生成并缓存兼容副本，视频可仅播放音频，也可显示为专注界面背景
 - Local / External 播放来源切换：External 模式会暂停内置播放器并释放系统媒体键，不会自动启动或控制第三方应用；第三方服务的官方接入可行性见 `docs/third-party-music-feasibility.md`
-- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时依次使用 LRCLIB、QQ 音乐与 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
+- 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时，中文元数据歌曲优先使用 QQ 音乐再回退 LRCLIB，其他歌曲保持 LRCLIB 优先，最后使用 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
+- 沉浸式本地阅读模式：合并当前媒体文件夹与独立阅读文件夹，支持 TXT/TEXT、Markdown、LOG、CSV、JSON 与 YAML/YML，提供筛选、文内查找、字号、行宽、主题和滚动恢复；正文只读、仅在本机打开
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
 - 版本化本地数据、旧数据自动迁移，以及完整备份导出/校验/恢复
 - 4 个内置场景预设：Quiet Studio、Midnight、Moss 与 Paper；另支持壁纸、图片、视频和曲目封面
@@ -231,7 +232,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.5.1**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon plus a Windows 11 x64 NSIS installer; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
+Current release: **v1.5.2**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon plus a Windows 11 x64 NSIS installer; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -241,9 +242,10 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days, grouped by stable task identity
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
-- Local media player with bundled tracks, audio plus MP4/M4V/WebM folder scanning, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle. Local video can remain audio-only or appear behind the focus interface.
+- Local media player with bundled tracks, audio plus MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP folder scanning, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle. Non-native video formats receive a cached compatible copy on first play; video can remain audio-only or appear behind the focus interface.
 - Persistent Local / External playback-source switching. External mode pauses the built-in player and releases system media keys without launching or controlling another app; see `docs/third-party-music-feasibility.md` for the official-provider feasibility review
-- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, then ranks guarded results from LRCLIB, QQ Music, and lyrics.ovh with silent local caching; audio data and local paths are never uploaded
+- Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, queries QQ Music before LRCLIB for Chinese metadata (LRCLIB first otherwise), and keeps lyrics.ovh as the final fallback with silent local caching; audio data and local paths are never uploaded
+- Immersive local-only Reader combining the current media folder and an optional reading folder, with TXT/TEXT, Markdown, LOG, CSV, JSON, and YAML/YML support, filtering, in-document find, display preferences, and scroll restoration
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
 - Three original bundled offline ambient loops with a single independent playback layer and volume
 - Optional bounded, cancellable audio fades up to 3000 ms for playback and sequential source changes
