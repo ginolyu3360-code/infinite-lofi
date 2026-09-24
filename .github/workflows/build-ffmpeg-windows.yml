@@ -19,7 +19,9 @@ jobs:
           update: true
           install: >-
             curl
+            diffutils
             make
+            perl
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-pkgconf
       - name: Build and smoke-test a source-pinned candidate
