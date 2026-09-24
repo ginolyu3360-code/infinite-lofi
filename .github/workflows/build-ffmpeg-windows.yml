@@ -1,0 +1,32 @@
+name: Build candidate FFmpeg for Windows
+
+on:
+  push:
+    branches: [codex/ffmpeg-distribution-fix]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            curl
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkgconf
+      - name: Build and smoke-test a source-pinned candidate
+        shell: msys2 {0}
+        run: bash scripts/build-ffmpeg-windows.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-ffmpeg-windows-x64
+          path: out/ffmpeg-windows/ffmpeg.exe
+          if-no-files-found: error
