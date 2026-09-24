@@ -42,7 +42,7 @@ tar -xzf "$build_root/opus-1.5.2.tar.gz" -C "$build_root"
     --extra-ldflags=-static --disable-gpl --disable-nonfree --disable-version3 \
     --disable-autodetect --disable-x86asm --disable-doc --disable-ffplay --disable-ffprobe \
     --disable-debug --enable-small --enable-libvpx --enable-libopus
-  make -j4 ffmpeg
+  make -j4 ffmpeg.exe
 )
 
 binary="$build_root/ffmpeg-build/ffmpeg.exe"
