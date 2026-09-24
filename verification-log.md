@@ -1,5 +1,13 @@
 # Verification Log
 
+## 2026-09-23 — v1.5.2 release completed
+
+- [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) passed [macOS and Windows CI 35850802450](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35850802450), then squash-merged to `main` as `5f793aa4991ccd27b924373363f92395e855aeef`. Exact-merge [main CI 35851145099](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851145099) passed both platforms.
+- Annotated tag `v1.5.2` targets the merged commit. [Release workflow 35851641833](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851641833) passed and published [v1.5.2](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) with unsigned Universal macOS DMG/ZIP, Windows x64 NSIS EXE, and `SHA256SUMS.txt`.
+- The release includes External Player Mode foundation, expanded local-video playback with on-demand WebM compatibility cache, read-only local Reader, and QQ Music-first lookup for Chinese lyrics. Source checks passed 180 tests. No account-provider integration, signing, or notarization was added.
+- The old local-only `codex/local-video-playback` handoff described a pre-merge stage; its file tree matched the published merge despite the earlier commit label. Do not treat it as outstanding unpublished feature work or automatically clean other worktrees.
+- A post-release review found a potentially material FFmpeg distribution issue, especially `--enable-nonfree` in the bundled Intel macOS executable. See [the evidence and open questions](docs/ffmpeg-bundle-assessment.md). The published binaries were not changed by this documentation update.
+
 ## 2026-09-15 — Windows x64 support delivered
 
 - Implemented on `codex/windows-support` from clean synchronized `main` `64d5380`, then audited and rebased onto `main` `9ae5fdd`. Final PR head `3376f7d` passed CI `34944611079`, squash-merged through [PR #32](https://github.com/ginolyu3360-code/infinite-lofi/pull/32) as `722084412657e4a434fa9d51540a032714eceae9`, and exact-merge [main CI `34944930190`](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/34944930190) passed both jobs. Package version remains 1.4.1; no tag or Release was created.

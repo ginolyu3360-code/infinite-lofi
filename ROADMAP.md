@@ -2,7 +2,9 @@
 
 ## Current baseline
 
-Version 1.4.1 is the current published release, delivering the complete Phase 4 Focus Depth pass, seven-language display settings, and the post-v1.4 Queue/playback/responsive feedback pass on top of the v1.3.0 Phase 3 foundation.
+Version 1.5.2 is the current published release. [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) merged as `5f793aa`; the macOS/Windows PR and exact-merge main CI and the [v1.5.2 Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) workflow passed. It includes External Player Mode foundation, local video and on-demand compatibility conversion, read-only local Reader, and Chinese-lyrics QQ Music priority. The release remains unsigned and unnotarized. See [verification-log.md](verification-log.md) for evidence and [FFmpeg bundle assessment](docs/ffmpeg-bundle-assessment.md) for an unresolved distribution issue.
+
+The sections below preserve earlier phase milestones; their contemporary-looking status statements describe those historical phases, not the current published baseline.
 
 Version 1.4.1 adds large-library Queue management, Repeat One and Shuffle, Mini transport controls, responsive timer improvements, a larger window-drag surface, and related interaction repairs. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) merged as `5bb67c6`; release [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) merged as `089bdf6`, passed exact-head main CI `34865480996`, and the annotated `v1.4.1` tag triggered successful Release workflow `34866263548`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
 
@@ -436,7 +438,7 @@ Goal: add predictable audio transitions after C1 is stable, keeping final playba
 
 ### Phase 4 execution and handoff rules
 
-1. Use only `/Users/lvjunhao/Documents/GitHub/infinite_lofi`. Work directly in this checkout; never create another worktree or use/rebuild the removed ChatGPT-folder checkout.
+1. Historical Phase 4 instructions below are retained for context. For current work, use a clean `codex/` branch or worktree based on synchronized `origin/main`; preserve user changes in other checkouts and do not clean them automatically.
 2. Read README, this roadmap, HANDOFF, verification-log, UI-REFRESH-PLAN, and repository AGENTS if present. Check working changes, current branch, recent commits, tags, real remote main, and latest main CI. Preserve user changes.
 3. The user will direct GPT-5.6 sol to execute. Do not create another task, switch models, or start implementation merely because this plan is saved. Obtain the user's instruction for the next slice; do not treat approval of A as approval of B/C1/C2.
 4. Each implemented slice normally uses `codex/` feature branch → Pull Request → passing CI for the final PR commit → squash merge. For this run, the user explicitly directed separate local commits for 4B, 4C1, and 4C2 followed by one combined PR and merge. No direct main commit was used. Package version stayed 1.3.0 until the separate explicit v1.4.0 release instruction.
