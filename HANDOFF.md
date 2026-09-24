@@ -1,31 +1,27 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-23
+Updated: 2026-09-24
 
 ## Start of the next session
 
-1. Use `/Users/lvjunhao/Documents/GitHub/infinite_lofi` as the only canonical checkout. Do not create another checkout or worktree unless the user explicitly requests isolation.
-2. Begin by checking the working tree, current branch, `main`, tags, and the latest GitHub CI/Release status. Preserve any user changes.
-3. Unsubmitted local work is on `codex/local-video-playback`: it contains the External Player Mode foundation plus local video playback. Do not push, open a PR, merge, tag, or release it without a new explicit user instruction.
-4. Before selecting an integration, research the current official documentation, account requirements, playback restrictions, platform support, and commercial terms for the candidate providers. These details change and must not be assumed from memory.
-5. Continue the normal delivery workflow for future implementation: `codex/` feature branch → Pull Request → passing Windows/macOS CI → squash merge. A version tag or Release still requires a separate explicit instruction.
+1. Check the working tree, branch, current `origin/main`, tags, and latest GitHub CI/Release status before changing anything. Worktrees based on synchronized `origin/main` are permitted; preserve changes in every checkout and do not clean unrelated worktrees automatically.
+2. The old `codex/local-video-playback` notes below describe work that was subsequently merged and released. They are history, not a local-only restriction or a current baseline.
+3. Continue normal delivery through a `codex/` branch, PR, passing macOS and Windows CI, squash merge, and exact-merge `main` CI. A future version change, tag, or Release still requires separate explicit user direction.
+4. Read the [FFmpeg bundle assessment](docs/ffmpeg-bundle-assessment.md) before distributing another FFmpeg-bearing build; the published Intel macOS binary has an unresolved `--enable-nonfree` provenance/distribution issue.
 
 ## Current baseline
 
-- Public baseline: `main` at `a10fc3f` (`test: wait for renderer after smoke reload (#41)`). The working branch is `codex/local-video-playback` and remains local-only.
-- Package version and latest public release: `v1.5.1`. The annotated tag peels to `a10fc3f`.
-- [Release v1.5.1](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.1) is public, non-draft, and non-prerelease. Release workflow `35351586911` passed and published:
-  - unsigned macOS Universal DMG and ZIP for Intel and Apple Silicon;
-  - Windows x64 NSIS installer;
-  - `SHA256SUMS.txt`.
-- Release-preparation [PR #40](https://github.com/ginolyu3360-code/infinite-lofi/pull/40) and the Windows packaged-smoke race repair [PR #41](https://github.com/ginolyu3360-code/infinite-lofi/pull/41) are merged.
-- The external-player feature work is based directly on `a10fc3f` in branch `codex/external-player-mode`; the package version remains 1.5.1 and no release tag is part of this work.
-- The current player supports bundled music, explicitly selected local folders containing audio plus MP4/M4V/WebM video, duplicate filtering, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, a separate bundled ambient layer, and native media controls. Local videos default to audio-only playback and can optionally replace the Scene as the visual background without resetting playback.
-- Optional lyrics prefer same-name `.lrc` and embedded lyrics, then use confidence-ranked LRCLIB and QQ Music matching with a lyrics.ovh fallback. Lyrics, instrumental classifications, and misses are cached locally. Online lookup remains opt-in and never uploads audio or local paths.
+- Public baseline: v1.5.2, merged through [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) as `5f793aa4991ccd27b924373363f92395e855aeef`. The PR's macOS/Windows CI [35850802450](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35850802450), exact-merge main CI [35851145099](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851145099), and [Release workflow 35851641833](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851641833) passed.
+- [Release v1.5.2](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) published unsigned macOS Universal DMG/ZIP, Windows x64 NSIS EXE, and `SHA256SUMS.txt`. The package version remains 1.5.2 until explicitly changed.
+- The current player supports bundled music, selected local audio/video folders, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, ambient sound, and native media controls. Video supports native containers and on-demand cached WebM compatibility copies; video can remain audio-only or appear in the Scene background without resetting playback.
+- Reader combines documents from the current media folder and an independent reading folder, locally and read-only. External Player Mode is a source/ownership switch, not a provider account or embedded third-party playback integration.
+- Optional lyrics prefer same-name `.lrc` and embedded lyrics. For Chinese tracks, online lookup tries QQ Music before LRCLIB; other tracks use LRCLIB before QQ Music, with lyrics.ovh fallback. Lookup remains opt-in and does not upload local audio or paths.
 - macOS native Now Playing/AirPods ownership is deliberate. Local playback registers Infinite Lo-Fi as the media owner so paused AirPods Play resumes this app instead of Apple Music.
 - Releases remain unsigned and unnotarized. Do not imply Apple signing or notarization.
 
-## Proposed next feature: third-party playback and playlists
+## Historical provider-integration proposal (written before v1.5.2)
+
+The implementation notes below were recorded before the v1.5.2 merge and Release. Their local-only status, test totals, and unpublished-feature statements are historical. The current baseline above takes precedence. Provider integration still requires separate product choice and fresh official-source review.
 
 ### 2026-09-22 implementation update
 
