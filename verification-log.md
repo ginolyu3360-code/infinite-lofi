@@ -1,10 +1,12 @@
 # Verification Log
 
-## 2026-09-25 — v1.5.3 release preparation
+## 2026-09-25 — v1.5.3 release completed
 
 - [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) passed macOS Universal and Windows x64 CI, then squash-merged as `2347446a28e706205d2bc382132464c1e70f1674`. Exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed checks, development smoke, native packaging, and packaged smoke on both platforms.
 - Source-pinned FFmpeg 7.1/libvpx 1.16.0/Opus 1.5.2 replacements are recorded in [the build and distribution note](docs/ffmpeg-replacement.md). The macOS x64/arm64 and Windows x64 candidates converted AVI/MKV fixtures to VP8/Opus WebM; no new public Release was made by PR #44.
-- This branch prepares package version 1.5.3, a local packaged-app freshness command, and release-facing documentation. The tag and Release remain pending until PR, exact-merge main CI, and tag workflow pass.
+- Release-preparation [PR #45](https://github.com/ginolyu3360-code/infinite-lofi/pull/45) updated package and lockfile to 1.5.3, added launch-time local package freshness checks, and passed [macOS/Windows PR CI 36115902249](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36115902249). It squash-merged as `9e9246e39555d03b926bb9b165b4379eae4b215c`; [exact-merge main CI 36116259249](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36116259249) passed both platforms.
+- The annotated `v1.5.3` tag peels to exactly that merge commit. [Release workflow 36116663508](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36116663508) passed both platform builds and smoke tests, then published the non-draft, non-prerelease [v1.5.3 Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.3). Assets are an unsigned Universal DMG/ZIP, unsigned Windows x64 NSIS EXE, three pinned FFmpeg/libvpx/Opus source archives, and `SHA256SUMS.txt`; its entries match GitHub asset SHA-256 digests.
+- Old generated `dist/`, `out/`, and native build intermediates in the active worktree were removed before a fresh local Universal package was built and smoked. Its source-tree ID matches both the release branch and the squash-merge tree; a second `npm run ensure:local` correctly skipped rebuilding. Other worktrees with user changes were not cleaned or reset.
 
 ## 2026-09-23 — v1.5.2 release completed
 
