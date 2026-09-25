@@ -1,9 +1,14 @@
-These bundled FFmpeg 7.1 executables are distributed under the GNU General
-Public License, version 3 or later. They are separate command-line programs
-invoked by Infinite Lo-Fi without shell interpolation.
+Infinite Lo-Fi bundles separate FFmpeg 7.1 command-line executables built from
+source with GPL, nonfree, and version-3 options disabled. FFmpeg reports its
+resulting license as LGPL version 2.1 or later. The full license text is in
+LICENSE-LGPL-2.1.txt.
 
-Source and build provenance for the bundled static executables is recorded in
-manifest.json. The complete corresponding source is available from:
-https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+The only statically linked external codec libraries are libvpx 1.16.0 and
+Opus 1.5.2. Their BSD-style notices are in LICENSE-LIBVPX.txt and
+LICENSE-OPUS.txt. macOS binaries link only to Apple system libraries.
 
-The complete GPL-3.0 license text is included as LICENSE-GPL-3.0.txt.
+See SOURCE.txt and manifest.json for source URLs, SHA-256 hashes, exact binary
+hashes, and build scripts. Future application Releases must include all three
+corresponding source archives alongside the installers; binary hashes and
+configure flags are checked before packaging. No source is fetched when the
+installed app runs.

@@ -118,20 +118,23 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Stage corresponding FFmpeg, libvpx, and Opus source archives
+        run: node scripts/stage-ffmpeg-sources.mjs dist
+
       - name: Create checksums
-        run: sha256sum dist/*.dmg dist/*.zip dist/*.exe > dist/SHA256SUMS.txt
+        run: sha256sum dist/*.dmg dist/*.zip dist/*.exe dist/*.tar.* > dist/SHA256SUMS.txt
 
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/*.tar.* dist/SHA256SUMS.txt --clobber
             if test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = "true"; then
               gh release edit "$GITHUB_REF_NAME" --draft=false
             fi
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/SHA256SUMS.txt \
+            gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/*.exe dist/*.tar.* dist/SHA256SUMS.txt \
               --verify-tag \
               --title "Infinite Lo-Fi $GITHUB_REF_NAME" \
               --generate-notes

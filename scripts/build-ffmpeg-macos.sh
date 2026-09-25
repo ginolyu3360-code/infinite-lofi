@@ -10,14 +10,14 @@ case "$arch" in
     ffmpeg_arch=aarch64
     host=aarch64-apple-darwin
     asm_option=--disable-asm
-    cross_options=()
+    cross_option=''
     ;;
   x64)
     compiler_arch=x86_64
     ffmpeg_arch=x86_64
     host=x86_64-apple-darwin
     asm_option=--disable-x86asm
-    cross_options=(--enable-cross-compile)
+    cross_option=--enable-cross-compile
     ;;
   *)
     echo "Usage: $0 arm64|x64" >&2
@@ -32,7 +32,11 @@ mkdir -p "$prefix" "$build_root/opus-build" "$build_root/vpx-build" "$build_root
 
 download_source() {
   local url="$1" archive="$2" expected="$3" actual
-  curl --fail --location --silent --show-error --output "$build_root/$archive" "$url"
+  if [[ -n "${FFMPEG_SOURCE_ARCHIVE_DIR:-}" ]]; then
+    cp "$FFMPEG_SOURCE_ARCHIVE_DIR/$archive" "$build_root/$archive"
+  else
+    curl --fail --location --silent --show-error --output "$build_root/$archive" "$url"
+  fi
   actual="$(shasum -a 256 "$build_root/$archive" | awk '{print $1}')"
   if [[ "$actual" != "$expected" ]]; then
     echo "Source hash mismatch: $archive" >&2
@@ -70,7 +74,7 @@ tar -xzf "$build_root/opus-1.5.2.tar.gz" -C "$build_root"
     --pkg-config-flags=--static --disable-gpl --disable-nonfree --disable-version3 \
     --disable-autodetect "$asm_option" --disable-doc --disable-ffplay --disable-ffprobe \
     --disable-debug --enable-small --enable-libvpx --enable-libopus \
-    "${cross_options[@]}"
+    ${cross_option:+"$cross_option"}
   make -j4 ffmpeg
 )
 
