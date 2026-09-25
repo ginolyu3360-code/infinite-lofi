@@ -1,6 +1,6 @@
 {
   "name": "infinite-lofi-desktop",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Lo-Fi minimalist desktop pomodoro app with Electron and Tailwind CSS",
   "main": "main.js",
   "scripts": {
@@ -22,6 +22,8 @@
     "measure:audio": "node scripts/measure-audio-performance.mjs",
     "verify": "npm run check && npm run smoke",
     "start": "npm run build:css && npm run build:native:mac && electron .",
+    "ensure:local": "node scripts/ensure-local-build.mjs",
+    "start:local": "node scripts/ensure-local-build.mjs --launch",
     "dist": "npm run dist:mac",
     "dist:mac": "npm run dist:universal",
     "dist:x64": "npm run verify:ffmpeg && npm run build:css && npm run build:native:x64 && electron-builder --mac --x64 --publish never",

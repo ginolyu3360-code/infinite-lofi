@@ -1,5 +1,11 @@
 # Verification Log
 
+## 2026-09-25 — v1.5.3 release preparation
+
+- [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) passed macOS Universal and Windows x64 CI, then squash-merged as `2347446a28e706205d2bc382132464c1e70f1674`. Exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed checks, development smoke, native packaging, and packaged smoke on both platforms.
+- Source-pinned FFmpeg 7.1/libvpx 1.16.0/Opus 1.5.2 replacements are recorded in [the build and distribution note](docs/ffmpeg-replacement.md). The macOS x64/arm64 and Windows x64 candidates converted AVI/MKV fixtures to VP8/Opus WebM; no new public Release was made by PR #44.
+- This branch prepares package version 1.5.3, a local packaged-app freshness command, and release-facing documentation. The tag and Release remain pending until PR, exact-merge main CI, and tag workflow pass.
+
 ## 2026-09-23 — v1.5.2 release completed
 
 - [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) passed [macOS and Windows CI 35850802450](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35850802450), then squash-merged to `main` as `5f793aa4991ccd27b924373363f92395e855aeef`. Exact-merge [main CI 35851145099](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851145099) passed both platforms.

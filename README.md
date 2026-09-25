@@ -10,7 +10,7 @@
 
 一个极简的桌面番茄钟 + 环境音乐播放器，基于 Electron 与 Tailwind CSS 构建。提供专注/休息计时、局部笔记、音乐播放（支持加载本地文件夹并提取嵌入封面）、背景模式、托盘交互与统计面板，适合想要低干扰背景音乐与简单专注工具的用户。
 
-当前发布版本：**v1.5.2**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包，以及 Windows 11 x64 NSIS 安装器；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
+当前发布版本：**v1.5.3**。安装包可从 [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest) 下载，包括同时支持 Intel 与 Apple Silicon 的未签名 macOS Universal 包、Windows 11 x64 NSIS 安装器，以及三份 FFmpeg 对应源码归档；实体机安装生命周期和系统交互的最新验收状态见 `verification-log.md`。
 
 继续开发前请先阅读 `HANDOFF.md`、`ROADMAP.md` 和 `verification-log.md`，并核对 Git 状态与最新 GitHub Actions。后续版本仍须在得到明确发布指令后创建标签和 Release。
 
@@ -149,6 +149,8 @@ npm run pack
 # 默认生成 dist/mac-universal/Infinite Lo-Fi.app
 ```
 
+若要始终打开与当前提交一致的本地打包应用，使用 `npm run start:local`；首次、换提交、存在本地修改或缺少打包文件时会自动重新打包。仅更新而不启动可运行 `npm run ensure:local`。它不会在提交后后台构建，也不会更改 Git 提交或用户数据；直接双击旧 `dist/` 应用不会触发检查。
+
 electron-builder 的关键配置（来自 package.json）：
 - appId: com.infinite-lofi.desktop
 - productName: Infinite Lo‑Fi
@@ -232,7 +234,7 @@ A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私�
 ## What this is
 A minimal Electron-based desktop Pomodoro app with an ambient lo-fi music player (Infinite Lo‑Fi). Features include a focus/break timer, local notes, a music player with support for scanning local folders and extracting embedded artwork, background modes, a tray menu, and a simple stats dashboard.
 
-Current release: **v1.5.2**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon plus a Windows 11 x64 NSIS installer; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
+Current release: **v1.5.3**. Download it from [GitHub Releases](https://github.com/ginolyu3360-code/infinite-lofi/releases/latest). The release includes unsigned Universal macOS builds for Intel and Apple Silicon, a Windows 11 x64 NSIS installer, and three corresponding FFmpeg source archives; see `verification-log.md` for the latest physical-device and installer-lifecycle acceptance status.
 
 Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verification-log.md`, then check Git status and the latest GitHub Actions run. Future tags and Releases still require an explicit release instruction.
 
@@ -305,6 +307,8 @@ Build and run (build CSS first):
 npm run build:css
 npm start
 ```
+
+For a packaged app that automatically catches up with the current commit, use `npm run start:local` (or `npm run ensure:local` to update it without launching). It rebuilds when the committed source tree changes, local edits exist, or package files are missing. Opening an old app directly under `dist/` bypasses this check.
 
 ## Verify
 

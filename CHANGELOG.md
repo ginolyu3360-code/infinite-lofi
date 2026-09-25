@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.3 — 2026-09-25
+
+- Replaced the three bundled FFmpeg programs with source-pinned macOS x64/arm64 and Windows x64 builds using only the reviewed VP8 and Opus dependencies, with GPL, nonfree, and version-3 configure options disabled
+- Included LGPL and codec notices plus exact source/build records; future release assets include the three checksum-verified corresponding source archives
+- Added a local packaged-app launcher that rebuilds automatically when the committed source tree changes, the working tree has edits, or required package files are missing
+- Kept existing video, Reader, lyrics, and timer behavior; the previous v1.5.2 Release remains unchanged
+
 ## 1.5.2 — 2026-09-23
 
 - Added a persistent Local / External playback-source switch that pauses the built-in player and releases system media ownership in External mode without launching or controlling third-party apps

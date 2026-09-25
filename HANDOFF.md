@@ -1,18 +1,19 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-24
+Updated: 2026-09-25
 
 ## Start of the next session
 
 1. Check the working tree, branch, current `origin/main`, tags, and latest GitHub CI/Release status before changing anything. Worktrees based on synchronized `origin/main` are permitted; preserve changes in every checkout and do not clean unrelated worktrees automatically.
 2. The old `codex/local-video-playback` notes below describe work that was subsequently merged and released. They are history, not a local-only restriction or a current baseline.
-3. Continue normal delivery through a `codex/` branch, PR, passing macOS and Windows CI, squash merge, and exact-merge `main` CI. A future version change, tag, or Release still requires separate explicit user direction.
-4. Read the [FFmpeg bundle assessment](docs/ffmpeg-bundle-assessment.md) before distributing another FFmpeg-bearing build; the published Intel macOS binary has an unresolved `--enable-nonfree` provenance/distribution issue.
+3. Continue normal delivery through a `codex/` branch, PR, passing macOS and Windows CI, squash merge, and exact-merge `main` CI. The user explicitly authorized v1.5.3 in this release round; later versions still require separate direction.
+4. Read the [historical FFmpeg audit](docs/ffmpeg-bundle-assessment.md) and [replacement evidence](docs/ffmpeg-replacement.md) before distributing another FFmpeg-bearing build. The published v1.5.2 binaries remain unchanged; replacement on `main` does not retroactively repair that Release.
 
 ## Current baseline
 
 - Public baseline: v1.5.2, merged through [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) as `5f793aa4991ccd27b924373363f92395e855aeef`. The PR's macOS/Windows CI [35850802450](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35850802450), exact-merge main CI [35851145099](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851145099), and [Release workflow 35851641833](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/35851641833) passed.
-- [Release v1.5.2](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) published unsigned macOS Universal DMG/ZIP, Windows x64 NSIS EXE, and `SHA256SUMS.txt`. The package version remains 1.5.2 until explicitly changed.
+- [Release v1.5.2](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) published unsigned macOS Universal DMG/ZIP, Windows x64 NSIS EXE, and `SHA256SUMS.txt`. The v1.5.3 package update in this branch is a release candidate until its tag workflow succeeds.
+- [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) merged as `2347446`; exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed both platforms. The three replacement executables, notices, source pins, and future source-archive staging are on `main`.
 - The current player supports bundled music, selected local audio/video folders, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, ambient sound, and native media controls. Video supports native containers and on-demand cached WebM compatibility copies; video can remain audio-only or appear in the Scene background without resetting playback.
 - Reader combines documents from the current media folder and an independent reading folder, locally and read-only. External Player Mode is a source/ownership switch, not a provider account or embedded third-party playback integration.
 - Optional lyrics prefer same-name `.lrc` and embedded lyrics. For Chinese tracks, online lookup tries QQ Music before LRCLIB; other tracks use LRCLIB before QQ Music, with lyrics.ovh fallback. Lookup remains opt-in and does not upload local audio or paths.
