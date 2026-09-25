@@ -92,8 +92,20 @@
           "to": "ffmpeg/LICENSE.txt"
         },
         {
-          "from": "vendor/ffmpeg/LICENSE-GPL-3.0.txt",
-          "to": "ffmpeg/LICENSE-GPL-3.0.txt"
+          "from": "vendor/ffmpeg/LICENSE-LGPL-2.1.txt",
+          "to": "ffmpeg/LICENSE-LGPL-2.1.txt"
+        },
+        {
+          "from": "vendor/ffmpeg/LICENSE-LIBVPX.txt",
+          "to": "ffmpeg/LICENSE-LIBVPX.txt"
+        },
+        {
+          "from": "vendor/ffmpeg/LICENSE-OPUS.txt",
+          "to": "ffmpeg/LICENSE-OPUS.txt"
+        },
+        {
+          "from": "vendor/ffmpeg/SOURCE.txt",
+          "to": "ffmpeg/SOURCE.txt"
         },
         {
           "from": "vendor/ffmpeg/darwin-x64",
@@ -118,7 +130,10 @@
       "extraResources": [
         { "from": "vendor/ffmpeg/manifest.json", "to": "ffmpeg/manifest.json" },
         { "from": "vendor/ffmpeg/LICENSE.txt", "to": "ffmpeg/LICENSE.txt" },
-        { "from": "vendor/ffmpeg/LICENSE-GPL-3.0.txt", "to": "ffmpeg/LICENSE-GPL-3.0.txt" },
+        { "from": "vendor/ffmpeg/LICENSE-LGPL-2.1.txt", "to": "ffmpeg/LICENSE-LGPL-2.1.txt" },
+        { "from": "vendor/ffmpeg/LICENSE-LIBVPX.txt", "to": "ffmpeg/LICENSE-LIBVPX.txt" },
+        { "from": "vendor/ffmpeg/LICENSE-OPUS.txt", "to": "ffmpeg/LICENSE-OPUS.txt" },
+        { "from": "vendor/ffmpeg/SOURCE.txt", "to": "ffmpeg/SOURCE.txt" },
         { "from": "vendor/ffmpeg/win32-x64", "to": "ffmpeg/win32-x64" }
       ]
     },

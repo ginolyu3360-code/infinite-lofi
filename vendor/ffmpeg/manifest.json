@@ -1,29 +1,55 @@
 {
   "name": "FFmpeg",
-  "source": "https://pypi.org/project/imageio-ffmpeg/0.6.0/",
+  "source": "https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz",
   "upstreamSource": "https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz",
-  "license": "GPL-3.0-or-later",
+  "license": "LGPL-2.1-or-later",
+  "sourceArchives": [
+    {
+      "name": "FFmpeg",
+      "version": "7.1",
+      "file": "ffmpeg-7.1.tar.xz",
+      "url": "https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz",
+      "sha256": "40973d44970dbc83ef302b0609f2e74982be2d85916dd2ee7472d30678a7abe6",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "name": "libvpx",
+      "version": "1.16.0",
+      "file": "libvpx-v1.16.0.tar.gz",
+      "url": "https://github.com/webmproject/libvpx/archive/refs/tags/v1.16.0.tar.gz",
+      "sha256": "7a479a3c66b9f5d5542a4c6a1b7d3768a983b1e5c14c60a9396edc9b649e015c",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "Opus",
+      "version": "1.5.2",
+      "file": "opus-1.5.2.tar.gz",
+      "url": "https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz",
+      "sha256": "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1",
+      "license": "BSD-3-Clause"
+    }
+  ],
   "runtimes": [
     {
       "platform": "darwin",
       "arch": "x64",
       "version": "7.1",
       "file": "darwin-x64/ffmpeg",
-      "sha256": "4a4a968b98859588e98500ae25973d80a5ca5eed0724222b9f76360dcb72a001"
+      "sha256": "3dc997957370f028039d4a7231e147138ab098290489be32e7813a427070c6e5"
     },
     {
       "platform": "darwin",
       "arch": "arm64",
       "version": "7.1",
       "file": "darwin-arm64/ffmpeg",
-      "sha256": "6d175a4743ca50256e89a8cdd731100f9cee33bd79aeea46894d209410dc6617"
+      "sha256": "ddf1536e999d911350ab8a11fbff6cab8d73472ddd8a7a48c4ab527ecf9e73a7"
     },
     {
       "platform": "win32",
       "arch": "x64",
       "version": "7.1",
       "file": "win32-x64/ffmpeg.exe",
-      "sha256": "2ce797a0f88d7f067180338fb227f7b1928ea727bd9a4d7a1d022f7c52af71a3"
+      "sha256": "b37561029bc091520e73af4ca879aefaaef631ffe9ed653da8cebab9e1eafba8"
     }
   ]
 }

@@ -100,7 +100,8 @@ test("CI and tagged releases verify both platforms before publication", () => {
   assert.match(releaseWorkflow, /run: npm run smoke:packaged:mac/);
   assert.match(releaseWorkflow, /run: npm run smoke:packaged:win/);
   assert.match(releaseWorkflow, /path: dist\/\*\.exe/);
-  assert.match(releaseWorkflow, /dist\/\*\.exe dist\/SHA256SUMS\.txt/);
+  assert.match(releaseWorkflow, /stage-ffmpeg-sources\.mjs dist/);
+  assert.match(releaseWorkflow, /dist\/\*\.exe dist\/\*\.tar\.\* dist\/SHA256SUMS\.txt/);
   assert.match(releaseWorkflow, /gh release upload[\s\S]*--clobber/);
   assert.match(releaseWorkflow, /gh release edit[\s\S]*--draft=false/);
   assert.match(releaseWorkflow, /gh release create/);
