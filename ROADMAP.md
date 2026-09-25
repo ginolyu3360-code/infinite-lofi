@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-Version 1.5.2 is the current published release. [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) merged as `5f793aa`; the macOS/Windows PR and exact-merge main CI and the [v1.5.2 Release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.2) workflow passed. It includes External Player Mode foundation, local video and on-demand compatibility conversion, read-only local Reader, and Chinese-lyrics QQ Music priority. The release remains unsigned and unnotarized. See [verification-log.md](verification-log.md) for evidence and [FFmpeg bundle assessment](docs/ffmpeg-bundle-assessment.md) for an unresolved distribution issue.
+Version 1.5.2 is the latest published release while v1.5.3 is prepared. [PR #42](https://github.com/ginolyu3360-code/infinite-lofi/pull/42) merged as `5f793aa` and published v1.5.2 with External Player Mode foundation, local video and on-demand compatibility conversion, read-only local Reader, and Chinese-lyrics QQ Music priority. Its FFmpeg distribution concern is recorded in the [historical assessment](docs/ffmpeg-bundle-assessment.md). [PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) replaced the bundled executables on `main` with [source-pinned builds](docs/ffmpeg-replacement.md); both PR and exact-merge main CI passed. The old v1.5.2 Release has not been modified. Releases remain unsigned and unnotarized.
 
 The sections below preserve earlier phase milestones; their contemporary-looking status statements describe those historical phases, not the current published baseline.
 
