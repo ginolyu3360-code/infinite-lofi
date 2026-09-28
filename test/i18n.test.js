@@ -82,3 +82,13 @@ test("localizes rolling Focus Review labels in every display language", () => {
     assert.notEqual(language.t("stats.zeroBaselineTitle"), "stats.zeroBaselineTitle");
   }
 });
+
+test("localizes desktop controls in every display language", () => {
+  for (const { code } of SUPPORTED_LANGUAGES) {
+    const language = createI18n(code);
+    assert.notEqual(language.t("keys.desktop"), "keys.desktop");
+    assert.notEqual(language.t("desktop.globalTimer"), "desktop.globalTimer");
+    assert.notEqual(language.t("desktop.pinTitle"), "desktop.pinTitle");
+    assert.notEqual(language.t("desktop.globalUnavailable"), "desktop.globalUnavailable");
+  }
+});

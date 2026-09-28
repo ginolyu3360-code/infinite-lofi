@@ -175,7 +175,13 @@
         goals: {
           dailyFocusSeconds: 0
         },
-        ui: { language: "en" },
+        ui: {
+          language: "en",
+          desktopControls: {
+            globalTimerShortcutEnabled: false,
+            miniAlwaysOnTop: false
+          }
+        },
         statsRange: "week"
       },
       notes: {
@@ -318,7 +324,12 @@
         },
         ui: {
           ...(isObject(settings.ui) ? clone(settings.ui) : {}),
-          language: i18n.normalizeLanguage(settings.ui?.language, defaults.settings.ui.language)
+          language: i18n.normalizeLanguage(settings.ui?.language, defaults.settings.ui.language),
+          desktopControls: {
+            globalTimerShortcutEnabled:
+              settings.ui?.desktopControls?.globalTimerShortcutEnabled === true,
+            miniAlwaysOnTop: settings.ui?.desktopControls?.miniAlwaysOnTop === true
+          }
         },
         statsRange: ["today", "week", "month"].includes(settings.statsRange)
           ? settings.statsRange

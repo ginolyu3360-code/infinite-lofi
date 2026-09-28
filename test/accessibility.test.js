@@ -112,3 +112,12 @@ test("reduced-motion CSS removes meaningful transitions and repeated animation",
   assert.match(stylesheet, /animation-duration:\s*0\.01ms !important/);
   assert.match(stylesheet, /animation-iteration-count:\s*1 !important/);
 });
+
+test("desktop controls expose status and toggle semantics", () => {
+  const document = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
+  const stylesheet = fs.readFileSync(path.join(__dirname, "../src/styles/components.css"), "utf8");
+  assert.match(document, /id="globalTimerShortcutStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(document, /id="globalTimerShortcutToggle"[^>]*aria-describedby="globalTimerShortcutStatus"/);
+  assert.match(document, /id="miniAlwaysOnTopBtn"[^>]*aria-pressed="false"/);
+  assert.match(stylesheet, /\.mini-pin-btn\[aria-pressed="true"\]/);
+});

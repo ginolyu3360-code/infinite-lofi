@@ -20,6 +20,8 @@
 - Focus Review：按今天、最近 7 天和最近 30 天，以稳定任务身份解释账本中的专注时间
 - 三种原创 MIT 离线环境音，可在音乐旁独立播放一种，并可选择启用有界、可取消的音频淡入淡出
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
+- 默认关闭、可主动启用的系统级 `Cmd/Ctrl + Shift + Space` 开始/暂停计时器快捷键；应用隐藏或最小化时也可使用
+- Mini Mode 可选置顶，退出 Mini Mode 时立即取消实际置顶，同时保留用户偏好供下次进入恢复
 - 本地笔记（多标签、置顶）
 - 本地媒体播放器：内置示例曲目、本地音频及 MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP 视频文件夹扫描、自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放；非原生格式会在首次播放时生成并缓存兼容副本，视频可仅播放音频，也可显示为专注界面背景
 - Local / External 播放来源切换：External 模式会暂停内置播放器并释放系统媒体键，不会自动启动或控制第三方应用；第三方服务的官方接入可行性见 `docs/third-party-music-feasibility.md`
@@ -195,6 +197,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 3000 ms 的音乐与环境声淡入淡出；默认仍为 200 ms，用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
 - 第三方音乐基础已完成于源码：Local / External 模式会持久化；切到 External 会暂停本地音乐并注销本应用的系统媒体命令，切回 Local 也不会自动播放。当前未加入任何需要账号、密钥、合作资质或有争议非官方接口的服务。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
+- 系统级计时器快捷键与 Mini Mode 置顶均默认关闭，并保存在 schema v5 的 `settings.ui.desktopControls`。快捷键被其他软件占用时会明确显示不可用并在下次启动重试；完整窗口不会置顶。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
 - 页面 CSP 只允许本地资源与已列明的天气接口；生产版禁用 DevTools 并阻止意外导航、新窗口和 webview。
@@ -243,6 +246,8 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Optional Focus Intent with up to 100 short-title tasks, a next-session choice, and immutable current/history attribution snapshots
 - Exact-second Focus Review summaries for Today, the last 7 days, and the last 30 days, grouped by stable task identity
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
+- Opt-in system-wide `Cmd/Ctrl + Shift + Space` timer start/pause control that works while the app is hidden or minimized
+- Opt-in Mini Mode pinning that is removed on return to the full window while retaining the preference for the next Mini session
 - Local notes with tabs and pinning
 - Local media player with bundled tracks, audio plus MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP folder scanning, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle. Non-native video formats receive a cached compatible copy on first play; video can remain audio-only or appear behind the focus interface.
 - Persistent Local / External playback-source switching. External mode pauses the built-in player and releases system media keys without launching or controlling another app; see `docs/third-party-music-feasibility.md` for the official-provider feasibility review

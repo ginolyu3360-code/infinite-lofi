@@ -6,6 +6,17 @@ Version 1.5.3 is the latest [published release](https://github.com/ginolyu3360-c
 
 The sections below preserve earlier phase milestones; their contemporary-looking status statements describe those historical phases, not the current published baseline.
 
+## Phase 6 — Low-distraction desktop controls
+
+Status: implemented and delivered through [PR #48](https://github.com/ginolyu3360-code/infinite-lofi/pull/48); release remains pending separate approval.
+
+- [x] Add a fixed, opt-in system-wide `CommandOrControl+Shift+Space` timer toggle that reuses the existing renderer command and reports registration conflicts.
+- [x] Preserve shortcut intent across restarts, retry registration on startup, and unregister immediately when disabled or during app shutdown.
+- [x] Dispatch the shortcut without showing or focusing a hidden/minimized window, including a hidden renderer restoration path when macOS has no open window.
+- [x] Add an opt-in accessible Mini Mode Pin control; apply floating always-on-top only in Mini Mode, remove it in full mode, and preserve the preference.
+- [x] Keep schema v5, default both controls off for old state/backups, localize all seven languages, and cover storage, IPC policy, accessibility, responsive Mini Mode, and Electron behavior.
+- [x] Pass the independent macOS Universal and Windows x64 PR CI jobs before merge. No merge, tag, or release is included in this phase.
+
 Version 1.4.1 adds large-library Queue management, Repeat One and Shuffle, Mini transport controls, responsive timer improvements, a larger window-drag surface, and related interaction repairs. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) merged as `5bb67c6`; release [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) merged as `089bdf6`, passed exact-head main CI `34865480996`, and the annotated `v1.4.1` tag triggered successful Release workflow `34866263548`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.
 
 ## Phase 0 — Stabilize the core

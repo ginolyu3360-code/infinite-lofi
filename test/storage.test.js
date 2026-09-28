@@ -208,6 +208,39 @@ test("normalizes unsupported display languages without changing schema v5", () =
   assert.equal(normalizeState(state, 4102).schemaVersion, 5);
 });
 
+test("defaults, normalizes, and backs up desktop control preferences without a schema bump", () => {
+  const state = createDefaultState(4150);
+  assert.deepEqual(state.settings.ui.desktopControls, {
+    globalTimerShortcutEnabled: false,
+    miniAlwaysOnTop: false
+  });
+
+  state.settings.ui.desktopControls = {
+    globalTimerShortcutEnabled: true,
+    miniAlwaysOnTop: "yes"
+  };
+  const normalized = normalizeState(state, 4151);
+  assert.equal(normalized.schemaVersion, 5);
+  assert.deepEqual(normalized.settings.ui.desktopControls, {
+    globalTimerShortcutEnabled: true,
+    miniAlwaysOnTop: false
+  });
+
+  const storage = createMemoryStorage();
+  const repository = createRepository(storage, () => 4152);
+  repository.update((draft) => {
+    draft.settings.ui.desktopControls = {
+      globalTimerShortcutEnabled: true,
+      miniAlwaysOnTop: true
+    };
+  });
+  const restored = importBackup(repository.exportBackup("2026-09-28T00:00:00.000Z"), 4153);
+  assert.deepEqual(restored.settings.ui.desktopControls, {
+    globalTimerShortcutEnabled: true,
+    miniAlwaysOnTop: true
+  });
+});
+
 test("adds and preserves additive schema v5 ambience preferences", () => {
   const defaults = createDefaultState(4200);
   assert.equal(defaults.player.sourceMode, "local");
@@ -468,7 +501,15 @@ test("restores documented settings and active state after repository recreation"
   assert.equal(relaunched.settings.timer.longBreakSeconds, 1200);
   assert.equal(relaunched.settings.timer.autoStartBreaks, false);
   assert.equal(relaunched.settings.goals.dailyFocusSeconds, 7200);
-  assert.deepEqual(relaunched.settings.ui, { volume: 0, brightness: 1.2, language: "en" });
+  assert.deepEqual(relaunched.settings.ui, {
+    volume: 0,
+    brightness: 1.2,
+    language: "en",
+    desktopControls: {
+      globalTimerShortcutEnabled: false,
+      miniAlwaysOnTop: false
+    }
+  });
   assert.deepEqual(relaunched.player.queue.map((track) => track.key), ["local:b.wav", "local:a.wav"]);
   assert.equal(relaunched.player.activeTrackKey, "local:b.wav");
   assert.equal(relaunched.timerRuntime.isRunning, true);
