@@ -1,5 +1,12 @@
 # Verification Log
 
+## 2026-09-28 — Low-distraction desktop controls candidate
+
+- Added a default-off fixed system-wide timer shortcut and default-off Mini Mode pinning without changing schema v5. Preferences are included in validated backups and old state defaults safely to off.
+- The main process validates the trusted sender and exact boolean payload, owns the fixed accelerator, handles conflicts without failing startup, and cleans up registration on disable/quit. A renderer-ready queue supports the no-window macOS path without showing or focusing the restored window.
+- `npm run check` passes all 200 tests plus syntax, FFmpeg-policy, and stylesheet checks. Both the isolated development Electron smoke and the final packaged-app smoke pass the full responsive/accessibility/media suite, including shortcut state, Mini pinning, and 360 × 200 containment.
+- The final unsigned macOS Universal package builds successfully; `file` and `lipo` confirm both `x86_64` and `arm64`. The independent macOS/Windows PR CI jobs remain the merge gate; record the PR and CI result here once available.
+
 ## 2026-09-25 — v1.5.3 release completed
 
 - [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) passed macOS Universal and Windows x64 CI, then squash-merged as `2347446a28e706205d2bc382132464c1e70f1674`. Exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed checks, development smoke, native packaging, and packaged smoke on both platforms.

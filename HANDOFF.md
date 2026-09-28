@@ -1,6 +1,13 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-25
+Updated: 2026-09-28
+
+## Active feature delivery
+
+- `codex/desktop-focus-controls` is based on synchronized `origin/main` and adds two opt-in, default-off controls: a fixed system-wide timer toggle and Mini Mode-only pinning.
+- The implementation keeps schema v5 and stores both preferences under `settings.ui.desktopControls`; old state and backups default both values to `false`.
+- Spotify draft PR #47 and its branch are intentionally excluded. Do not merge, publish, or use that branch as this feature's base.
+- Delivery target is an independent PR with macOS Universal and Windows x64 CI. A merge, tag, or release still requires separate user direction.
 
 ## Start of the next session
 

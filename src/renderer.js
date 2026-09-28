@@ -20,6 +20,16 @@ const DEFAULT_SHORTCUT_SETTINGS = {
   notesSave: true,
   notesClear: true
 };
+const DEFAULT_DESKTOP_CONTROL_PREFERENCES = {
+  globalTimerShortcutEnabled: false,
+  miniAlwaysOnTop: false
+};
+const DEFAULT_DESKTOP_CONTROL_STATUS = {
+  accelerator: "CommandOrControl+Shift+Space",
+  globalShortcutStatus: "off",
+  miniAlwaysOnTopPreferred: false,
+  miniAlwaysOnTopApplied: false
+};
 if (!window.InfiniteLofiCore) {
   throw new Error("Infinite Lo-Fi core helpers failed to load");
 }
@@ -280,6 +290,9 @@ const timerContent = document.getElementById("timerContent");
 const notesToggleBtn = document.getElementById("notesToggleBtn");
 const notesCloseBtn = document.getElementById("notesCloseBtn");
 const miniModeToggleBtn = document.getElementById("miniModeToggleBtn");
+const miniAlwaysOnTopBtn = document.getElementById("miniAlwaysOnTopBtn");
+const globalTimerShortcutToggle = document.getElementById("globalTimerShortcutToggle");
+const globalTimerShortcutStatus = document.getElementById("globalTimerShortcutStatus");
 const statsToggleBtn = document.getElementById("statsToggleBtn");
 const statsDrawer = document.getElementById("statsDrawer");
 const statsCloseBtn = document.getElementById("statsCloseBtn");
@@ -338,6 +351,9 @@ let completedFocusesInCycle = 0;
 let currentFocusSession = null;
 let miniModeEnabled = false;
 let shortcutSettings = { ...DEFAULT_SHORTCUT_SETTINGS };
+let desktopControlPreferences = { ...DEFAULT_DESKTOP_CONTROL_PREFERENCES };
+let desktopControlStatus = { ...DEFAULT_DESKTOP_CONTROL_STATUS };
+let desktopControlRequestId = 0;
 let backgroundSettings = { ...DEFAULT_BACKGROUND_SETTINGS };
 let weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings();
 let showcaseModeEnabled = false;
@@ -922,6 +938,129 @@ function isShortcutEnabled(name) {
   return shortcutSettings[name] !== false;
 }
 
+function normalizeDesktopControlPreferences(value) {
+  const source = value && typeof value === "object" ? value : {};
+  return {
+    globalTimerShortcutEnabled: source.globalTimerShortcutEnabled === true,
+    miniAlwaysOnTop: source.miniAlwaysOnTop === true
+  };
+}
+
+function normalizeDesktopControlStatus(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const globalShortcutStatusValue = ["off", "registered", "unavailable"].includes(source.globalShortcutStatus)
+    ? source.globalShortcutStatus
+    : "unavailable";
+  return {
+    accelerator: DEFAULT_DESKTOP_CONTROL_STATUS.accelerator,
+    globalShortcutStatus: globalShortcutStatusValue,
+    miniAlwaysOnTopPreferred: source.miniAlwaysOnTopPreferred === true,
+    miniAlwaysOnTopApplied: source.miniAlwaysOnTopApplied === true
+  };
+}
+
+function renderDesktopControls() {
+  if (globalTimerShortcutToggle) {
+    globalTimerShortcutToggle.checked = desktopControlPreferences.globalTimerShortcutEnabled;
+    globalTimerShortcutToggle.setAttribute("aria-label", t("desktop.globalTimerToggle"));
+  }
+  if (globalTimerShortcutStatus) {
+    const statusKey = desktopControlPreferences.globalTimerShortcutEnabled
+      ? desktopControlStatus.globalShortcutStatus === "registered"
+        ? "desktop.globalRegistered"
+        : "desktop.globalUnavailable"
+      : "desktop.globalOff";
+    globalTimerShortcutStatus.textContent = t(statusKey);
+  }
+  if (!miniAlwaysOnTopBtn) return;
+  const preferred = desktopControlPreferences.miniAlwaysOnTop;
+  const unavailable = miniModeEnabled && preferred && !desktopControlStatus.miniAlwaysOnTopApplied;
+  const labelKey = unavailable
+    ? "desktop.pinUnavailable"
+    : preferred
+      ? "desktop.unpin"
+      : "desktop.pin";
+  const titleKey = unavailable
+    ? "desktop.pinUnavailableTitle"
+    : preferred
+      ? "desktop.unpinTitle"
+      : "desktop.pinTitle";
+  miniAlwaysOnTopBtn.textContent = t(labelKey);
+  miniAlwaysOnTopBtn.title = t(titleKey);
+  miniAlwaysOnTopBtn.setAttribute("aria-label", miniAlwaysOnTopBtn.title);
+  miniAlwaysOnTopBtn.setAttribute("aria-pressed", String(preferred));
+}
+
+async function applyDesktopControlPreferences() {
+  const requestId = ++desktopControlRequestId;
+  const applyPreferences = window.desktopWindow?.applyDesktopControlPreferences;
+  if (typeof applyPreferences !== "function") {
+    desktopControlStatus = {
+      ...DEFAULT_DESKTOP_CONTROL_STATUS,
+      globalShortcutStatus: desktopControlPreferences.globalTimerShortcutEnabled ? "unavailable" : "off",
+      miniAlwaysOnTopPreferred: desktopControlPreferences.miniAlwaysOnTop
+    };
+    renderDesktopControls();
+    return desktopControlStatus;
+  }
+  try {
+    const result = await applyPreferences(desktopControlPreferences);
+    if (requestId !== desktopControlRequestId) return desktopControlStatus;
+    desktopControlStatus = normalizeDesktopControlStatus(result);
+  } catch (error) {
+    if (requestId !== desktopControlRequestId) return desktopControlStatus;
+    console.warn("Desktop control preferences could not be applied:", error);
+    desktopControlStatus = {
+      ...DEFAULT_DESKTOP_CONTROL_STATUS,
+      globalShortcutStatus: desktopControlPreferences.globalTimerShortcutEnabled ? "unavailable" : "off",
+      miniAlwaysOnTopPreferred: desktopControlPreferences.miniAlwaysOnTop
+    };
+  }
+  renderDesktopControls();
+  return desktopControlStatus;
+}
+
+async function setGlobalTimerShortcutEnabled(enabled) {
+  const previous = { ...desktopControlPreferences };
+  desktopControlPreferences.globalTimerShortcutEnabled = enabled === true;
+  try {
+    saveUiSettings();
+  } catch (error) {
+    desktopControlPreferences = previous;
+    renderDesktopControls();
+    showStorageFailure(error, t("desktop.saveError"));
+    return;
+  }
+  const status = await applyDesktopControlPreferences();
+  announceStatus(t(
+    desktopControlPreferences.globalTimerShortcutEnabled
+      ? status.globalShortcutStatus === "registered"
+        ? "desktop.globalRegistered"
+        : "desktop.globalUnavailable"
+      : "desktop.globalOff"
+  ));
+}
+
+async function toggleMiniAlwaysOnTopPreference() {
+  const previous = { ...desktopControlPreferences };
+  desktopControlPreferences.miniAlwaysOnTop = !desktopControlPreferences.miniAlwaysOnTop;
+  try {
+    saveUiSettings();
+  } catch (error) {
+    desktopControlPreferences = previous;
+    renderDesktopControls();
+    showStorageFailure(error, t("desktop.saveError"));
+    return;
+  }
+  const status = await applyDesktopControlPreferences();
+  const messageKey = desktopControlPreferences.miniAlwaysOnTop
+    ? status.miniAlwaysOnTopApplied
+      ? "desktop.pinEnabled"
+      : "desktop.pinUnavailableTitle"
+    : "desktop.pinDisabled";
+  announceStatus(t(messageKey));
+}
+
 // persisted UI settings helper
 function loadUiSettings() {
   const stored = appStorage.getState().settings.ui || {};
@@ -929,6 +1068,7 @@ function loadUiSettings() {
   i18n.applyDocument(document);
   if (displayLanguageSelect) displayLanguageSelect.value = i18n.getLanguage();
   shortcutSettings = normalizeToggleSettings(stored.shortcuts, DEFAULT_SHORTCUT_SETTINGS);
+  desktopControlPreferences = normalizeDesktopControlPreferences(stored.desktopControls);
   backgroundSettings = normalizeBackgroundSettings(stored.background);
   weatherSettings = window.InfiniteLofiWeather.normalizeWeatherSettings(stored.weather);
   showcaseModeEnabled = Boolean(stored.showcaseMode);
@@ -960,6 +1100,7 @@ function saveUiSettings() {
     volume: normalizeVolume(getMusicUserVolume()),
     brightness: Number(getComputedStyle(document.documentElement).getPropertyValue("--scene-brightness")) || 1,
     shortcuts: shortcutSettings,
+    desktopControls: desktopControlPreferences,
     background: backgroundSettings,
     weather: weatherSettings,
     showcaseMode: showcaseModeEnabled,
@@ -1001,6 +1142,7 @@ function refreshLocalizedUi() {
   miniModeToggleBtn.textContent = t(miniModeEnabled ? "nav.full" : "nav.mini");
   miniModeToggleBtn.title = t(miniModeEnabled ? "nav.returnFull" : "nav.enterMini");
   miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
+  renderDesktopControls();
   applyHoverHints(document, HTMLElement);
   sendTrayStatus();
 }
@@ -1740,6 +1882,7 @@ async function toggleMiniMode(forceEnabled) {
   miniModeToggleBtn.textContent = t(miniModeEnabled ? "nav.full" : "nav.mini");
   miniModeToggleBtn.title = t(miniModeEnabled ? "nav.returnFull" : "nav.enterMini");
   miniModeToggleBtn.setAttribute("aria-label", miniModeToggleBtn.title);
+  await applyDesktopControlPreferences();
   announceStatus(t(miniModeEnabled ? "timer.miniEnabled" : "timer.fullRestored"));
   requestAnimationFrame(adjustTimerFont);
 }
@@ -2071,6 +2214,10 @@ function bindWindowControls() {
   }
   shortcutHelpBtn?.addEventListener("click", () => toggleShortcutHelp(true));
   miniModeToggleBtn.addEventListener("click", () => toggleMiniMode());
+  miniAlwaysOnTopBtn?.addEventListener("click", () => toggleMiniAlwaysOnTopPreference());
+  globalTimerShortcutToggle?.addEventListener("change", () => {
+    setGlobalTimerShortcutEnabled(globalTimerShortcutToggle.checked);
+  });
   readerTimerToggle?.addEventListener("click", toggleTimer);
   readerPreviousTrack?.addEventListener("click", previousSelectedSource);
   readerPlaybackToggle?.addEventListener("click", toggleSelectedSource);
@@ -2201,6 +2348,7 @@ async function init() {
   });
   renderAudioTransitionSettings();
   loadUiSettings();
+  await applyDesktopControlPreferences();
   renderPlaybackSource();
   loadStatsRange();
   loadTimerSettings();
@@ -2444,6 +2592,7 @@ async function init() {
   });
   weatherController.init();
   sendTrayStatus();
+  window.desktopApp?.sendRendererReady?.();
 }
 
 init().catch((error) => {

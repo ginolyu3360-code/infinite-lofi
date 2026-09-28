@@ -62,6 +62,7 @@
           <button id="tasksToggleBtn" class="header-action-btn" type="button" title="Open tasks" aria-label="Open tasks" aria-expanded="false" aria-controls="tasksDrawer" data-i18n="nav.tasks" data-i18n-title="nav.openTasks" data-i18n-aria-label="nav.openTasks">Tasks</button>
           <button id="focusPlanToggleBtn" class="header-action-btn" type="button" aria-expanded="false" aria-controls="focusPlanDrawer" title="Configure focus cycle and daily goal" data-i18n="nav.plan" data-i18n-title="nav.openPlan">Plan</button>
           <button id="shortcutHelpBtn" class="header-action-btn" type="button" title="Keyboard shortcuts (Shift + /)" aria-label="Open keyboard shortcuts" aria-expanded="false" aria-controls="shortcutHelpOverlay" data-i18n="nav.keys" data-i18n-title="nav.keysTitle" data-i18n-aria-label="nav.openKeys">Keys ?</button>
+          <button id="miniAlwaysOnTopBtn" class="header-action-btn mini-pin-btn" type="button" aria-pressed="false" title="Keep Mini Mode on top" aria-label="Keep Mini Mode on top" data-i18n="desktop.pin" data-i18n-title="desktop.pinTitle" data-i18n-aria-label="desktop.pinTitle">Pin</button>
           <button id="miniModeToggleBtn" class="header-action-btn" type="button" title="Enter Mini Mode" aria-label="Enter Mini Mode" data-i18n="nav.mini" data-i18n-title="nav.enterMini" data-i18n-aria-label="nav.enterMini">Mini</button>
         </div>
       </header>
@@ -544,6 +545,16 @@
               <option value="ko">한국어</option>
               <option value="es">Español</option>
             </select>
+          </div>
+
+          <h3 class="shortcut-group-title" data-i18n="keys.desktop">Desktop controls</h3>
+          <div class="shortcut-row">
+            <span class="desktop-control-copy">
+              <span class="shortcut-label" data-i18n="desktop.globalTimer">System-wide Start / Pause</span>
+              <small id="globalTimerShortcutStatus" role="status" aria-live="polite" data-i18n="desktop.globalOff">Off</small>
+            </span>
+            <span class="shortcut-keys"><span class="shortcut-key">Cmd/Ctrl</span><span class="shortcut-key">Shift</span><span class="shortcut-key">Space</span></span>
+            <input id="globalTimerShortcutToggle" class="shortcut-toggle" type="checkbox" aria-describedby="globalTimerShortcutStatus" />
           </div>
 
           <h3 class="shortcut-group-title" data-i18n="keys.timer">Timer</h3>

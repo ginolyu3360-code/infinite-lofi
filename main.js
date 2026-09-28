@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen, shell } = require("electron");
+const { app, BrowserWindow, globalShortcut, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen, shell } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFile } = require("child_process");
@@ -16,6 +16,12 @@ const {
   resolveNativeMediaBridgePath
 } = require("./src/native-media-bridge");
 const { createNativeMediaOwnershipController } = require("./src/native-media-ownership");
+const {
+  GLOBAL_TIMER_ACCELERATOR,
+  createDesktopControlManager,
+  createRendererCommandDispatcher,
+  isDesktopControlPreferencesPayload
+} = require("./src/desktop-controls");
 
 const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
 const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
@@ -41,6 +47,9 @@ let lyricsService = null;
 let readerLibrary = null;
 let videoProxyService = null;
 let nativeMediaOwnership = null;
+let desktopControlManager = null;
+let rendererCommandDispatcher = null;
+let rendererReady = false;
 let grantedMusicFolders = new Set();
 let grantedReaderFolders = new Set();
 let trayStatus = {
@@ -57,7 +66,11 @@ let trayStatus = {
   }
 };
 
-function sendCommandToRenderer(command) {
+function sendCommandToRenderer(command, { createHiddenIfMissing = false } = {}) {
+  if (rendererCommandDispatcher) {
+    rendererCommandDispatcher.dispatch(command, { createIfMissing: createHiddenIfMissing });
+    return;
+  }
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
@@ -191,10 +204,12 @@ function refreshTrayMenu() {
   tray.setContextMenu(menu);
 }
 
-function createMainWindow() {
+function createMainWindow({ show = true } = {}) {
   const allowDevTools = !app.isPackaged || process.argv.includes("--allow-devtools-for-testing");
   const workArea = screen.getPrimaryDisplay().workAreaSize;
+  rendererReady = false;
   mainWindow = new BrowserWindow({
+    show,
     width: Math.min(1100, workArea.width),
     height: Math.min(760, workArea.height),
     minWidth: 720,
@@ -223,6 +238,7 @@ function createMainWindow() {
     }
   });
   setMinimumContentSize(mainWindow, 720, 520);
+  desktopControlManager?.refreshWindowState();
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
@@ -238,13 +254,17 @@ function createMainWindow() {
   bindWindowBackgroundLifecycle(mainWindow);
   mainWindow.on("closed", () => {
     mainWindow = null;
+    rendererReady = false;
+    rendererCommandDispatcher?.clear();
     miniModeEnabled = false;
     queuePanelOpen = false;
     fullWindowBounds = null;
+    desktopControlManager?.refreshWindowState();
     refreshTrayMenu();
   });
 
   mainWindow.loadFile(mainDocumentPath);
+  return mainWindow;
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -254,6 +274,17 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     nativeTheme.themeSource = "dark";
+    rendererCommandDispatcher = createRendererCommandDispatcher({
+      getWindow: () => mainWindow,
+      createWindow: (options) => createMainWindow(options),
+      isRendererReady: () => rendererReady
+    });
+    desktopControlManager = createDesktopControlManager({
+      globalShortcut,
+      getWindow: () => mainWindow,
+      isMiniMode: () => miniModeEnabled,
+      onToggleTimer: () => sendCommandToRenderer("toggle-timer", { createHiddenIfMissing: true })
+    });
     initializeNativeMediaBridge();
     await loadMusicFolderGrants();
     await loadReaderFolderGrants();
@@ -302,7 +333,26 @@ ipcMain.handle("window:setMiniMode", (event, enabled) => {
     else mainWindow.setContentSize(1100, 760, true);
     fullWindowBounds = null;
   }
+  desktopControlManager?.refreshWindowState();
   return miniModeEnabled;
+});
+
+ipcMain.handle("desktop-controls:applyPreferences", (event, preferences) => {
+  if (!isTrustedIpcSender(event) || !desktopControlManager || !isDesktopControlPreferencesPayload(preferences)) {
+    return {
+      accelerator: GLOBAL_TIMER_ACCELERATOR,
+      globalShortcutStatus: "off",
+      miniAlwaysOnTopPreferred: false,
+      miniAlwaysOnTopApplied: false
+    };
+  }
+  return desktopControlManager.applyPreferences(preferences);
+});
+
+ipcMain.on("app:rendererReady", (event) => {
+  if (!isTrustedIpcSender(event)) return;
+  rendererReady = true;
+  rendererCommandDispatcher?.markReady();
 });
 
 ipcMain.handle("window:setQueueOpen", (event, open) => {
@@ -680,6 +730,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
+  desktopControlManager?.dispose();
+  desktopControlManager = null;
   videoProxyService?.cancel("app-quit");
   nativeMediaOwnership?.destroy();
   nativeMediaOwnership = null;

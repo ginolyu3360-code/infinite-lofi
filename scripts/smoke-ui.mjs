@@ -288,7 +288,8 @@ try {
         'storageRecoveryNotice', 'weatherModeSelect', 'weatherCityInput',
         'weatherApplyBtn', 'weatherPrivacyHint', 'bgCoverBtn',
         'bgBlackBtn', 'bgMidnightBtn', 'bgMossBtn', 'bgWhiteBtn', 'bgPresetLabel',
-        'miniModeToggleBtn', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn',
+        'miniModeToggleBtn', 'miniAlwaysOnTopBtn', 'globalTimerShortcutToggle',
+        'globalTimerShortcutStatus', 'notesToggleBtn', 'notesCloseBtn', 'shortcutHelpBtn',
         'focusPlanToggleBtn', 'focusPlanDrawer', 'focusPlanApplyBtn',
         'shortBreakMinutesInput', 'longBreakMinutesInput', 'focusSessionsInput',
         'autoStartBreaksInput', 'autoStartFocusInput', 'dailyGoalMinutesInput',
@@ -422,6 +423,40 @@ try {
       before,
       restored: select.value,
       restoredLabel: document.querySelector('[data-i18n="keys.language"]').textContent.trim()
+    };
+  })()`);
+
+  const desktopControlsResult = await evaluate(`(async () => {
+    const toggle = document.querySelector('#globalTimerShortcutToggle');
+    const status = document.querySelector('#globalTimerShortcutStatus');
+    const initial = {
+      checked: toggle.checked,
+      status: status.textContent.trim()
+    };
+    toggle.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const enabledState = JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.desktopControls;
+    const enabledStatus = await window.desktopWindow.applyDesktopControlPreferences(enabledState);
+    const enabled = {
+      checked: toggle.checked,
+      status: status.textContent.trim(),
+      saved: enabledState.globalTimerShortcutEnabled,
+      accelerator: enabledStatus.accelerator,
+      registration: enabledStatus.globalShortcutStatus
+    };
+    toggle.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const disabledState = JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.desktopControls;
+    const disabledStatus = await window.desktopWindow.applyDesktopControlPreferences(disabledState);
+    return {
+      initial,
+      enabled,
+      disabled: {
+        checked: toggle.checked,
+        status: status.textContent.trim(),
+        saved: disabledState.globalTimerShortcutEnabled,
+        registration: disabledStatus.globalShortcutStatus
+      }
     };
   })()`);
 
@@ -761,6 +796,22 @@ try {
 
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
+  const miniPinResult = await evaluate(`(async () => {
+    const pin = document.querySelector('#miniAlwaysOnTopBtn');
+    pin.click();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.desktopControls;
+    const status = await window.desktopWindow.applyDesktopControlPreferences(state);
+    const bounds = pin.getBoundingClientRect();
+    return {
+      visible: bounds.width > 0 && bounds.height > 0,
+      pressed: pin.getAttribute('aria-pressed'),
+      label: pin.textContent.trim(),
+      saved: state.miniAlwaysOnTop,
+      preferred: status.miniAlwaysOnTopPreferred,
+      applied: status.miniAlwaysOnTopApplied
+    };
+  })()`);
   const miniMode420 = await evaluate(`(() => {
     const timerContent = document.querySelector('#timerContent');
     const timerContentRect = timerContent.getBoundingClientRect();
@@ -806,7 +857,7 @@ try {
     const ids = [
       'timerDisplay', 'timerToggle', 'timerReset', 'playPauseBtn',
       'prevTrackBtn', 'nextTrackBtn', 'progressSlider', 'miniModeToggleBtn',
-      'timerIntentSummary'
+      'miniAlwaysOnTopBtn', 'timerIntentSummary'
     ];
     const tolerance = 4;
     const controls = Object.fromEntries(ids.map((id) => {
@@ -849,12 +900,19 @@ try {
   })()`);
   await evaluate("document.querySelector('#miniModeToggleBtn').click(); true");
   await delay(800);
-  const restoredFullMode = await evaluate(`(() => ({
-    enabled: document.body.classList.contains('is-mini-mode'),
-    width: innerWidth,
-    height: innerHeight,
-    miniLabel: document.querySelector('#miniModeToggleBtn').textContent.trim()
-  }))()`);
+  const restoredFullMode = await evaluate(`(async () => {
+    const state = JSON.parse(localStorage.getItem('infiniteLofiState')).settings.ui.desktopControls;
+    const status = await window.desktopWindow.applyDesktopControlPreferences(state);
+    return {
+      enabled: document.body.classList.contains('is-mini-mode'),
+      width: innerWidth,
+      height: innerHeight,
+      miniLabel: document.querySelector('#miniModeToggleBtn').textContent.trim(),
+      pinHidden: getComputedStyle(document.querySelector('#miniAlwaysOnTopBtn')).display === 'none',
+      pinPreferred: status.miniAlwaysOnTopPreferred,
+      pinApplied: status.miniAlwaysOnTopApplied
+    };
+  })()`);
 
   await evaluate("document.querySelector('#timerToggle').click(); true");
   await delay(1_300);
@@ -994,10 +1052,17 @@ try {
     await setWindowSize(width, height);
     statsResponsiveLayouts.push(await evaluate(`(async () => {
       document.querySelector('#statsToggleBtn').click();
-      await new Promise((resolve) => setTimeout(resolve, 260));
       const drawer = document.querySelector('#statsDrawer');
       const panel = document.querySelector('#statsPanel');
       const close = document.querySelector('#statsCloseBtn');
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const pendingBounds = panel.getBoundingClientRect();
+        const settled = drawer.classList.contains('is-open') &&
+          pendingBounds.left >= -4 && pendingBounds.top >= -4 &&
+          pendingBounds.right <= innerWidth + 4 && pendingBounds.bottom <= innerHeight + 4;
+        if (settled) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
       const bounds = panel.getBoundingClientRect();
       const result = {
         width: innerWidth,
@@ -1786,6 +1851,14 @@ try {
     languagePersistenceResult.restored !== "en" ||
     languagePersistenceResult.restoredLabel !== "Display language"
   ) failures.push("display language switching or persistence failed");
+  if (
+    desktopControlsResult.initial.checked || desktopControlsResult.initial.status !== "Off" ||
+    !desktopControlsResult.enabled.checked || !desktopControlsResult.enabled.saved ||
+    desktopControlsResult.enabled.accelerator !== "CommandOrControl+Shift+Space" ||
+    !["registered", "unavailable"].includes(desktopControlsResult.enabled.registration) ||
+    desktopControlsResult.disabled.checked || desktopControlsResult.disabled.saved ||
+    desktopControlsResult.disabled.registration !== "off" || desktopControlsResult.disabled.status !== "Off"
+  ) failures.push("system-wide timer shortcut preference or registration status failed");
   if (!reducedMotionResult.matches || reducedMotionResult.backgroundTransitionMs > 0.1 || reducedMotionResult.drawerTransitionMs > 0.1) {
     failures.push("reduced-motion preference did not suppress transitions");
   }
@@ -1860,12 +1933,20 @@ try {
     failures.push("Mini Mode layout or window sizing failed");
   }
   if (
+    !miniPinResult.visible || miniPinResult.pressed !== "true" || miniPinResult.label !== "Unpin" ||
+    !miniPinResult.saved || !miniPinResult.preferred || !miniPinResult.applied
+  ) failures.push("Mini Mode always-on-top preference was not applied");
+  if (
     miniMode360.width > 360 + nativeResizeTolerance || miniMode360.height > 200 + nativeResizeTolerance ||
     miniMode360.timerChildOverflow.length > 0 || miniMode360.timer !== "360:00" ||
     !miniMode360.titleAvailable || !miniMode360.editorHidden ||
     Object.values(miniMode360.controls).some((control) => !control.visible || !control.inside)
   ) failures.push("360x200 Mini Mode clipped maximum timer, intention, or primary controls");
-  if (restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 || restoredFullMode.miniLabel !== "Mini") {
+  if (
+    restoredFullMode.enabled || restoredFullMode.width < 700 || restoredFullMode.height < 500 ||
+    restoredFullMode.miniLabel !== "Mini" || !restoredFullMode.pinHidden ||
+    !restoredFullMode.pinPreferred || restoredFullMode.pinApplied
+  ) {
     failures.push("full-window bounds were not restored after Mini Mode");
   }
   if (runningTimer.button !== "Pause" || parseTimer(runningTimer.timer) >= parseTimer(baseline.timer) || !runningTimer.announcement.includes("timer started")) failures.push("timer did not count down or announce its state");
@@ -2058,7 +2139,7 @@ try {
   if (!finalState.temporaryNoteRemoved) failures.push("temporary smoke-test data was not restored");
   if (exceptions.length > 0) failures.push(`renderer exceptions: ${exceptions.join(", ")}`);
 
-  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, localVideoResult, readerResult, finalState, dialogs, exceptions };
+  const report = { baseline, windowFocusResult, shortcutHelpResult, languageSwitchResult, languagePersistenceResult, desktopControlsResult, reducedMotionResult, contrastResult, accessibilityTreeResult, responsiveLayouts, statsResponsiveLayouts, notesBelowBreakpoint, notesAboveBreakpoint, expandableRegionResult, queueResizeConstraintResult, responsiveNotesResult, taskSetupResult, taskPauseResumeResult, taskMutationResult, liveFocusCompletionResult, autoStartedFocusResult, completionDoesNotStopResult, miniPinResult, miniMode420, miniMode360, restoredFullMode, runningTimer, lockedPlan, focusPlanResult, sessionHistoryResult, notesResult, drawersResult, showcaseResult, curatedScenesResult, playerResult, playbackSourceResult, lyricsResult, audioTransitionResult, ambienceResult, ambienceRestartResult, expiredRestoreOnce, expiredRestoreTwice, performanceResult: { ...performanceResult, targetEnforced: enforceReferencePerformance }, localVideoResult, readerResult, finalState, dialogs, exceptions };
   console.log(JSON.stringify(report, null, 2));
   if (failures.length > 0) throw new Error(failures.join("; "));
   console.log("Infinite Lo-Fi UI smoke test passed.");

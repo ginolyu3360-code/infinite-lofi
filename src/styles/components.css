@@ -138,6 +138,10 @@ html[data-platform="darwin"] #appHeader {
   align-items: center;
 }
 
+.mini-pin-btn {
+  display: none;
+}
+
 #statusWidget {
   flex: 1 1 auto;
   align-self: stretch;
@@ -2275,6 +2279,18 @@ button.lyrics-line {
   font-size: 0.9rem;
 }
 
+.desktop-control-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.desktop-control-copy small {
+  color: var(--ink-muted);
+  font: 500 0.61rem/1.35 "IBM Plex Mono", ui-monospace, monospace;
+}
+
 .shortcut-keys {
   display: flex;
   flex-wrap: wrap;
@@ -2843,6 +2859,18 @@ body.is-showcase-mode .grain-layer {
 body.is-mini-mode #appHeader {
   height: 2.65rem;
   padding: 0.25rem 0.45rem 0.25rem 0.75rem;
+}
+
+body.is-mini-mode .mini-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.is-mini-mode .mini-pin-btn[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 html[data-platform="darwin"] body.is-mini-mode #appHeader {

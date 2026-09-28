@@ -3,10 +3,18 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("desktopWindow", {
   platform: process.platform,
   setMiniMode: (enabled) => ipcRenderer.invoke("window:setMiniMode", enabled === true),
-  setQueueOpen: (open) => ipcRenderer.invoke("window:setQueueOpen", open === true)
+  setQueueOpen: (open) => ipcRenderer.invoke("window:setQueueOpen", open === true),
+  applyDesktopControlPreferences: (preferences) => ipcRenderer.invoke(
+    "desktop-controls:applyPreferences",
+    {
+      globalTimerShortcutEnabled: preferences?.globalTimerShortcutEnabled === true,
+      miniAlwaysOnTop: preferences?.miniAlwaysOnTop === true
+    }
+  )
 });
 
 contextBridge.exposeInMainWorld("desktopApp", {
+  sendRendererReady: () => ipcRenderer.send("app:rendererReady"),
   sendTrayStatus: (status) => ipcRenderer.send("app:trayStatus", status),
   getNativeMediaSessionAvailability: () => ipcRenderer.invoke("media:nativeAvailable"),
   setNativeMediaSessionOwnership: (enabled) => ipcRenderer.invoke("media:setNativeOwnership", enabled === true),
