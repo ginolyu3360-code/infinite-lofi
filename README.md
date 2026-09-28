@@ -22,7 +22,7 @@
 - Quiet Studio 响应式界面，以及带上一首/下一首与播放进度的 Mini Mode；计时器按可用窗口空间动态放大
 - 本地笔记（多标签、置顶）
 - 本地媒体播放器：内置示例曲目、本地音频及 MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP 视频文件夹扫描、自动去重、可滚动/全量 Queue 管理、拖拽或点选换位、单曲循环与非重复周期随机播放；非原生格式会在首次播放时生成并缓存兼容副本，视频可仅播放音频，也可显示为专注界面背景
-- Local / External 播放来源切换：External 模式会暂停内置播放器并释放系统媒体键，不会自动启动或控制第三方应用；第三方服务的官方接入可行性见 `docs/third-party-music-feasibility.md`
+- Local / Spotify 播放来源切换：Spotify 私测适配器通过官方 Web API 浏览播放列表、选择 Connect 设备并控制播放；External 模式仍会暂停内置播放器并释放系统媒体键。该适配器尚未发布，限制见 `docs/third-party-music-feasibility.md`
 - 可选歌词面板：优先读取同名 `.lrc` 与 MP3 内嵌歌词；本地没有时，中文元数据歌曲优先使用 QQ 音乐再回退 LRCLIB，其他歌曲保持 LRCLIB 优先，最后使用 lyrics.ovh，并按歌名、歌手、专辑和时长计算可信度。结果会在本地静默缓存；开关默认关闭，且不会上传音频或本地路径
 - 沉浸式本地阅读模式：合并当前媒体文件夹与独立阅读文件夹，支持 TXT/TEXT、Markdown、LOG、CSV、JSON 与 YAML/YML，提供筛选、文内查找、字号、行宽、主题和滚动恢复；正文只读、仅在本机打开
 - 系统原生媒体信息与播放控制：播放/暂停、上一首、下一首、停止、快进、快退和定位
@@ -86,6 +86,11 @@ src/
   ├─ player.js          # 播放列表恢复模型
   ├─ media-session.js   # 系统媒体信息、播放键与定位控制
   ├─ playback-backends.js # provider-neutral 播放后端能力契约
+  ├─ spotify-auth.js    # Spotify PKCE、scope 与 token 交换规则
+  ├─ spotify-session.js # 加密凭据恢复、刷新与会话并发保护
+  ├─ spotify-client.js  # 主进程中的 Spotify Web API 客户端
+  ├─ spotify-controller.js # renderer 中的 Spotify 私测界面控制器
+  ├─ spotify-ipc.js     # 受限的 Spotify 主进程 IPC 边界
   ├─ native-media-ownership.js # 本地/外部模式的原生媒体键所有权
   ├─ player-controller.js # 播放器 DOM 与目录恢复控制器
   ├─ backgrounds.js     # 背景设置模型
@@ -193,7 +198,7 @@ Windows 安装器默认为当前用户安装，可选择安装目录，并创建
 - Phase 4B Focus Review 已完成于源码：Stats 明确使用今天、最近 7 天和最近 30 天滚动范围，按稳定任务 ID 汇总账本时间，并分别标识已删除任务、仅快照与未指定记录；界面同时解释零基线、取整、导入数据及保留边界。
 - Phase 4C1 Ambient Layer 已完成于源码：Scene 提供三种原创 MIT 离线环境音，可与音乐独立控制且同一时间最多播放一种；选择与独立音量保存在 schema v5，但启动、恢复和异常恢复后始终暂停。
 - Phase 4C2 Audio Transitions 已完成于源码：Scene 可选择启用最长 3000 ms 的音乐与环境声淡入淡出；默认仍为 200 ms，用户音量与瞬时增益分离，连续操作只服从最后意图，切换音源不重叠，系统停止立即静音两条通道。
-- 第三方音乐基础已完成于源码：Local / External 模式会持久化；切到 External 会暂停本地音乐并注销本应用的系统媒体命令，切回 Local 也不会自动播放。当前未加入任何需要账号、密钥、合作资质或有争议非官方接口的服务。
+- Spotify 官方 API 私测适配器已在当前开发分支实现但尚未发布：使用 Authorization Code with PKCE，不需要或保存 Client Secret；访问令牌只存在于主进程，并以操作系统安全存储加密。它只浏览播放列表并控制现有 Spotify Connect 设备，不下载、代理或在应用内解密音频。开发模式受 Spotify Premium、应用所有者及最多五名白名单用户等限制。
 - 快捷键面板提供七种显示语言。切换会立即更新主要界面、动态状态、日期/天气、无障碍文本和托盘菜单；语言偏好保存在 schema v5 的 `settings.ui.language`，不改变版本号或任务/计时语义。
 - 自动天气会把 IP 地址发送给 `ipapi.co`，再把坐标发送给 Open-Meteo；城市模式只向 Open-Meteo 发送城市名及坐标。关闭天气时不会发起天气或位置请求。
 - 核心计时、笔记、本地音乐、背景和统计功能均可离线使用；字体已打包到应用内。
@@ -214,6 +219,9 @@ A: 在 Queue 中选择 **Load Folder**，然后选择本地媒体目录。应用
 
 Q: 如何显示歌词？
 A: 点击播放器右上角的 **Lyrics / 歌词** 开关。应用会先查找与歌曲同名、位于同一文件夹的 `.lrc` 文件，再检查 MP3 的内嵌歌词；如果本地都没有，才会把曲名、歌手、专辑和时长发送给 LRCLIB 查找并在本机缓存结果。音频内容和本地文件路径不会发送。关闭开关后不会查找在线歌词。
+
+Q: 如何连接 Spotify 私测？
+A: 先在 Spotify Developer Dashboard 创建应用，并把 `http://127.0.0.1/callback` 精确登记为 Redirect URI；然后在 Infinite Lo-Fi 的 Spotify 面板中粘贴 **Client ID** 并选择连接。不要创建或粘贴 Client Secret。登录时会由本机 `127.0.0.1` 临时回调完成 PKCE 授权；使用播放控制前，请先在官方 Spotify 客户端启动一个可用设备。Spotify 开发模式目前只适合 Premium 应用所有者及最多五名白名单用户，因此这是私测功能，不是公开服务承诺。
 
 Q: 我想在 CI 中打包并自动签名 mac 应用，需哪些准备？
 A: 你需要 Apple Developer 账号、Developer ID Application 证书（和私钥）、并在构建机上配置证书或使用钥匙串；若要自动 notarize，还需将 API key/凭据配置到构建流程。是否需要我为你写一个 CI 示例（GitHub Actions）？
@@ -245,7 +253,7 @@ Before continuing in a new session, read `HANDOFF.md`, `ROADMAP.md`, and `verifi
 - Responsive Quiet Studio interface with a dynamically sized timer and a Mini Mode that includes previous/next and playback progress
 - Local notes with tabs and pinning
 - Local media player with bundled tracks, audio plus MP4/M4V/WebM/MOV/OGV/MKV/AVI/WMV/FLV/MPG/TS/MTS/M2TS/3GP folder scanning, local-folder recovery and duplicate filtering, scrollable/full Queue management, drag or click-to-swap ordering, Repeat One, and non-repeating-cycle Shuffle. Non-native video formats receive a cached compatible copy on first play; video can remain audio-only or appear behind the focus interface.
-- Persistent Local / External playback-source switching. External mode pauses the built-in player and releases system media keys without launching or controlling another app; see `docs/third-party-music-feasibility.md` for the official-provider feasibility review
+- Persistent Local / Spotify playback-source switching. The unreleased private-pilot adapter uses the official Web API to browse playlists, select a Spotify Connect device, and control provider-owned playback; External mode still pauses the built-in player and releases system media keys. See `docs/third-party-music-feasibility.md` for constraints.
 - Optional lyrics panel that prefers same-name `.lrc` and embedded lyrics, queries QQ Music before LRCLIB for Chinese metadata (LRCLIB first otherwise), and keeps lyrics.ovh as the final fallback with silent local caching; audio data and local paths are never uploaded
 - Immersive local-only Reader combining the current media folder and an optional reading folder, with TXT/TEXT, Markdown, LOG, CSV, JSON, and YAML/YML support, filtering, in-document find, display preferences, and scroll restoration
 - Native macOS Now Playing/AirPods controls plus Media Session controls on Windows
@@ -276,6 +284,7 @@ See the Chinese section above for a full tree. Key runtime files:
 - src/ — renderer orchestration, independently testable feature models, and styles
 - src/storage.js — versioned state, legacy migration, and backup validation
 - src/playback-backends.js and src/native-media-ownership.js — provider-neutral capabilities and native media-key ownership switching
+- src/spotify-*.js and src/provider-credentials.js — PKCE authorization, OS-encrypted credentials, main-process Web API access, IPC, and the private-pilot UI controller
 - Feature modules and controllers under src/ separate timer, tasks, atomic focus-session persistence, notes, player, backgrounds, stats, weather, storage, and UI bindings
 - scripts/smoke-ui.mjs — repeatable Electron UI smoke test
 - scripts/build-macos-media-bridge.mjs — Intel/Apple Silicon native-media build orchestration
@@ -307,6 +316,10 @@ Build and run (build CSS first):
 npm run build:css
 npm start
 ```
+
+### Spotify private-pilot setup
+
+Create an app in the Spotify Developer Dashboard and register `http://127.0.0.1/callback` exactly as a Redirect URI. Paste only its **Client ID** into Infinite Lo-Fi; never create or paste a Client Secret for this desktop PKCE flow. Start an available device in an official Spotify client before using playback controls. Spotify development mode currently limits this private pilot to the Premium app owner and up to five allowlisted users.
 
 For a packaged app that automatically catches up with the current commit, use `npm run start:local` (or `npm run ensure:local` to update it without launching). It rebuilds when the committed source tree changes, local edits exist, or package files are missing. Opening an old app directly under `dist/` bypasses this check.
 

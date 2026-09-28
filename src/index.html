@@ -154,6 +154,66 @@
                 <button id="clearVideoCacheBtn" class="control-btn" type="button" data-i18n="player.clearVideoCache">Clear compatibility cache</button>
               </div>
             </div>
+            <section id="spotifyPanel" class="spotify-panel" aria-labelledby="spotifyPanelTitle" hidden>
+              <div class="spotify-panel-heading">
+                <div>
+                  <p class="panel-eyebrow">Spotify</p>
+                  <h3 id="spotifyPanelTitle" data-i18n="spotify.title">Spotify Connect</h3>
+                </div>
+                <p id="spotifyStatusText" class="spotify-status" role="status" aria-live="polite"></p>
+              </div>
+
+              <div id="spotifyDisconnectedView" class="spotify-setup">
+                <p data-i18n="spotify.setupHint">Create a Spotify app, register the loopback redirect shown below, then paste its Client ID. No client secret is used.</p>
+                <code>http://127.0.0.1/callback</code>
+                <div class="spotify-setup-actions">
+                  <button id="spotifyDashboardBtn" class="control-btn" type="button" data-i18n="spotify.dashboard">Developer Dashboard</button>
+                  <label class="spotify-client-field" for="spotifyClientIdInput">
+                    <span data-i18n="spotify.clientId">Client ID</span>
+                    <input id="spotifyClientIdInput" type="text" maxlength="64" autocomplete="off" autocapitalize="none" spellcheck="false" data-i18n-placeholder="spotify.clientIdPlaceholder" placeholder="Paste Spotify Client ID" />
+                  </label>
+                  <button id="spotifyConnectBtn" class="control-btn" type="button" data-i18n="spotify.connect">Connect Spotify</button>
+                  <button id="spotifyCancelConnectBtn" class="control-btn" type="button" hidden data-i18n="spotify.cancelConnect">Cancel</button>
+                </div>
+                <small data-i18n="spotify.pilotNote">Private pilot: Spotify Premium and dashboard allowlisting may be required.</small>
+              </div>
+
+              <div id="spotifyConnectedView" class="spotify-connected" hidden>
+                <div class="spotify-account-row">
+                  <p><span data-i18n="spotify.connectedAs">Connected as</span> <strong id="spotifyProfileText">Spotify</strong></p>
+                  <div class="spotify-account-actions">
+                    <button id="spotifyRefreshBtn" class="control-btn" type="button" data-i18n="spotify.refresh">Refresh</button>
+                    <button id="spotifyOpenBtn" class="control-btn" type="button" data-i18n="spotify.open">Open Spotify</button>
+                    <button id="spotifyDisconnectBtn" class="control-btn" type="button" data-i18n="spotify.disconnect">Disconnect</button>
+                  </div>
+                </div>
+                <div class="spotify-selectors">
+                  <label>
+                    <span data-i18n="spotify.playlist">Playlist</span>
+                    <select id="spotifyPlaylistSelect" aria-label="Spotify playlist" data-i18n-aria-label="spotify.playlist"></select>
+                  </label>
+                  <label>
+                    <span data-i18n="spotify.device">Device</span>
+                    <select id="spotifyDeviceSelect" aria-label="Spotify device" data-i18n-aria-label="spotify.device"></select>
+                  </label>
+                </div>
+                <div class="spotify-transport" aria-label="Spotify playback controls" data-i18n-aria-label="spotify.controls">
+                  <button id="spotifyPreviousBtn" class="transport-btn" type="button" data-i18n-aria-label="spotify.previous" aria-label="Previous">‹</button>
+                  <button id="spotifyPlayPauseBtn" class="transport-btn transport-primary" type="button" data-i18n="spotify.play">Play</button>
+                  <button id="spotifyNextBtn" class="transport-btn" type="button" data-i18n-aria-label="spotify.next" aria-label="Next">›</button>
+                </div>
+                <div class="spotify-sliders">
+                  <label>
+                    <span data-i18n="spotify.seek">Position</span>
+                    <input id="spotifySeekRange" type="range" min="0" max="1000" value="0" />
+                  </label>
+                  <label>
+                    <span data-i18n="spotify.volume">Volume</span>
+                    <input id="spotifyVolumeRange" type="range" min="0" max="100" value="0" />
+                  </label>
+                </div>
+              </div>
+            </section>
             <div class="media-playback-status-row">
               <p id="mediaPlaybackStatus" class="media-playback-status" role="status" aria-live="polite" hidden></p>
               <button id="videoPreparationCancelBtn" class="control-btn" type="button" hidden data-i18n="common.cancel">Cancel</button>
@@ -645,6 +705,7 @@
     <script src="./ambience.js"></script>
     <script src="./audio-transition.js"></script>
     <script src="./playback-backends.js"></script>
+    <script src="./spotify-controller.js"></script>
     <script src="./local-media.js"></script>
     <script src="./reader.js"></script>
     <script src="./reader-controller.js"></script>

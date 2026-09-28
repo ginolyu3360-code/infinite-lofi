@@ -247,12 +247,73 @@
     "player.videoCacheCleared": "Video compatibility cache cleared.",
     "playback.sourceLabel": "Playback source",
     "playback.local": "Local",
-    "playback.external": "External",
+    "playback.external": "Spotify",
     "playback.localStatus": "Infinite Lo-Fi owns playback and system media controls.",
-    "playback.externalStatus": "Your external player owns audio and system media controls. Continue playback in that app.",
+    "playback.externalStatus": "Connect Spotify or control Spotify Connect playback here.",
     "playback.localAnnouncement": "Local playback selected. Infinite Lo-Fi media controls are ready and remain paused.",
-    "playback.externalAnnouncement": "External player selected. Infinite Lo-Fi released system media controls.",
+    "playback.externalAnnouncement": "Spotify selected. Infinite Lo-Fi released system media controls.",
     "playback.switchError": "Could not switch playback source safely. Local playback remains selected.",
+    "spotify.title": "Spotify Connect",
+    "spotify.setupHint": "Create a Spotify app, register the loopback redirect shown below, then paste its Client ID. No client secret is used.",
+    "spotify.dashboard": "Developer Dashboard",
+    "spotify.clientId": "Client ID",
+    "spotify.clientIdPlaceholder": "Paste Spotify Client ID",
+    "spotify.connect": "Connect Spotify",
+    "spotify.cancelConnect": "Cancel",
+    "spotify.pilotNote": "Private pilot: Spotify Premium and dashboard allowlisting may be required.",
+    "spotify.connectedAs": "Connected as",
+    "spotify.refresh": "Refresh",
+    "spotify.open": "Open Spotify",
+    "spotify.disconnect": "Disconnect",
+    "spotify.playlist": "Playlist",
+    "spotify.device": "Device",
+    "spotify.controls": "Spotify playback controls",
+    "spotify.previous": "Previous",
+    "spotify.next": "Next",
+    "spotify.seek": "Position",
+    "spotify.volume": "Volume",
+    "spotify.connected": "Spotify connected.",
+    "spotify.disconnected": "Spotify disconnected.",
+    "spotify.connecting": "Complete authorization in your browser…",
+    "spotify.connectCancelled": "Spotify connection cancelled.",
+    "spotify.selectPlaylist": "Select a playlist",
+    "spotify.activeDevice": "Use the active device",
+    "spotify.play": "Play",
+    "spotify.pause": "Pause",
+    "spotify.error.generic": "Spotify could not complete that action.",
+    "spotify.error.invalid-client-id": "Enter a valid Spotify Client ID.",
+    "spotify.error.provider-unavailable": "Spotify integration is unavailable in this build.",
+    "spotify.error.encryption-unavailable": "Secure credential storage is unavailable on this device.",
+    "spotify.error.authorization-denied": "Spotify authorization was denied.",
+    "spotify.error.authorization-failed": "Spotify returned an incomplete authorization response. Try again.",
+    "spotify.error.state-mismatch": "Spotify authorization did not match this connection attempt. Try again.",
+    "spotify.error.authorization-timeout": "Spotify authorization timed out. Try again.",
+    "spotify.error.connect-cancelled": "Spotify connection was cancelled.",
+    "spotify.error.connect-in-progress": "A Spotify connection is already in progress.",
+    "spotify.error.open-external-failed": "The Spotify authorization page could not be opened.",
+    "spotify.error.network-error": "Spotify could not be reached. Check your connection.",
+    "spotify.error.reauthorization-required": "Reconnect Spotify to continue.",
+    "spotify.error.not-authenticated": "Connect Spotify first.",
+    "spotify.error.unauthorized": "The Spotify session expired. Reconnect Spotify.",
+    "spotify.error.forbidden": "Spotify refused this action. Check Premium access and dashboard allowlisting.",
+    "spotify.error.no-active-device": "Open Spotify on a device and start playback once, then retry.",
+    "spotify.error.rate-limited": "Spotify is busy. Retry in {retryAfter} seconds.",
+    "spotify.error.server-error": "Spotify is temporarily unavailable.",
+    "spotify.error.credentials-unavailable": "Spotify credentials could not be stored securely.",
+    "spotify.error.decrypt-failed": "Stored Spotify credentials could not be decrypted. Reconnect Spotify.",
+    "spotify.error.read-failed": "Stored Spotify credentials could not be read.",
+    "spotify.error.write-failed": "Spotify credentials could not be stored securely.",
+    "spotify.error.malformed-credentials": "Stored Spotify credentials are invalid. Reconnect Spotify.",
+    "spotify.error.clear-failed": "Stored Spotify credentials could not be removed.",
+    "spotify.error.invalid-request": "Spotify could not use the selected option.",
+    "spotify.error.not-initialized": "Spotify is still starting. Try again.",
+    "spotify.error.closed": "Spotify is no longer available in this app session.",
+    "spotify.error.unauthorized-sender": "Spotify rejected an untrusted application request.",
+    "spotify.error.unexpected-response": "Spotify returned an unexpected response.",
+    "spotify.error.invalid-token-response": "Spotify returned an invalid authorization response. Reconnect Spotify.",
+    "spotify.error.token-request-failed": "Spotify rejected the authorization request.",
+    "spotify.error.fetch-unavailable": "Spotify network access is unavailable in this build.",
+    "spotify.error.not-found": "The requested Spotify item or device is no longer available.",
     "lyrics.toggle": "Lyrics",
     "lyrics.toggleTitle": "Show or hide synchronized lyrics",
     "lyrics.region": "Song lyrics",
@@ -773,6 +834,31 @@
   });
   Object.assign(SPANISH, {
     "common.cancel":"Cancelar","nav.read":"Leer","reader.open":"Abrir modo lectura","reader.close":"Cerrar modo lectura","reader.eyebrow":"Lector local","reader.title":"Modo lectura","reader.filter":"Filtrar documentos","reader.filterPlaceholder":"Filtrar por nombre…","reader.chooseFolder":"Elegir carpeta de lectura","reader.refresh":"Actualizar","reader.mediaFolder":"Carpeta multimedia actual","reader.readingFolder":"Carpeta de lectura","reader.findPlaceholder":"Buscar en el documento…","reader.textSize":"Tamaño del texto","reader.widthNarrow":"Estrecho","reader.widthMedium":"Medio","reader.widthWide":"Ancho","reader.themeAuto":"Automático","reader.themePaper":"Papel","reader.themeDark":"Oscuro","reader.emptyTitle":"Elige un documento","reader.emptyHint":"El texto permanece en este dispositivo y se abre en modo de solo lectura.","reader.noDocuments":"No hay documentos compatibles","reader.scanning":"Buscando documentos locales…","reader.documentCount":"{count} documentos · locales y de solo lectura","reader.scanTruncated":"Se alcanzó el límite de análisis seguro; se muestran los primeros documentos compatibles.","reader.folderUnavailable":"Esta carpeta no está disponible. Vuelve a conectarla para continuar.","reader.scanError":"No se pudo analizar esta carpeta de forma segura.","reader.loading":"Abriendo documento…","reader.encodingError":"No se pudo identificar la codificación con fiabilidad.","reader.readError":"No se pudo leer este documento.","reader.invalidJson":"JSON no válido · se muestra el texto original","reader.miniUnavailable":"Vuelve a la vista completa antes de abrir Reader.","player.folderUnsupported":"No se admite la selección de carpetas multimedia locales.","player.noMusicFiles":"No se encontraron archivos de audio o vídeo compatibles en la carpeta elegida.","player.videoBackground":"Vídeo de fondo","player.videoBackgroundHint":"Mostrar este vídeo detrás de la interfaz de concentración.","player.videoBadge":"Vídeo","player.mediaPlaybackError":"No se pudo reproducir el vídeo; puede estar dañado, protegido con DRM o no poder decodificarse.","player.videoDisplaySaveError":"No se pudo guardar la preferencia de visualización del vídeo.","player.videoBackgroundEnabled":"El vídeo actual se muestra como fondo.","player.videoBackgroundDisabled":"El vídeo actual continúa solo como audio.","player.videoPreparing":"Preparando una copia compatible… {percent} %","player.clearVideoCache":"Borrar caché de compatibilidad","player.videoCacheCleared":"Caché de compatibilidad de vídeo borrada."
+  });
+  Object.assign(TRANSLATIONS["zh-CN"], {
+    "playback.external":"Spotify","playback.externalStatus":"连接 Spotify，或在此控制 Spotify Connect 播放。","playback.externalAnnouncement":"已选择 Spotify。Infinite Lo-Fi 已释放系统媒体控制。",
+    "spotify.title":"Spotify Connect","spotify.setupHint":"创建 Spotify 应用，登记下方回环地址，然后粘贴 Client ID；无需 Client Secret。","spotify.dashboard":"开发者控制台","spotify.clientId":"Client ID","spotify.clientIdPlaceholder":"粘贴 Spotify Client ID","spotify.connect":"连接 Spotify","spotify.cancelConnect":"取消","spotify.pilotNote":"私人试用：可能需要 Spotify Premium，并在开发者控制台加入允许名单。","spotify.connectedAs":"已连接账号","spotify.refresh":"刷新","spotify.open":"打开 Spotify","spotify.disconnect":"断开连接","spotify.playlist":"播放列表","spotify.device":"设备","spotify.controls":"Spotify 播放控制","spotify.previous":"上一首","spotify.next":"下一首","spotify.seek":"进度","spotify.volume":"音量","spotify.connected":"Spotify 已连接。","spotify.disconnected":"Spotify 已断开。","spotify.connecting":"请在浏览器中完成授权……","spotify.connectCancelled":"已取消 Spotify 连接。","spotify.selectPlaylist":"选择播放列表","spotify.activeDevice":"使用当前活跃设备","spotify.play":"播放","spotify.pause":"暂停",
+    "spotify.error.generic":"Spotify 无法完成此操作。","spotify.error.invalid-client-id":"请输入有效的 Spotify Client ID。","spotify.error.encryption-unavailable":"此设备无法使用安全凭据存储。","spotify.error.authorization-denied":"Spotify 授权被拒绝。","spotify.error.authorization-timeout":"Spotify 授权超时，请重试。","spotify.error.network-error":"无法连接 Spotify，请检查网络。","spotify.error.reauthorization-required":"请重新连接 Spotify。","spotify.error.forbidden":"Spotify 拒绝了此操作，请检查 Premium 和允许名单。","spotify.error.no-active-device":"请先在某台设备上打开 Spotify 并播放一次。","spotify.error.rate-limited":"Spotify 当前繁忙，请在 {retryAfter} 秒后重试。","spotify.error.credentials-unavailable":"无法安全保存 Spotify 凭据。"
+  });
+  Object.assign(JAPANESE, {
+    "playback.external":"Spotify","playback.externalStatus":"Spotify に接続するか、Spotify Connect の再生をここで操作します。","playback.externalAnnouncement":"Spotify を選択しました。Infinite Lo-Fi はシステムメディア操作を解放しました。",
+    "spotify.title":"Spotify Connect","spotify.setupHint":"Spotify アプリを作成し、下のループバック URI を登録して Client ID を貼り付けてください。Client Secret は不要です。","spotify.dashboard":"開発者ダッシュボード","spotify.clientId":"Client ID","spotify.clientIdPlaceholder":"Spotify Client ID を貼り付け","spotify.connect":"Spotify に接続","spotify.cancelConnect":"キャンセル","spotify.pilotNote":"限定テスト：Spotify Premium と許可リスト登録が必要な場合があります。","spotify.connectedAs":"接続中のアカウント","spotify.refresh":"更新","spotify.open":"Spotify を開く","spotify.disconnect":"切断","spotify.playlist":"プレイリスト","spotify.device":"デバイス","spotify.controls":"Spotify 再生操作","spotify.previous":"前の曲","spotify.next":"次の曲","spotify.seek":"再生位置","spotify.volume":"音量","spotify.connected":"Spotify に接続しました。","spotify.disconnected":"Spotify を切断しました。","spotify.connecting":"ブラウザーで認証を完了してください…","spotify.connectCancelled":"Spotify 接続をキャンセルしました。","spotify.selectPlaylist":"プレイリストを選択","spotify.activeDevice":"アクティブなデバイスを使用","spotify.play":"再生","spotify.pause":"一時停止",
+    "spotify.error.generic":"Spotify で操作を完了できませんでした。","spotify.error.invalid-client-id":"有効な Spotify Client ID を入力してください。","spotify.error.encryption-unavailable":"安全な資格情報ストレージを利用できません。","spotify.error.authorization-denied":"Spotify の認証が拒否されました。","spotify.error.authorization-timeout":"Spotify の認証がタイムアウトしました。","spotify.error.network-error":"Spotify に接続できません。ネットワークを確認してください。","spotify.error.reauthorization-required":"Spotify に再接続してください。","spotify.error.forbidden":"Premium と許可リストを確認してください。","spotify.error.no-active-device":"デバイスで Spotify を開き、一度再生してから再試行してください。","spotify.error.rate-limited":"Spotify が混雑しています。{retryAfter} 秒後に再試行してください。","spotify.error.credentials-unavailable":"Spotify の資格情報を安全に保存できません。"
+  });
+  Object.assign(FRENCH, {
+    "playback.external":"Spotify","playback.externalStatus":"Connectez Spotify ou contrôlez la lecture Spotify Connect ici.","playback.externalAnnouncement":"Spotify sélectionné. Infinite Lo-Fi a libéré les commandes multimédias du système.",
+    "spotify.title":"Spotify Connect","spotify.setupHint":"Créez une application Spotify, enregistrez l’URI de boucle ci-dessous, puis collez son Client ID. Aucun Client Secret n’est utilisé.","spotify.dashboard":"Tableau développeur","spotify.clientId":"Client ID","spotify.clientIdPlaceholder":"Coller le Client ID Spotify","spotify.connect":"Connecter Spotify","spotify.cancelConnect":"Annuler","spotify.pilotNote":"Pilote privé : Spotify Premium et la liste autorisée peuvent être requis.","spotify.connectedAs":"Compte connecté","spotify.refresh":"Actualiser","spotify.open":"Ouvrir Spotify","spotify.disconnect":"Déconnecter","spotify.playlist":"Playlist","spotify.device":"Appareil","spotify.controls":"Commandes de lecture Spotify","spotify.previous":"Précédent","spotify.next":"Suivant","spotify.seek":"Position","spotify.volume":"Volume","spotify.connected":"Spotify connecté.","spotify.disconnected":"Spotify déconnecté.","spotify.connecting":"Terminez l’autorisation dans votre navigateur…","spotify.connectCancelled":"Connexion Spotify annulée.","spotify.selectPlaylist":"Choisir une playlist","spotify.activeDevice":"Utiliser l’appareil actif","spotify.play":"Lire","spotify.pause":"Pause",
+    "spotify.error.generic":"Spotify n’a pas pu terminer cette action.","spotify.error.invalid-client-id":"Saisissez un Client ID Spotify valide.","spotify.error.encryption-unavailable":"Le stockage sécurisé des identifiants est indisponible.","spotify.error.authorization-denied":"L’autorisation Spotify a été refusée.","spotify.error.authorization-timeout":"L’autorisation Spotify a expiré.","spotify.error.network-error":"Impossible de joindre Spotify. Vérifiez votre connexion.","spotify.error.reauthorization-required":"Reconnectez Spotify pour continuer.","spotify.error.forbidden":"Vérifiez Premium et la liste autorisée.","spotify.error.no-active-device":"Ouvrez Spotify sur un appareil et lancez une lecture, puis réessayez.","spotify.error.rate-limited":"Spotify est occupé. Réessayez dans {retryAfter} secondes.","spotify.error.credentials-unavailable":"Impossible de stocker les identifiants Spotify en sécurité."
+  });
+  Object.assign(KOREAN, {
+    "playback.external":"Spotify","playback.externalStatus":"Spotify를 연결하거나 여기서 Spotify Connect 재생을 제어하세요.","playback.externalAnnouncement":"Spotify를 선택했습니다. Infinite Lo-Fi가 시스템 미디어 제어를 해제했습니다.",
+    "spotify.title":"Spotify Connect","spotify.setupHint":"Spotify 앱을 만들고 아래 루프백 URI를 등록한 뒤 Client ID를 붙여 넣으세요. Client Secret은 사용하지 않습니다.","spotify.dashboard":"개발자 대시보드","spotify.clientId":"Client ID","spotify.clientIdPlaceholder":"Spotify Client ID 붙여넣기","spotify.connect":"Spotify 연결","spotify.cancelConnect":"취소","spotify.pilotNote":"비공개 시험: Spotify Premium 및 허용 목록 등록이 필요할 수 있습니다.","spotify.connectedAs":"연결된 계정","spotify.refresh":"새로 고침","spotify.open":"Spotify 열기","spotify.disconnect":"연결 해제","spotify.playlist":"플레이리스트","spotify.device":"기기","spotify.controls":"Spotify 재생 제어","spotify.previous":"이전 곡","spotify.next":"다음 곡","spotify.seek":"재생 위치","spotify.volume":"볼륨","spotify.connected":"Spotify가 연결되었습니다.","spotify.disconnected":"Spotify 연결이 해제되었습니다.","spotify.connecting":"브라우저에서 인증을 완료하세요…","spotify.connectCancelled":"Spotify 연결을 취소했습니다.","spotify.selectPlaylist":"플레이리스트 선택","spotify.activeDevice":"활성 기기 사용","spotify.play":"재생","spotify.pause":"일시 정지",
+    "spotify.error.generic":"Spotify가 작업을 완료하지 못했습니다.","spotify.error.invalid-client-id":"유효한 Spotify Client ID를 입력하세요.","spotify.error.encryption-unavailable":"안전한 자격 증명 저장소를 사용할 수 없습니다.","spotify.error.authorization-denied":"Spotify 인증이 거부되었습니다.","spotify.error.authorization-timeout":"Spotify 인증 시간이 초과되었습니다.","spotify.error.network-error":"Spotify에 연결할 수 없습니다. 네트워크를 확인하세요.","spotify.error.reauthorization-required":"Spotify를 다시 연결하세요.","spotify.error.forbidden":"Premium 및 허용 목록을 확인하세요.","spotify.error.no-active-device":"기기에서 Spotify를 열고 한 번 재생한 뒤 다시 시도하세요.","spotify.error.rate-limited":"Spotify가 사용 중입니다. {retryAfter}초 후 다시 시도하세요.","spotify.error.credentials-unavailable":"Spotify 자격 증명을 안전하게 저장할 수 없습니다."
+  });
+  Object.assign(SPANISH, {
+    "playback.external":"Spotify","playback.externalStatus":"Conecta Spotify o controla aquí la reproducción de Spotify Connect.","playback.externalAnnouncement":"Spotify seleccionado. Infinite Lo-Fi liberó los controles multimedia del sistema.",
+    "spotify.title":"Spotify Connect","spotify.setupHint":"Crea una app de Spotify, registra el URI de retorno local indicado abajo y pega su Client ID. No se usa Client Secret.","spotify.dashboard":"Panel de desarrollador","spotify.clientId":"Client ID","spotify.clientIdPlaceholder":"Pegar Client ID de Spotify","spotify.connect":"Conectar Spotify","spotify.cancelConnect":"Cancelar","spotify.pilotNote":"Piloto privado: pueden ser necesarios Spotify Premium y la lista de permitidos.","spotify.connectedAs":"Cuenta conectada","spotify.refresh":"Actualizar","spotify.open":"Abrir Spotify","spotify.disconnect":"Desconectar","spotify.playlist":"Lista","spotify.device":"Dispositivo","spotify.controls":"Controles de Spotify","spotify.previous":"Anterior","spotify.next":"Siguiente","spotify.seek":"Posición","spotify.volume":"Volumen","spotify.connected":"Spotify conectado.","spotify.disconnected":"Spotify desconectado.","spotify.connecting":"Completa la autorización en el navegador…","spotify.connectCancelled":"Conexión con Spotify cancelada.","spotify.selectPlaylist":"Elegir una lista","spotify.activeDevice":"Usar el dispositivo activo","spotify.play":"Reproducir","spotify.pause":"Pausa",
+    "spotify.error.generic":"Spotify no pudo completar la acción.","spotify.error.invalid-client-id":"Introduce un Client ID de Spotify válido.","spotify.error.encryption-unavailable":"El almacenamiento seguro de credenciales no está disponible.","spotify.error.authorization-denied":"Se rechazó la autorización de Spotify.","spotify.error.authorization-timeout":"La autorización de Spotify expiró.","spotify.error.network-error":"No se pudo acceder a Spotify. Comprueba la conexión.","spotify.error.reauthorization-required":"Vuelve a conectar Spotify.","spotify.error.forbidden":"Comprueba Premium y la lista de permitidos.","spotify.error.no-active-device":"Abre Spotify en un dispositivo y reproduce algo una vez; después reintenta.","spotify.error.rate-limited":"Spotify está ocupado. Reintenta en {retryAfter} segundos.","spotify.error.credentials-unavailable":"No se pudieron guardar de forma segura las credenciales de Spotify."
   });
   TRANSLATIONS["zh-CN"] = completePack(TRANSLATIONS["zh-CN"]);
   TRANSLATIONS["zh-TW"] = completePack(Object.fromEntries(

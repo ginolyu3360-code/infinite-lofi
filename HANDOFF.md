@@ -1,6 +1,6 @@
 # Infinite Lo-Fi Handoff
 
-Updated: 2026-09-25
+Updated: 2026-09-28
 
 ## Start of the next session
 
@@ -16,10 +16,19 @@ Updated: 2026-09-25
 - [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) merged as `2347446`; exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed both platforms. The three replacement executables, notices, source pins, and future source-archive staging are on `main`.
 - `npm run start:local` checks the committed tree and local edits before opening a packaged app; `npm run ensure:local` updates it without opening. This is launch-time freshness, not an automatic post-commit build. The current local Universal package was verified against the v1.5.3 release commit's tree.
 - The current player supports bundled music, selected local audio/video folders, persistent Queue order, Repeat One, Shuffle, Mini controls, audio fades, ambient sound, and native media controls. Video supports native containers and on-demand cached WebM compatibility copies; video can remain audio-only or appear in the Scene background without resetting playback.
-- Reader combines documents from the current media folder and an independent reading folder, locally and read-only. External Player Mode is a source/ownership switch, not a provider account or embedded third-party playback integration.
+- Reader combines documents from the current media folder and an independent reading folder, locally and read-only. The published v1.5.3 External Player Mode remains a source/ownership switch without a provider account.
 - Optional lyrics prefer same-name `.lrc` and embedded lyrics. For Chinese tracks, online lookup tries QQ Music before LRCLIB; other tracks use LRCLIB before QQ Music, with lyrics.ovh fallback. Lookup remains opt-in and does not upload local audio or paths.
 - macOS native Now Playing/AirPods ownership is deliberate. Local playback registers Infinite Lo-Fi as the media owner so paused AirPods Play resumes this app instead of Apple Music.
 - Releases remain unsigned and unnotarized. Do not imply Apple signing or notarization.
+
+## Current local work — Spotify private pilot
+
+- Branch: `codex/spotify-provider-pilot`, based on the current v1.5.3-era `main`, with draft [PR #47](https://github.com/ginolyu3360-code/infinite-lofi/pull/47). The work is an unreleased development pilot; do not describe it as part of v1.5.3.
+- The pilot uses Spotify Authorization Code with PKCE, an exact ephemeral `http://127.0.0.1:<port>/callback`, minimal playlist/playback scopes, and no Client Secret. Credentials are encrypted with Electron `safeStorage`; bearer tokens and Web API calls stay in the main process.
+- The UI can connect/cancel/disconnect, browse playlists, choose a Connect device, inspect current playback, and use supported transport, seek, and volume controls. Restricted devices disable unsupported controls. Spotify continues to own and render audio; no streaming SDK, DRM workaround, download, proxy, or audio cache is included.
+- Automated evidence: 285 tests, JavaScript syntax checks, and isolated development Electron smoke all pass. The smoke covers both Spotify setup and connected views while preserving the existing Local → External → Local media-ownership and local-video behavior.
+- Draft PR head `2437c7d` passed [CI 36370864474](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36370864474), including checks, development smoke, packaging, and packaged smoke on macOS Universal and Windows x64.
+- Still required before merge: live Premium development-mode OAuth and device-control acceptance. Final local, independent, and two-platform CI reviews are complete. A tag or public Release requires separate explicit authorization.
 
 ## Historical provider-integration proposal (written before v1.5.2)
 

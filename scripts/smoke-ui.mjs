@@ -1186,6 +1186,9 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
     const externalState = JSON.parse(localStorage.getItem('infiniteLofiState'));
+    const spotifyPanel = document.querySelector('#spotifyPanel');
+    const spotifyDisconnectedView = document.querySelector('#spotifyDisconnectedView');
+    const spotifyConnectedView = document.querySelector('#spotifyConnectedView');
     const external = {
       saved: externalState.player.sourceMode,
       playerPaused: player.paused,
@@ -1199,7 +1202,13 @@ try {
       ].every((selector) => document.querySelector(selector).disabled),
       nativeOwned: await window.desktopApp?.getNativeMediaSessionAvailability?.(),
       browserTitle: navigator.mediaSession?.metadata?.title || '',
-      browserState: navigator.mediaSession?.playbackState || 'none'
+      browserState: navigator.mediaSession?.playbackState || 'none',
+      spotifyPanelVisible: !spotifyPanel.hidden,
+      spotifySetupVisible: !spotifyDisconnectedView.hidden,
+      spotifyConnectedHidden: spotifyConnectedView.hidden,
+      spotifyLabel: externalButton.textContent.trim(),
+      connectButtonHeight: document.querySelector('#spotifyConnectBtn').getBoundingClientRect().height,
+      noClientIdInState: !JSON.stringify(externalState).toLowerCase().includes('clientid')
     };
 
     localButton.click();
@@ -1970,6 +1979,12 @@ try {
     playbackSourceResult.external.nativeOwned === true ||
     playbackSourceResult.external.browserTitle ||
     playbackSourceResult.external.browserState !== 'none' ||
+    !playbackSourceResult.external.spotifyPanelVisible ||
+    !playbackSourceResult.external.spotifySetupVisible ||
+    !playbackSourceResult.external.spotifyConnectedHidden ||
+    playbackSourceResult.external.spotifyLabel !== 'Spotify' ||
+    playbackSourceResult.external.connectButtonHeight < 44 ||
+    !playbackSourceResult.external.noClientIdInState ||
     playbackSourceResult.local.saved !== 'local' ||
     !playbackSourceResult.local.playerPaused ||
     playbackSourceResult.local.panelMode !== 'local' ||

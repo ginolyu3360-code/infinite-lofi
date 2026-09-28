@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added an unreleased Spotify private-pilot adapter using Authorization Code with PKCE, OS-encrypted credentials, main-process-only tokens, and exact loopback redirects without a client secret
+- Added official Web API playlist browsing, Connect-device selection, current-playback status, transport, seek, volume, refresh, disconnect, rate-limit handling, and capability-aware device restrictions
+- Preserved provider-owned audio and operating-system media ownership; Infinite Lo-Fi does not download, proxy, decrypt, or embed Spotify audio
+- Added seven-language setup/error copy, a hardened allowlisted IPC surface, race-safe refresh/disconnect/listener-start behavior, 285 automated tests, and development Electron smoke coverage
+- Kept the pilot unreleased pending a real Premium development-mode account check plus packaged macOS and Windows acceptance
+
 ## 1.5.3 — 2026-09-25
 
 - Replaced the three bundled FFmpeg programs with source-pinned macOS x64/arm64 and Windows x64 builds using only the reviewed VP8 and Opus dependencies, with GPL, nonfree, and version-3 configure options disabled
