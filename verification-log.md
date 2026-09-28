@@ -5,7 +5,7 @@
 - Added a default-off fixed system-wide timer shortcut and default-off Mini Mode pinning without changing schema v5. Preferences are included in validated backups and old state defaults safely to off.
 - The main process validates the trusted sender and exact boolean payload, owns the fixed accelerator, handles conflicts without failing startup, and cleans up registration on disable/quit. A renderer-ready queue supports the no-window macOS path without showing or focusing the restored window.
 - `npm run check` passes all 200 tests plus syntax, FFmpeg-policy, and stylesheet checks. Both the isolated development Electron smoke and the final packaged-app smoke pass the full responsive/accessibility/media suite, including shortcut state, Mini pinning, and 360 × 200 containment.
-- The final unsigned macOS Universal package builds successfully; `file` and `lipo` confirm both `x86_64` and `arm64`. The independent macOS/Windows PR CI jobs remain the merge gate; record the PR and CI result here once available.
+- The final unsigned macOS Universal package builds successfully; `file` and `lipo` confirm both `x86_64` and `arm64`. Delivery [PR #48](https://github.com/ginolyu3360-code/infinite-lofi/pull/48) passed both independent jobs in [CI run 36397012579](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36397012579): macOS Universal and Windows x64 each completed checks, development smoke, packaging, and packaged smoke.
 
 ## 2026-09-25 — v1.5.3 release completed
 
