@@ -14,7 +14,7 @@ Status: implemented and locally verified on `codex/spotify-provider-pilot` on 20
 - [x] Add playlist browsing, Connect-device selection, current-playback status, play/pause/previous/next, seek, volume, refresh, dashboard/open-player links, and capability-aware restricted-device states.
 - [x] Add seven-language setup/error copy, 285 automated tests, and development Electron smoke coverage without widening the renderer CSP.
 - [ ] Complete a real Spotify Premium development-mode authorization and playback-control acceptance pass.
-- [ ] Pass packaged macOS Universal and Windows x64 smoke/CI before merge.
+- [x] Pass packaged macOS Universal and Windows x64 smoke/CI on draft PR #47.
 - [ ] Decide whether a later public product can satisfy Spotify quota, brand, policy, and commercial requirements. The current implementation is a private pilot only.
 
 The sections below preserve earlier phase milestones; their contemporary-looking status statements describe those historical phases, not the current published baseline.

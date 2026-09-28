@@ -23,11 +23,12 @@ Updated: 2026-09-28
 
 ## Current local work — Spotify private pilot
 
-- Branch: `codex/spotify-provider-pilot`, based on the current v1.5.3-era `main`. The work is an unreleased development pilot; do not describe it as part of v1.5.3.
+- Branch: `codex/spotify-provider-pilot`, based on the current v1.5.3-era `main`, with draft [PR #47](https://github.com/ginolyu3360-code/infinite-lofi/pull/47). The work is an unreleased development pilot; do not describe it as part of v1.5.3.
 - The pilot uses Spotify Authorization Code with PKCE, an exact ephemeral `http://127.0.0.1:<port>/callback`, minimal playlist/playback scopes, and no Client Secret. Credentials are encrypted with Electron `safeStorage`; bearer tokens and Web API calls stay in the main process.
 - The UI can connect/cancel/disconnect, browse playlists, choose a Connect device, inspect current playback, and use supported transport, seek, and volume controls. Restricted devices disable unsupported controls. Spotify continues to own and render audio; no streaming SDK, DRM workaround, download, proxy, or audio cache is included.
 - Automated evidence: 285 tests, JavaScript syntax checks, and isolated development Electron smoke all pass. The smoke covers both Spotify setup and connected views while preserving the existing Local → External → Local media-ownership and local-video behavior.
-- Still required before merge: live Premium development-mode OAuth and device-control acceptance plus passing packaged macOS Universal and Windows x64 PR CI. Final local and independent reviews are complete. A tag or public Release requires separate explicit authorization.
+- Draft PR head `2437c7d` passed [CI 36370864474](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36370864474), including checks, development smoke, packaging, and packaged smoke on macOS Universal and Windows x64.
+- Still required before merge: live Premium development-mode OAuth and device-control acceptance. Final local, independent, and two-platform CI reviews are complete. A tag or public Release requires separate explicit authorization.
 
 ## Historical provider-integration proposal (written before v1.5.2)
 

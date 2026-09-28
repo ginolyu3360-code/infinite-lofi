@@ -6,7 +6,8 @@
 - Added official Spotify Authorization Code with PKCE, exact ephemeral `127.0.0.1` loopback handling, minimal playlist/playback scopes, OS-encrypted credential storage, refresh deduplication, cancellation, and disconnect-vs-refresh generation protection. Client secrets are neither requested nor stored; bearer tokens never cross into the renderer.
 - Added main-process Web API access, stable sanitized IPC errors, playlist/device/current-playback normalization, Connect transport/seek/volume controls, rate-limit reporting, device capability restrictions, and a seven-language private-pilot UI. Spotify remains the audio and system-media owner; no provider audio is downloaded, proxied, decrypted, or cached.
 - `npm test` passed all 285 tests. `node scripts/check-syntax.mjs` passed. The isolated development Electron smoke passed the existing application suite plus Spotify setup/connected-state visibility, 44 px control sizing, and confirmation that Client ID is not written into local application state.
-- A real Spotify Premium development-mode login and playlist/device playback exercise remain pending. Packaged macOS Universal and Windows x64 evidence must come from the branch CI before merge. The feature is not approved for public distribution.
+- Draft [PR #47](https://github.com/ginolyu3360-code/infinite-lofi/pull/47) head `2437c7d` passed [CI 36370864474](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36370864474) on both Windows x64 and macOS Universal. Each job passed locked installation, 285 checks, development Electron smoke, native packaging, and packaged-app smoke.
+- A real Spotify Premium development-mode login and playlist/device playback exercise remain pending. The feature is intentionally left as a draft and is not approved for merge or public distribution until that acceptance check is complete.
 
 ## 2026-09-25 — v1.5.3 release completed
 
