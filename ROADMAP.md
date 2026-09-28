@@ -4,6 +4,19 @@
 
 Version 1.5.3 is the latest [published release](https://github.com/ginolyu3360-code/infinite-lofi/releases/tag/v1.5.3), after [PR #45](https://github.com/ginolyu3360-code/infinite-lofi/pull/45), passing exact-merge main CI, and a successful two-platform Release workflow. [PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) replaced the bundled FFmpeg executables with [source-pinned builds](docs/ffmpeg-replacement.md), notices, and corresponding source assets. The prior v1.5.2 Release—External Player Mode foundation, local video compatibility conversion, read-only Reader, and Chinese-lyrics QQ Music priority—remains available but its original FFmpeg binaries were not changed; see the [historical assessment](docs/ffmpeg-bundle-assessment.md). Releases remain unsigned and unnotarized.
 
+## Phase 5 — Spotify private provider pilot
+
+Status: implemented and locally verified on `codex/spotify-provider-pilot` on 2026-09-28; not merged or released.
+
+- [x] Define a provider-neutral asynchronous playback contract while preserving Local/External media-ownership behavior.
+- [x] Implement Spotify Authorization Code with PKCE using an exact `127.0.0.1` loopback callback, minimal playlist/playback scopes, no client secret, OS-encrypted credentials, refresh deduplication, and disconnect race protection.
+- [x] Keep Spotify HTTP calls and bearer tokens in the Electron main process behind a trusted, allowlisted IPC surface.
+- [x] Add playlist browsing, Connect-device selection, current-playback status, play/pause/previous/next, seek, volume, refresh, dashboard/open-player links, and capability-aware restricted-device states.
+- [x] Add seven-language setup/error copy, 285 automated tests, and development Electron smoke coverage without widening the renderer CSP.
+- [ ] Complete a real Spotify Premium development-mode authorization and playback-control acceptance pass.
+- [ ] Pass packaged macOS Universal and Windows x64 smoke/CI before merge.
+- [ ] Decide whether a later public product can satisfy Spotify quota, brand, policy, and commercial requirements. The current implementation is a private pilot only.
+
 The sections below preserve earlier phase milestones; their contemporary-looking status statements describe those historical phases, not the current published baseline.
 
 Version 1.4.1 adds large-library Queue management, Repeat One and Shuffle, Mini transport controls, responsive timer improvements, a larger window-drag surface, and related interaction repairs. Feature [PR #26](https://github.com/ginolyu3360-code/infinite-lofi/pull/26) merged as `5bb67c6`; release [PR #27](https://github.com/ginolyu3360-code/infinite-lofi/pull/27) merged as `089bdf6`, passed exact-head main CI `34865480996`, and the annotated `v1.4.1` tag triggered successful Release workflow `34866263548`. Distribution remains an unsigned Universal DMG/ZIP with SHA-256 checksums.

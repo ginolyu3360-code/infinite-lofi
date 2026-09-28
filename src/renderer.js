@@ -29,6 +29,9 @@ if (!window.InfiniteLofiStorage) {
 if (!window.InfiniteLofiPlaybackBackends) {
   throw new Error("Infinite Lo-Fi playback backend helpers failed to load");
 }
+if (!window.InfiniteLofiSpotifyController) {
+  throw new Error("Infinite Lo-Fi Spotify controller failed to load");
+}
 if (!window.InfiniteLofiLocalMedia) {
   throw new Error("Infinite Lo-Fi local media helpers failed to load");
 }
@@ -94,6 +97,7 @@ const {
   createPlaybackBackend,
   normalizePlaybackSourceMode
 } = window.InfiniteLofiPlaybackBackends;
+const { createSpotifyController } = window.InfiniteLofiSpotifyController;
 const {
   normalizeMediaKind,
   normalizeVideoDisplayMode,
@@ -146,6 +150,25 @@ const playerPanel = document.getElementById("playerPanel");
 const localPlaybackSourceBtn = document.getElementById("localPlaybackSourceBtn");
 const externalPlaybackSourceBtn = document.getElementById("externalPlaybackSourceBtn");
 const playbackSourceStatus = document.getElementById("playbackSourceStatus");
+const spotifyPanel = document.getElementById("spotifyPanel");
+const spotifyDisconnectedView = document.getElementById("spotifyDisconnectedView");
+const spotifyConnectedView = document.getElementById("spotifyConnectedView");
+const spotifyClientIdInput = document.getElementById("spotifyClientIdInput");
+const spotifyConnectBtn = document.getElementById("spotifyConnectBtn");
+const spotifyCancelConnectBtn = document.getElementById("spotifyCancelConnectBtn");
+const spotifyDashboardBtn = document.getElementById("spotifyDashboardBtn");
+const spotifyProfileText = document.getElementById("spotifyProfileText");
+const spotifyStatusText = document.getElementById("spotifyStatusText");
+const spotifyPlaylistSelect = document.getElementById("spotifyPlaylistSelect");
+const spotifyDeviceSelect = document.getElementById("spotifyDeviceSelect");
+const spotifyRefreshBtn = document.getElementById("spotifyRefreshBtn");
+const spotifyDisconnectBtn = document.getElementById("spotifyDisconnectBtn");
+const spotifyOpenBtn = document.getElementById("spotifyOpenBtn");
+const spotifyPreviousBtn = document.getElementById("spotifyPreviousBtn");
+const spotifyPlayPauseBtn = document.getElementById("spotifyPlayPauseBtn");
+const spotifyNextBtn = document.getElementById("spotifyNextBtn");
+const spotifySeekRange = document.getElementById("spotifySeekRange");
+const spotifyVolumeRange = document.getElementById("spotifyVolumeRange");
 const videoDisplayControl = document.getElementById("videoDisplayControl");
 const videoBackgroundToggle = document.getElementById("videoBackgroundToggle");
 const mediaPlaybackStatus = document.getElementById("mediaPlaybackStatus");
@@ -532,6 +555,40 @@ const ambienceController = createAmbienceController({
   t
 });
 
+const spotifyController = createSpotifyController({
+  api: window.desktopApp?.spotify,
+  openExternal: window.desktopApp?.openExternalUrl,
+  elements: {
+    document,
+    disconnectedView: spotifyDisconnectedView,
+    connectedView: spotifyConnectedView,
+    clientIdInput: spotifyClientIdInput,
+    connectButton: spotifyConnectBtn,
+    cancelConnectButton: spotifyCancelConnectBtn,
+    dashboardButton: spotifyDashboardBtn,
+    profileText: spotifyProfileText,
+    statusText: spotifyStatusText,
+    playlistSelect: spotifyPlaylistSelect,
+    deviceSelect: spotifyDeviceSelect,
+    refreshButton: spotifyRefreshBtn,
+    disconnectButton: spotifyDisconnectBtn,
+    openSpotifyButton: spotifyOpenBtn,
+    previousButton: spotifyPreviousBtn,
+    playPauseButton: spotifyPlayPauseBtn,
+    nextButton: spotifyNextBtn,
+    seekRange: spotifySeekRange,
+    volumeRange: spotifyVolumeRange
+  },
+  announce: announceStatus,
+  onPlaybackState: (state) => {
+    if (playbackSourceMode !== "external") return;
+    const title = state?.track?.name || "Spotify";
+    const artists = Array.isArray(state?.track?.artists) ? state.track.artists.join(", ") : "";
+    trackLabel.textContent = artists ? `${title} · ${artists}` : title;
+  },
+  t
+});
+
 const localPlaybackBackend = createPlaybackBackend({
   id: "local",
   mode: "local",
@@ -561,15 +618,43 @@ const localPlaybackBackend = createPlaybackBackend({
 });
 
 const externalPlaybackBackend = createPlaybackBackend({
-  id: "external",
+  id: "spotify",
   mode: "external",
-  label: "External player",
-  capabilities: {},
+  label: "Spotify",
+  capabilities: {
+    open: true,
+    connect: true,
+    playlists: true,
+    currentTrack: true,
+    play: true,
+    pause: true,
+    previous: true,
+    next: true,
+    seek: true,
+    volume: true
+  },
   async activate() {
     mediaSessionController.releaseOwnership();
     await window.desktopApp?.setNativeMediaSessionOwnership?.(false);
+    spotifyController.activate();
     return true;
-  }
+  },
+  async deactivate() {
+    await spotifyController.pause();
+    spotifyController.deactivate();
+    return true;
+  },
+  connect: (clientId) => spotifyController.connect(clientId),
+  disconnect: () => spotifyController.disconnect(),
+  getAuthState: () => spotifyController.getAuthState(),
+  listPlaylists: () => spotifyController.refresh(),
+  getPlaybackState: () => spotifyController.getPlaybackState(),
+  play: () => spotifyController.play(),
+  pause: () => spotifyController.pause(),
+  previous: () => spotifyController.previous(),
+  next: () => spotifyController.next(),
+  seek: (fraction) => spotifyController.seekFraction(fraction),
+  volume: (percent) => spotifyController.setVolume(percent)
 });
 
 const playbackBackendByMode = Object.freeze({
@@ -633,6 +718,7 @@ function renderPlaybackSource() {
   localPlaybackSourceBtn.disabled = playbackSourceSwitching;
   externalPlaybackSourceBtn.disabled = playbackSourceSwitching;
   playbackSourceStatus.textContent = t(isLocal ? "playback.localStatus" : "playback.externalStatus");
+  if (spotifyPanel) spotifyPanel.hidden = isLocal;
   [
     playPauseBtn,
     nextTrackBtn,
@@ -653,6 +739,7 @@ function renderPlaybackSource() {
   } else if (lyricsEnabled) {
     lyricsController.setEnabled(true, { persist: false });
   }
+  spotifyController.render();
   renderLocalVideoUi();
 }
 
@@ -674,6 +761,9 @@ async function setPlaybackSourceMode(rawMode, options = {}) {
       });
     }
     playbackSourceMode = nextMode;
+    if (nextMode === "local" && currentLocalTrack) {
+      trackLabel.textContent = currentLocalTrack.label || currentLocalTrack.title || t("player.noPlayable");
+    }
     lyricsController.setTrack(nextMode === "local" ? currentLocalTrack : null);
     applyBackground();
     if (announce) {
@@ -696,23 +786,26 @@ async function setPlaybackSourceMode(rawMode, options = {}) {
 }
 
 function playSelectedSource() {
-  return playbackSourceMode === "local" ? playMusic() : Promise.resolve(false);
+  return playbackSourceMode === "local" ? playMusic() : externalPlaybackBackend.play();
 }
 
 function pauseSelectedSource() {
-  return playbackSourceMode === "local" ? pauseMusic() : Promise.resolve(false);
+  return playbackSourceMode === "local" ? pauseMusic() : externalPlaybackBackend.pause();
 }
 
 function toggleSelectedSource() {
-  return playbackSourceMode === "local" ? togglePlayback() : false;
+  if (playbackSourceMode === "local") return togglePlayback();
+  return spotifyController.isPlaying()
+    ? externalPlaybackBackend.pause()
+    : externalPlaybackBackend.play();
 }
 
 function nextSelectedSource() {
-  return playbackSourceMode === "local" ? switchTrack() : false;
+  return playbackSourceMode === "local" ? switchTrack() : externalPlaybackBackend.next();
 }
 
 function previousSelectedSource() {
-  return playbackSourceMode === "local" ? prevTrack() : false;
+  return playbackSourceMode === "local" ? prevTrack() : externalPlaybackBackend.previous();
 }
 
 function renderAudioTransitionSettings() {
@@ -985,6 +1078,7 @@ function refreshLocalizedUi() {
   refreshNotesLanguage?.();
   refreshPlayerLanguage?.();
   renderPlaybackSource();
+  spotifyController.render();
   lyricsController.refreshLanguage();
   ambienceController.refreshLanguage();
   renderAudioTransitionSettings();
@@ -2179,6 +2273,8 @@ function toggleShortcutHelp(forceOpen) {
 
 
 async function init() {
+  spotifyController.bind();
+  await spotifyController.initialize();
   await setPlaybackSourceMode(playbackSourceMode, {
     persist: false,
     announce: false,
@@ -2373,6 +2469,7 @@ async function init() {
         saveNotesNow();
         saveTimerRuntime();
         persistPlayerState();
+        spotifyController.destroy();
         settleMusicTransition();
         ambienceController.destroy();
       }

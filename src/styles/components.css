@@ -771,6 +771,125 @@ body.lyrics-enabled #mainRightColumn {
   opacity: 0.52;
 }
 
+.spotify-panel {
+  margin-top: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  background: rgba(5, 8, 6, 0.28);
+}
+
+.spotify-panel-heading,
+.spotify-account-row,
+.spotify-setup-actions,
+.spotify-selectors,
+.spotify-sliders,
+.spotify-transport,
+.spotify-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.spotify-panel-heading,
+.spotify-account-row {
+  justify-content: space-between;
+}
+
+.spotify-panel h3,
+.spotify-panel p {
+  margin: 0;
+}
+
+.spotify-panel h3 {
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.spotify-status,
+.spotify-setup,
+.spotify-connected,
+.spotify-panel label,
+.spotify-panel small,
+.spotify-panel code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+}
+
+.spotify-status,
+.spotify-setup,
+.spotify-panel small,
+.spotify-panel label span {
+  color: var(--ink-muted);
+}
+
+.spotify-setup,
+.spotify-connected {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.spotify-setup code {
+  width: fit-content;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.4rem;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.25);
+  user-select: all;
+}
+
+.spotify-setup-actions,
+.spotify-account-actions {
+  flex-wrap: wrap;
+}
+
+.spotify-client-field,
+.spotify-selectors label,
+.spotify-sliders label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.spotify-client-field {
+  flex: 1 1 15rem;
+}
+
+.spotify-client-field input,
+.spotify-selectors select {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.spotify-panel .control-btn {
+  min-height: 2.75rem;
+}
+
+.spotify-selectors,
+.spotify-sliders {
+  align-items: end;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.spotify-transport {
+  justify-content: center;
+}
+
+.spotify-sliders input {
+  width: 100%;
+}
+
+.spotify-connected[hidden],
+.spotify-setup[hidden],
+.spotify-panel[hidden] {
+  display: none;
+}
+
 @media (max-width: 620px) {
   .playback-source-row {
     align-items: flex-start;
@@ -779,6 +898,18 @@ body.lyrics-enabled #mainRightColumn {
 
   .playback-source-status {
     text-align: left;
+  }
+
+  .spotify-panel-heading,
+  .spotify-account-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .spotify-selectors,
+  .spotify-sliders {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 }
 

@@ -1,6 +1,6 @@
 # Third-party music feasibility
 
-Updated: 2026-09-22
+Updated: 2026-09-28
 
 This report uses current official documentation only. It intentionally excludes copied browser cookies, private or reverse-engineered endpoints, audio-URL extraction, unofficial playback proxies, DRM workarounds, and permanent caching of provider audio.
 
@@ -25,9 +25,9 @@ Playlist metadata never grants playback rights. A provider app being available o
 
 ## Recommendation
 
-1. Ship the provider-neutral Local/External Player Mode foundation first. External mode must pause local music, clear browser Media Session state, destroy the macOS native remote-command bridge, and leave provider audio/system ownership untouched. Returning to Local recreates ownership but does not autoplay.
-2. Do not expose provider login, playlists, or playback yet. The first provider materially changes credentials, server requirements, distribution limits, and product copy.
-3. If the goal is a private technical pilot, Spotify is the clearest first adapter because PKCE, playlists, current playback, and Connect controls are documented. Treat the five-user Premium development limit as a hard product constraint.
+1. Keep the provider-neutral Local/External Player Mode foundation. External mode must pause local music, clear browser Media Session state, destroy the macOS native remote-command bridge, and leave provider audio/system ownership untouched. Returning to Local recreates ownership but does not autoplay.
+2. A Spotify private technical pilot is now implemented on the local `codex/spotify-provider-pilot` branch. It uses official PKCE and Web API surfaces for the current profile, playlists, current playback, devices, and Connect controls; it requests `user-read-private` only because Spotify requires it for `GET /me`, and it does not embed provider audio. It remains unreleased until live-account and packaged-platform acceptance complete.
+3. Treat Spotify's Premium development-mode and five-user allowlist as a hard product constraint. Do not broaden the pilot into a public product without a fresh quota, branding, policy, and commercial review.
 4. If the goal is in-app Apple Music playback, first accept Apple Developer membership, a secure developer-token strategy, active-subscriber-only playback, and an Electron compatibility spike. Do not embed the Media Services private key.
 5. QQ Music and NetEase Cloud Music remain external-player-only unless the provider grants a suitable official desktop partnership.
 

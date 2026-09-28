@@ -1,5 +1,13 @@
 # Verification Log
 
+## 2026-09-28 — Spotify private-pilot implementation verified locally
+
+- Implemented on `codex/spotify-provider-pilot` from public v1.5.3-era `main`. This is private-pilot development work; no merge, tag, or Release is implied by this entry.
+- Added official Spotify Authorization Code with PKCE, exact ephemeral `127.0.0.1` loopback handling, minimal playlist/playback scopes, OS-encrypted credential storage, refresh deduplication, cancellation, and disconnect-vs-refresh generation protection. Client secrets are neither requested nor stored; bearer tokens never cross into the renderer.
+- Added main-process Web API access, stable sanitized IPC errors, playlist/device/current-playback normalization, Connect transport/seek/volume controls, rate-limit reporting, device capability restrictions, and a seven-language private-pilot UI. Spotify remains the audio and system-media owner; no provider audio is downloaded, proxied, decrypted, or cached.
+- `npm test` passed all 285 tests. `node scripts/check-syntax.mjs` passed. The isolated development Electron smoke passed the existing application suite plus Spotify setup/connected-state visibility, 44 px control sizing, and confirmation that Client ID is not written into local application state.
+- A real Spotify Premium development-mode login and playlist/device playback exercise remain pending. Packaged macOS Universal and Windows x64 evidence must come from the branch CI before merge. The feature is not approved for public distribution.
+
 ## 2026-09-25 — v1.5.3 release completed
 
 - [FFmpeg replacement PR #44](https://github.com/ginolyu3360-code/infinite-lofi/pull/44) passed macOS Universal and Windows x64 CI, then squash-merged as `2347446a28e706205d2bc382132464c1e70f1674`. Exact-merge [main CI 36090895177](https://github.com/ginolyu3360-code/infinite-lofi/actions/runs/36090895177) passed checks, development smoke, native packaging, and packaged smoke on both platforms.

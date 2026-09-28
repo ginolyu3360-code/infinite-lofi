@@ -30,6 +30,23 @@ contextBridge.exposeInMainWorld("desktopApp", {
   selectBackgroundImage: () => ipcRenderer.invoke("background:selectImage"),
   selectBackgroundVideo: () => ipcRenderer.invoke("background:selectVideo"),
   getWallpaperBackground: () => ipcRenderer.invoke("background:getWallpaper"),
+  spotify: Object.freeze({
+    getAuthState: () => ipcRenderer.invoke("spotify:getAuthState"),
+    getProfile: () => ipcRenderer.invoke("spotify:getProfile"),
+    connect: (clientId) => ipcRenderer.invoke("spotify:connect", { clientId }),
+    cancelConnect: () => ipcRenderer.invoke("spotify:cancelConnect"),
+    disconnect: () => ipcRenderer.invoke("spotify:disconnect"),
+    listPlaylists: (options) => ipcRenderer.invoke("spotify:listPlaylists", options),
+    getPlaybackState: () => ipcRenderer.invoke("spotify:getPlaybackState"),
+    getDevices: () => ipcRenderer.invoke("spotify:getDevices"),
+    playPlaylist: (contextUri, deviceId) => ipcRenderer.invoke("spotify:playPlaylist", { contextUri, deviceId }),
+    resume: (deviceId) => ipcRenderer.invoke("spotify:resume", { deviceId }),
+    pause: (deviceId) => ipcRenderer.invoke("spotify:pause", { deviceId }),
+    next: (deviceId) => ipcRenderer.invoke("spotify:next", { deviceId }),
+    previous: (deviceId) => ipcRenderer.invoke("spotify:previous", { deviceId }),
+    seek: (positionMs, deviceId) => ipcRenderer.invoke("spotify:seek", { positionMs, deviceId }),
+    setVolume: (percent, deviceId) => ipcRenderer.invoke("spotify:setVolume", { percent, deviceId })
+  }),
   onCommand: (callback) => {
     if (typeof callback !== "function") {
       return;

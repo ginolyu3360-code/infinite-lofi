@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, screen, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, nativeTheme, powerMonitor, safeStorage, screen, shell } = require("electron");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { execFile } = require("child_process");
@@ -16,6 +16,9 @@ const {
   resolveNativeMediaBridgePath
 } = require("./src/native-media-bridge");
 const { createNativeMediaOwnershipController } = require("./src/native-media-ownership");
+const { createProviderCredentialStore } = require("./src/provider-credentials");
+const { createSpotifyProviderService } = require("./src/spotify-provider-service");
+const { registerSpotifyIpc } = require("./src/spotify-ipc");
 
 const testUserDataArgument = process.argv.find((argument) => argument.startsWith("--user-data-dir="));
 const testUserDataDirectory = process.env.INFINITE_LOFI_SMOKE_PROFILE ||
@@ -41,6 +44,7 @@ let lyricsService = null;
 let readerLibrary = null;
 let videoProxyService = null;
 let nativeMediaOwnership = null;
+let spotifyProviderService = null;
 let grantedMusicFolders = new Set();
 let grantedReaderFolders = new Set();
 let trayStatus = {
@@ -83,6 +87,26 @@ function initializeNativeMediaBridge() {
       })
     })
   });
+}
+
+async function initializeSpotifyProvider() {
+  const credentialStore = createProviderCredentialStore({
+    safeStorage,
+    fileSystem: fs.promises,
+    filePath: path.join(app.getPath("userData"), "spotify-credentials.bin")
+  });
+  spotifyProviderService = createSpotifyProviderService({
+    credentialStore,
+    fetchImpl: globalThis.fetch,
+    openExternal: async (authorizeUrl) => {
+      const parsed = new URL(authorizeUrl);
+      if (parsed.origin !== "https://accounts.spotify.com" || parsed.pathname !== "/authorize") {
+        throw Object.assign(new Error("Spotify authorization URL is invalid."), { code: "invalid-authorization-url" });
+      }
+      await shell.openExternal(parsed.href);
+    }
+  });
+  await spotifyProviderService.initialize();
 }
 
 function showMainWindow() {
@@ -255,6 +279,12 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     nativeTheme.themeSource = "dark";
     initializeNativeMediaBridge();
+    try {
+      await initializeSpotifyProvider();
+    } catch (error) {
+      console.error("Spotify provider initialization failed:", error?.code || "provider-unavailable");
+      spotifyProviderService = null;
+    }
     await loadMusicFolderGrants();
     await loadReaderFolderGrants();
     musicLibrary = createMusicLibrary({
@@ -451,6 +481,12 @@ function isTrustedIpcSender(event) {
   const senderUrl = event.senderFrame?.url || event.sender.getURL();
   return isTrustedNavigationUrl(senderUrl, mainDocumentUrl);
 }
+
+registerSpotifyIpc({
+  ipcMain,
+  isTrustedSender: isTrustedIpcSender,
+  getService: () => spotifyProviderService
+});
 
 ipcMain.handle("music:selectFolder", async (event) => {
   if (!isTrustedIpcSender(event)) return null;
@@ -681,6 +717,8 @@ app.on("window-all-closed", () => {
 
 app.on("will-quit", () => {
   videoProxyService?.cancel("app-quit");
+  void spotifyProviderService?.close();
+  spotifyProviderService = null;
   nativeMediaOwnership?.destroy();
   nativeMediaOwnership = null;
 });
